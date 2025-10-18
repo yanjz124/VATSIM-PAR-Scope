@@ -35,8 +35,45 @@ namespace RadarStreamerPlugin
             _vPilot.AircraftAdded += OnAircraftAdded;
             _vPilot.AircraftUpdated += OnAircraftUpdated;
             _vPilot.AircraftDeleted += OnAircraftDeleted;
+            _vPilot.NetworkConnected += OnNetworkConnected;
+            _vPilot.NetworkDisconnected += OnNetworkDisconnected;
+            _vPilot.SessionEnded += OnSessionEnded;
 
             _vPilot.PostDebugMessage("[RadarStreamer] Initialized. Streaming NDJSON over UDP to " + _host + ":" + _port);
+
+            // Optional: emit an initialization status line
+            var initJson = "{\"type\":\"plugin_initialized\",\"t\":" + UnixMs() + ",\"host\":\"" + Escape(_host) + "\",\"port\":" + _port + "}\n";
+            Send(initJson);
+        }
+
+        private void OnNetworkConnected(object sender, NetworkConnectedEventArgs e)
+        {
+            string observer = e.ObserverMode ? "true" : "false";
+            _vPilot.PostDebugMessage("[RadarStreamer] Network connected as " + e.Callsign + " (" + e.TypeCode + ") observer=" + observer);
+
+            var now = UnixMs();
+            var json = new StringBuilder(192)
+                .Append("{\"type\":\"network_connected\"")
+                .Append(",\"t\":").Append(now)
+                .Append(",\"callsign\":\"").Append(Escape(e.Callsign)).Append("\"")
+                .Append(",\"typeCode\":\"").Append(Escape(e.TypeCode)).Append("\"")
+                .Append(",\"observer\":").Append(observer)
+                .Append("}\n").ToString();
+            Send(json);
+        }
+
+        private void OnNetworkDisconnected(object sender, EventArgs e)
+        {
+            _vPilot.PostDebugMessage("[RadarStreamer] Network disconnected");
+            var json = "{\"type\":\"network_disconnected\",\"t\":" + UnixMs() + "}\n";
+            Send(json);
+        }
+
+        private void OnSessionEnded(object sender, EventArgs e)
+        {
+            _vPilot.PostDebugMessage("[RadarStreamer] Session ended (vPilot closing)");
+            var json = "{\"type\":\"session_ended\",\"t\":" + UnixMs() + "}\n";
+            Send(json);
         }
 
         private void OnAircraftAdded(object sender, AircraftAddedEventArgs e)
