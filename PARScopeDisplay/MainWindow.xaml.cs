@@ -280,14 +280,29 @@ namespace PARScopeDisplay
             double pxPerNm = w / totalRangeNm;
             double thresholdX = sensorOffsetNm * pxPerNm;
             int i;
+
+            // Compute touchdown pixel (tdPixel) relative to threshold so we can make TD the origin for distance labels
+            double gsRad = DegToRad(rs.GlideSlopeDeg);
+            double tchLocal = rs.ThrCrossingHgtFt > 0 ? rs.ThrCrossingHgtFt : 0; // in feet
+            double tdOffsetNm = 0; // distance from threshold toward runway (positive value means runway side)
+            if (gsRad > 0.000001 && tchLocal > 0)
+            {
+                double distFt = tchLocal / Math.Tan(gsRad);
+                tdOffsetNm = distFt / 6076.12; // convert to NM
+            }
+            double tdPixel = thresholdX - (tdOffsetNm * pxPerNm);
+
+            // Determine which integer tick corresponds to THR so we can label it
+            int thrIndex = (int)Math.Round((thresholdX - tdPixel) / pxPerNm);
+
             for (i = 0; i <= (int)Math.Floor(rangeNm); i++)
             {
-                double x = thresholdX + i * pxPerNm;
+                double x = tdPixel + i * pxPerNm; // origin now at TD
                 var vline = new Line();
                 vline.X1 = x; vline.Y1 = 0; vline.X2 = x; vline.Y2 = h;
                 vline.Stroke = new SolidColorBrush(Color.FromRgb(30, 100, 30));
                 vline.StrokeThickness = 0.5;
-                // All lines dashed except at TD (0)
+                // All lines dashed except at TD origin
                 if (i != 0)
                 {
                     var dash = new DoubleCollection(); dash.Add(3); dash.Add(4); vline.StrokeDashArray = dash;
@@ -296,7 +311,7 @@ namespace PARScopeDisplay
 
                 var lbl = new TextBlock();
                 lbl.Foreground = Brushes.White; lbl.FontSize = 12;
-                lbl.Text = (i == 0) ? "TD" : (i + "NM");
+                if (i == 0) lbl.Text = "TD"; else if (i == thrIndex) lbl.Text = "THR"; else lbl.Text = (i + "NM");
                 lbl.Margin = new Thickness(Math.Max(0, x + 3), h - 18, 0, 0);
                 canvas.Children.Add(lbl);
             }
@@ -345,27 +360,23 @@ namespace PARScopeDisplay
             // Glide slope reference line
             DrawGlideSlope(canvas, w, h, rangeNm);
 
-            // Calculate where glideslope intersects field elevation (runway touchdown point)
-            double gsRad = DegToRad(rs.GlideSlopeDeg);
-            double gsTouchdownNm = 0; // Field elevation at threshold
-            if (gsRad > 0.0001)
-            {
-                gsTouchdownNm = (rs.FieldElevFt / Math.Tan(gsRad)) / 6076.12; // Distance from threshold where GS reaches field elev
-            }
-            
             // Draw thick blue runway line at the glideslope touchdown point (bottom of triangle)
             double runwayY = workH; // At field elevation (bottom of the triangle)
-            double runwayStartX = thresholdX + (gsTouchdownNm * pxPerNm);
-            double runwayEndX = 0; // sensor is at left edge
+            // Render runway as a thick blue bar from the left edge (sensor side) to the threshold
+            // This will go past the touchdown point which sits between threshold and left edge
+            double runwayStartX = 0; // left edge (sensor apex)
+            double runwayEndX = thresholdX; // threshold pixel
             var runwayLine = new Line { X1 = runwayStartX, X2 = runwayEndX, Y1 = runwayY, Y2 = runwayY, Stroke = Brushes.DeepSkyBlue, StrokeThickness = 10 };
             canvas.Children.Add(runwayLine);
 
-            // Show ground traffic tickmark (20ft AGL above field elev)
-            double groundY = h - ((20.0 / 3000.0) * h);
-            var groundTick = new Line { X1 = 0, X2 = 18, Y1 = groundY, Y2 = groundY, Stroke = Brushes.Yellow, StrokeThickness = 2 };
-            canvas.Children.Add(groundTick);
-            var groundLabel = new TextBlock { Text = "+20ft", Foreground = Brushes.Black, FontSize = 10, Margin = new Thickness(20, groundY - 8, 0, 0) };
-            canvas.Children.Add(groundLabel);
+            // Draw TD (touchdown) marker located tdOffsetNm on the runway side of threshold
+            if (tdOffsetNm > 0)
+            {
+                tdPixel = thresholdX - (tdOffsetNm * pxPerNm);
+                // TD is labeled on the bottom axis; vertical runway tick removed per user request
+            }
+
+            // Show ground traffic tickmark (20ft AGL above field elev) - removed per user request
 
             // Decision height marker (T at glideslope/DH intersection, pointing UP)
             // Use the same glideslope reference as DrawGlideSlope: starts at threshold+TCH
@@ -417,8 +428,7 @@ namespace PARScopeDisplay
             nmLabel.Margin = new Thickness(2, 2, 0, 0);
             canvas.Children.Add(nmLabel);
 
-            // Centerline (horizontal) - yellow
-            var axis = new Line(); axis.Stroke = Brushes.Yellow; axis.StrokeThickness = 2; axis.X1 = 0; axis.Y1 = h / 2.0; axis.X2 = w; axis.Y2 = h / 2.0; canvas.Children.Add(axis);
+            // Centerline (horizontal) - removed per user request
             
             // Add lateral scale labels on left (NM from centerline)
             double halfWidthNm = 1.0; // display ±1 NM lateral
@@ -438,49 +448,79 @@ namespace PARScopeDisplay
                 canvas.Children.Add(lbl);
             }
 
-            // Range grid and labels with sensor offset
+            // Range grid and labels with sensor offset - we'll shift origin to TD for labeling
             double rangeNm = rs.RangeNm > 0 ? rs.RangeNm : 10.0;
             double sensorOffsetNm = rs.SensorOffsetNm > 0 ? rs.SensorOffsetNm : 0.5;
             double totalRangeNm = rangeNm + sensorOffsetNm;
             double pxPerNm = w / totalRangeNm;
             double thresholdX = sensorOffsetNm * pxPerNm;
+
+            // Compute TD pixel
+            double gsRad = DegToRad(rs.GlideSlopeDeg);
+            double tch = rs.ThrCrossingHgtFt > 0 ? rs.ThrCrossingHgtFt : 0;
+            double tdOffsetNm = 0;
+            if (gsRad > 0.000001 && tch > 0)
+            {
+                double distFt = tch / Math.Tan(gsRad);
+                tdOffsetNm = distFt / 6076.12;
+            }
+            double tdPixel = thresholdX - (tdOffsetNm * pxPerNm);
+
             int i;
             for (i = 0; i <= (int)Math.Floor(rangeNm); i++)
             {
-                double x = thresholdX + i * pxPerNm;
-                var vline = new Line(); vline.X1 = x; vline.Y1 = 0; vline.X2 = x; vline.Y2 = h; vline.Stroke = new SolidColorBrush(Color.FromRgb(30, 100, 30)); vline.StrokeThickness = 0.5; if (i != 0) { var dash = new DoubleCollection(); dash.Add(3); dash.Add(4); vline.StrokeDashArray = dash; } canvas.Children.Add(vline);
+                double x = tdPixel + i * pxPerNm; // origin at TD
+                var vline = new Line(); vline.X1 = x; vline.Y1 = 0; vline.X2 = x; vline.Y2 = h; vline.Stroke = new SolidColorBrush(Color.FromRgb(30, 100, 30)); vline.StrokeThickness = 0.5;
+                if (i != 0) { var dash = new DoubleCollection(); dash.Add(3); dash.Add(4); vline.StrokeDashArray = dash; }
+                canvas.Children.Add(vline);
                 var lbl = new TextBlock(); lbl.Foreground = Brushes.White; lbl.FontSize = 12; lbl.Text = (i == 0) ? "TD" : (i + "NM"); lbl.Margin = new Thickness(Math.Max(0, x + 3), h - 18, 0, 0); canvas.Children.Add(lbl);
             }
 
-            // Azimuth wedge envelope and guide lines at ±angles
+            // Azimuth wedge envelope and guide lines
             DrawAzimuthWedge(canvas, w, h, rs);
-            
-            // Azimuth guide lines at ±angles (from sensor, not bleeding into wedge edges)
+
+            // Azimuth deviation guideline set:
+            // originate from TD (tdPixel) and draw lines at ±0.5°, ±1°, ±2°, then every 2° until maxAz
             double maxAz = rs.MaxAzimuthDeg > 0 ? rs.MaxAzimuthDeg : 10.0;
-            double[] angs = new double[] { -maxAz, -5, -2.5, -1.25, 0, 1.25, 2.5, 5, maxAz };
-            for (i = 0; i < angs.Length; i++)
+            // Build angle list starting from smallest intervals requested
+            var angleList = new List<double>();
+            // Add the symmetric small angles
+            angleList.Add(0.0);
+            angleList.Add(0.5);
+            angleList.Add(1.0);
+            angleList.Add(2.0);
+            // then every 2 degrees starting at 4 up to maxAz
+            for (double a = 4.0; a <= maxAz; a += 2.0) angleList.Add(a);
+
+            // Draw positive and negative sides
+            for (int idx = 0; idx < angleList.Count; idx++)
             {
-                double a = angs[i];
-                var line = new Line();
-                if (i == 4) line.Stroke = Brushes.LimeGreen; else line.Stroke = new SolidColorBrush(Color.FromRgb(160, 140, 40));
-                line.StrokeThickness = (i == 4) ? 2 : 1;
-                if (i != 4) { var dash = new DoubleCollection(); dash.Add(4); dash.Add(6); line.StrokeDashArray = dash; }
-                line.X1 = 0; line.Y1 = h / 2.0;
-                line.X2 = w;
-                double yNm = Math.Tan(DegToRad(a)) * totalRangeNm; // use total range including sensor offset
-                // Reuse halfWidthNm and pxPerNmY from above
-                double yOffset = yNm * pxPerNmY;
-                line.Y2 = Math.Max(0, Math.Min(h, h / 2.0 - yOffset)); // clamp to canvas
-                canvas.Children.Add(line);
+                double ang = angleList[idx];
+                // Skip the 0.0 duplicate for negative side
+                for (int sign = -1; sign <= 1; sign += 2)
+                {
+                    if (ang == 0.0 && sign == -1) continue; // 0 only once
+                    double a = ang * sign;
+                    var line = new Line();
+                    if (ang == 0.0) { line.Stroke = Brushes.LimeGreen; line.StrokeThickness = 2; }
+                    else { line.Stroke = new SolidColorBrush(Color.FromRgb(160, 140, 40)); line.StrokeThickness = 1; var dash = new DoubleCollection(); dash.Add(4); dash.Add(6); line.StrokeDashArray = dash; }
+                    // Start at TD on centerline
+                    line.X1 = tdPixel; line.Y1 = h / 2.0;
+                    line.X2 = w; // extend to right edge
+                    double yNm = Math.Tan(DegToRad(a)) * totalRangeNm; // lateral offset at full totalRange
+                    double yOffset = yNm * pxPerNmY;
+                    line.Y2 = Math.Max(0, Math.Min(h, h / 2.0 - yOffset)); // clamp
+                    canvas.Children.Add(line);
+                }
             }
 
-            // Runway symbol: blue bar 1600ft before threshold (lateral extent)
-            // 1600ft = 0.2637 NM
-            double runwayWidthNm = 0.2637; // 1600 ft in NM
-            double runwayStartX = thresholdX - (runwayWidthNm * pxPerNm);
-            double runwayEndX = thresholdX;
-            var runwayLine = new Line { X1 = runwayStartX, X2 = runwayEndX, Y1 = h / 2.0, Y2 = h / 2.0, Stroke = Brushes.DeepSkyBlue, StrokeThickness = 5 };
-            canvas.Children.Add(runwayLine);
+            // Runway symbol: draw a thick blue bar from left edge (sensor side) to the threshold along centerline
+            double runwayY = h / 2.0;
+            double runwayStartX = 0; // left edge (sensor apex)
+            double runwayEndXFull = thresholdX; // threshold pixel
+            var runwayLineFull = new Line { X1 = runwayStartX, X2 = runwayEndXFull, Y1 = runwayY, Y2 = runwayY, Stroke = Brushes.DeepSkyBlue, StrokeThickness = 6 };
+            canvas.Children.Add(runwayLineFull);
+            // small runway tip overlay removed per user request
         }
 
         private void DrawVerticalWedge(System.Windows.Controls.Canvas canvas, double w, double h, RunwaySettings rs, double rangeNm)
@@ -542,8 +582,12 @@ namespace PARScopeDisplay
             poly.Points = pts;
             canvas.Children.Add(poly);
 
-            // Threshold marker
-            var thr = new Line(); thr.X1 = thresholdX; thr.X2 = thresholdX + 24; thr.Y1 = midY; thr.Y2 = midY; thr.Stroke = Brushes.LimeGreen; thr.StrokeThickness = 5; canvas.Children.Add(thr);
+            // Threshold marker - removed per user request
+
+            // Compute touchdown (TD) position using TCH (no centerline marker here; TD is labeled on the axis)
+            double gsRad = DegToRad(rs.GlideSlopeDeg);
+            double tch = rs.ThrCrossingHgtFt > 0 ? rs.ThrCrossingHgtFt : 0;
+            // TD pixel computed by caller where needed
         }
 
         private void DrawPlanEmpty(System.Windows.Controls.Canvas canvas)
@@ -601,8 +645,8 @@ namespace PARScopeDisplay
             wedge.Points = wedgePts;
             canvas.Children.Add(wedge);
             
-            // Draw centerline - yellow to match other scopes
-            var centerline = new Line(); centerline.X1 = sx; centerline.Y1 = sy; centerline.X2 = fullRangeX; centerline.Y2 = fullRangeY; centerline.Stroke = Brushes.Yellow; centerline.StrokeThickness = 1.5; canvas.Children.Add(centerline);
+            // Draw centerline (green)
+            var centerline = new Line(); centerline.X1 = sx; centerline.Y1 = sy; centerline.X2 = fullRangeX; centerline.Y2 = fullRangeY; centerline.Stroke = Brushes.LimeGreen; centerline.StrokeThickness = 1.5; canvas.Children.Add(centerline);
             
             // Draw runway as a thick line (heading from threshold)
             double rwLen = 2.0; // runway length in NM for display
@@ -611,8 +655,8 @@ namespace PARScopeDisplay
             double y2 = cy - (rwLen / nmPerPx) * Math.Cos(hdgRad);
             var rw = new Line(); rw.X1 = x1; rw.Y1 = y1; rw.X2 = x2; rw.Y2 = y2; rw.Stroke = Brushes.White; rw.StrokeThickness = 4; canvas.Children.Add(rw);
 
-            // Threshold marker - yellow to match centerline
-            var thr = new Ellipse(); thr.Width = 8; thr.Height = 8; thr.Fill = Brushes.Yellow; thr.Margin = new Thickness(cx - 4, cy - 4, 0, 0); canvas.Children.Add(thr);
+            // Threshold marker (green)
+            var thr = new Ellipse(); thr.Width = 8; thr.Height = 8; thr.Fill = Brushes.LimeGreen; thr.Margin = new Thickness(cx - 4, cy - 4, 0, 0); canvas.Children.Add(thr);
         }
 
         private RunwaySettings GetActiveRunwayDefaults()
@@ -622,6 +666,21 @@ namespace PARScopeDisplay
             rs.Icao = "DEMO"; rs.Runway = "RWY"; rs.ThresholdLat = 0; rs.ThresholdLon = 0; rs.HeadingTrueDeg = 0; rs.GlideSlopeDeg = 3.0; rs.FieldElevFt = 0; rs.RangeNm = 10; rs.DecisionHeightFt = 200; rs.MaxAzimuthDeg = 10; rs.VerticalCeilingFt = 10000; rs.SensorOffsetNm = 0.5;
             rs.ThrCrossingHgtFt = 50; // Added TCH field initialization
             return rs;
+        }
+
+        // Compute sensor lat/lon given runway threshold lat/lon and a sensor offset (nm)
+        // sensorOffsetNm positive means sensor is on runway side (to the left along runway heading when drawing)
+        private void GetSensorLatLon(RunwaySettings rs, double sensorOffsetNm, out double sensorLat, out double sensorLon)
+        {
+            // Approach course is reciprocal of runway heading
+            double hdgRad = DegToRad(rs.HeadingTrueDeg);
+            double approachRad = hdgRad + Math.PI; // reciprocal
+            double sensorOffsetM = sensorOffsetNm * 1852.0; // nm to meters
+            double lat0Rad = DegToRad(rs.ThresholdLat);
+            double dLatM = sensorOffsetM * Math.Cos(approachRad);
+            double dLonM = sensorOffsetM * Math.Sin(approachRad);
+            sensorLat = rs.ThresholdLat + (dLatM / 111319.9);
+            sensorLon = rs.ThresholdLon + (dLonM / (111319.9 * Math.Cos(lat0Rad)));
         }
 
         private void DrawAircraft(Dictionary<string, object> ac)
@@ -1071,7 +1130,7 @@ namespace PARScopeDisplay
             double y2 = Math.Max(0, Math.Min(workH, workH - ((altEnd - fieldElevFt) * pxPerFt)));
 
             var gs = new Line();
-            gs.Stroke = Brushes.Yellow;
+            gs.Stroke = Brushes.LimeGreen;
             gs.StrokeThickness = 2;
             gs.X1 = x1; gs.Y1 = y1; gs.X2 = x2; gs.Y2 = y2;
             canvas.Children.Add(gs);
