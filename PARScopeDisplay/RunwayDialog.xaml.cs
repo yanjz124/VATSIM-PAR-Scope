@@ -56,14 +56,11 @@ namespace PARScopeDisplay
                 
                 var matches = startsWith.Concat(contains).Distinct().Take(50).ToList();
                 
-                // If exactly one match, ensure it's at the top
-                if (matches.Count == 1 && !matches[0].Equals(text, StringComparison.OrdinalIgnoreCase))
-                {
-                    // Already at top, just ensure dropdown shows it
-                }
-                
                 IcaoBox.ItemsSource = matches;
                 IcaoBox.IsDropDownOpen = matches.Count > 0;
+                
+                // Prevent auto-selection: clear SelectedItem to keep user's typed text
+                IcaoBox.SelectedItem = null;
             }
             
             RefreshRunwayList();

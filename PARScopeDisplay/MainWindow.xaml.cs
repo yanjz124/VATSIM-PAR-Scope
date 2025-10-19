@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using System.Windows.Controls;
+using System.Diagnostics;
 
 namespace PARScopeDisplay
 {
@@ -31,11 +32,17 @@ namespace PARScopeDisplay
         public MainWindow()
         {
             InitializeComponent();
+            
+            // Load last used runway from settings
+            _runway = LoadRunwaySettings();
+            
             StartUdpListener();
 
             _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
             _uiTimer.Tick += (s, e) => UpdateUi();
             _uiTimer.Start();
+            
+            this.Closed += (s, e) => SaveRunwaySettings(_runway);
         }
 
         private class TargetHistory
@@ -144,33 +151,28 @@ namespace PARScopeDisplay
                 var ac = kvp.Value;
                 var callsign = ac.ContainsKey("callsign") && ac["callsign"] != null ? ac["callsign"].ToString() : "";
                 var hist = _histories.ContainsKey(callsign) ? _histories[callsign] : null;
-                if (hist != null && (now - hist.LastSampleUtc).TotalSeconds > 5)
+                double age = hist != null ? (now - hist.LastSampleUtc).TotalSeconds : 0;
+                if (hist != null && age > 5)
                     continue; // time out after 5 seconds
 
-                // If no new data for >0.5s, extrapolate position
-                if (hist != null && (now - hist.LastSampleUtc).TotalSeconds > 0.5 && hist.Vertical.Count >= 2)
+                if (hist != null && age > 1 && hist.Plan.Count >= 1)
                 {
-                    // Use last two samples to estimate velocity
-                    var last = hist.Vertical.Last();
-                    var prev = hist.Vertical.Skip(hist.Vertical.Count - 2).First();
-                    double dt = 0.5; // seconds per sample
-                    double dx = last.X - prev.X;
-                    double dy = last.Y - prev.Y;
-                    double age = (now - hist.LastSampleUtc).TotalSeconds;
+                    // Extrapolate using last known position, groundspeed, and vertical speed
+                    var lastP = hist.Plan.Last();
+                    double gs = GetGroundSpeedKts(ac); // knots
+                    double vs = GetDouble(ac, "vs_fpm", 0); // feet per minute
+                    double dt = age; // seconds since last sample
+                    double nmPerSec = gs / 3600.0;
+                    double bearingRad = GetDouble(ac, "track", 0) * Math.PI / 180.0;
+                    double dNorth = Math.Cos(bearingRad) * nmPerSec * dt * 1852.0; // meters
+                    double dEast = Math.Sin(bearingRad) * nmPerSec * dt * 1852.0; // meters
+                    double newLat = GetDouble(ac, "lat", 0) + dNorth / 111319.9; // meters to deg
+                    double newLon = GetDouble(ac, "lon", 0) + dEast / (111319.9 * Math.Cos(GetDouble(ac, "lat", 0) * Math.PI / 180.0));
+                    double newAlt = GetDouble(ac, "alt_ft", 0) + vs * dt / 60.0;
                     var fakeAc = new Dictionary<string, object>(ac);
-                    // For plan view, extrapolate lat/lon
-                    if (hist.Plan.Count >= 2)
-                    {
-                        var lastP = hist.Plan.Last();
-                        var prevP = hist.Plan.Skip(hist.Plan.Count - 2).First();
-                        double dpx = lastP.X - prevP.X;
-                        double dpy = lastP.Y - prevP.Y;
-                        // crude: move lat/lon by same screen delta (not geodetic, but matches display)
-                        fakeAc["lat"] = GetDouble(ac, "lat", 0) + dpy / dt * age * 1e-5;
-                        fakeAc["lon"] = GetDouble(ac, "lon", 0) + dpx / dt * age * 1e-5;
-                    }
-                    // For vertical, extrapolate alt
-                    fakeAc["alt_ft"] = GetDouble(ac, "alt_ft", 0) + dy / dt * age * 2.0; // scale factor for realism
+                    fakeAc["lat"] = newLat;
+                    fakeAc["lon"] = newLon;
+                    fakeAc["alt_ft"] = newAlt;
                     DrawAircraft(fakeAc);
                 }
                 else
@@ -517,12 +519,31 @@ namespace PARScopeDisplay
 
         private void DrawAircraft(Dictionary<string, object> ac)
         {
-            if (_runway == null) return;
+            if (_runway == null)
+            {
+                Debug.WriteLine("DrawAircraft: _runway is null, skipping");
+                return;
+            }
 
             double alt = GetDouble(ac, "alt_ft", 0);
             double lat = GetDouble(ac, "lat", 0);
             double lon = GetDouble(ac, "lon", 0);
             string callsign = ac.ContainsKey("callsign") && ac["callsign"] != null ? ac["callsign"].ToString() : "";
+
+            Debug.WriteLine($"DrawAircraft: {callsign} lat={lat}, lon={lon}, alt={alt}, ThresholdLat={_runway.ThresholdLat}, ThresholdLon={_runway.ThresholdLon}");
+
+            // Canvas dimensions
+            double vWidth = VerticalScopeCanvas.ActualWidth > 0 ? VerticalScopeCanvas.ActualWidth : 400;
+            double vHeight = VerticalScopeCanvas.ActualHeight > 0 ? VerticalScopeCanvas.ActualHeight : 300;
+            double aWidth = AzimuthScopeCanvas.ActualWidth > 0 ? AzimuthScopeCanvas.ActualWidth : 400;
+            double aHeight = AzimuthScopeCanvas.ActualHeight > 0 ? AzimuthScopeCanvas.ActualHeight : 300;
+
+            double rangeNm = _runway.RangeNm > 0 ? _runway.RangeNm : 10.0;
+            double sensorOffsetNm = _runway.SensorOffsetNm > 0 ? _runway.SensorOffsetNm : 0.5;
+            double maxAzDeg = _runway.MaxAzimuthDeg > 0 ? _runway.MaxAzimuthDeg : 10.0;
+            double gsDeg = _runway.GlideSlopeDeg > 0 ? _runway.GlideSlopeDeg : 3.0;
+            double tchFt = _runway.ThrCrossingHgtFt > 0 ? _runway.ThrCrossingHgtFt : 50.0;
+            double fieldElevFt = _runway.FieldElevFt;
 
             // Compute ENU coordinates relative to threshold
             double east = 0, north = 0;
@@ -542,25 +563,22 @@ namespace PARScopeDisplay
             double crossTrackM = -north * sinA + east * cosA;
             double crossTrackNm = crossTrackM / 1852.0;
 
-            // Canvas dimensions
-            double vWidth = VerticalScopeCanvas.ActualWidth > 0 ? VerticalScopeCanvas.ActualWidth : 400;
-            double vHeight = VerticalScopeCanvas.ActualHeight > 0 ? VerticalScopeCanvas.ActualHeight : 300;
-            double aWidth = AzimuthScopeCanvas.ActualWidth > 0 ? AzimuthScopeCanvas.ActualWidth : 400;
-            double aHeight = AzimuthScopeCanvas.ActualHeight > 0 ? AzimuthScopeCanvas.ActualHeight : 300;
-
-            double rangeNm = _runway.RangeNm > 0 ? _runway.RangeNm : 10.0;
-            double sensorOffsetNm = _runway.SensorOffsetNm > 0 ? _runway.SensorOffsetNm : 0.5;
-            double maxAzDeg = _runway.MaxAzimuthDeg > 0 ? _runway.MaxAzimuthDeg : 10.0;
-            double gsDeg = _runway.GlideSlopeDeg > 0 ? _runway.GlideSlopeDeg : 3.0;
-            double tchFt = _runway.ThrCrossingHgtFt > 0 ? _runway.ThrCrossingHgtFt : 50.0;
-            double fieldElevFt = _runway.FieldElevFt;
+            // Filtering: Only render targets within ±rangeNm and within lateral triangle boundary
+            double lateralLimitNm = Math.Tan(DegToRad(maxAzDeg)) * Math.Abs(alongTrackNm);
+            Debug.WriteLine($"DrawAircraft: {callsign} alongTrackNm={alongTrackNm}, crossTrackNm={crossTrackNm}");
+            if (Math.Abs(alongTrackNm) > rangeNm || Math.Abs(crossTrackNm) > lateralLimitNm)
+            {
+                Debug.WriteLine($"Filtered out: {callsign} alongTrackNm={alongTrackNm}, crossTrackNm={crossTrackNm}");
+                return;
+            }
 
             // === VERTICAL SCOPE ===
             // X-axis: along-track from threshold (centered at threshold, covers ±rangeNm)
             // Y-axis: altitude (angle above GS)
             double vertCeilingDeg = 6.0;
             double pxPerNm = vWidth / (2 * rangeNm);
-            double vx = (alongTrackNm / (rangeNm)) * (vWidth / 2.0) + (vWidth / 2.0);
+            // vx: 0 NM (threshold) at center, positive outbound
+            double vx = (alongTrackNm / rangeNm) * (vWidth / 2.0) + (vWidth / 2.0);
             
             // Altitude relative to glide slope (GS passes through field elev + TCH at threshold)
             double gsAltAtAircraft = fieldElevFt + tchFt + Math.Tan(DegToRad(gsDeg)) * alongTrackNm * 6076.12;
@@ -610,8 +628,10 @@ namespace PARScopeDisplay
             // X-axis: cross-track from threshold (centered at threshold, covers ±maxCrossTrackNm)
             // Y-axis: along-track from threshold (centered, covers ±rangeNm)
             double maxCrossTrackNm = Math.Tan(DegToRad(maxAzDeg)) * rangeNm;
+            // ax: 0 NM cross-track at center, positive right of course
             double ax = (crossTrackNm / maxCrossTrackNm) * (aWidth / 2.0) + (aWidth / 2.0);
-            double ay = aHeight - ((alongTrackNm / rangeNm) * (aHeight / 2.0) + (aHeight / 2.0));
+            // ay: 0 NM (threshold) at center, positive outbound (up)
+            double ay = (-(alongTrackNm) / rangeNm) * (aHeight / 2.0) + (aHeight / 2.0);
             if (hist != null)
             {
                 bool doSample = (DateTime.UtcNow - hist.LastSampleUtc) > TimeSpan.FromMilliseconds(400);
@@ -761,6 +781,7 @@ namespace PARScopeDisplay
             if (result == true)
             {
                 _runway = dlg.GetSettings();
+                SaveRunwaySettings(_runway);
                 RunwayText.Text = _runway.Icao + " " + _runway.Runway;
             }
         }
@@ -779,6 +800,45 @@ namespace PARScopeDisplay
             double R = 6378137.0; // meters
             east = dlon * Math.Cos(rlat0) * R;
             north = dlat * R;
+        }
+
+        private RunwaySettings LoadRunwaySettings()
+        {
+            try
+            {
+                string appDataPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "VATSIM-PAR-Scope");
+                string settingsFile = System.IO.Path.Combine(appDataPath, "runway_settings.json");
+                
+                if (!System.IO.File.Exists(settingsFile))
+                    return null;
+                
+                string json = System.IO.File.ReadAllText(settingsFile);
+                return _json.Deserialize<RunwaySettings>(json);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private void SaveRunwaySettings(RunwaySettings settings)
+        {
+            if (settings == null) return;
+            try
+            {
+                string appDataPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "VATSIM-PAR-Scope");
+                System.IO.Directory.CreateDirectory(appDataPath);
+                
+                string settingsFile = System.IO.Path.Combine(appDataPath, "runway_settings.json");
+                string json = _json.Serialize(settings);
+                System.IO.File.WriteAllText(settingsFile, json);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error saving runway settings: " + ex.Message);
+            }
         }
 
         public class RunwaySettings
@@ -842,7 +902,9 @@ namespace PARScopeDisplay
                     td.Stroke = Brushes.Orange;
                     td.StrokeThickness = 1.5;
                     td.Opacity = 0.7;
-                    td.X1 = tdX; td.Y1 = 0; td.X2 = tdX; td.Y2 = workH;
+                    td.X1 = tdX; td.X2 = tdX; 
+                    td.Y1 = Math.Min(workH, y2 + 30); 
+                    td.Y2 = Math.Max(0, y2 - 30); 
                     var dash = new DoubleCollection(); dash.Add(4); dash.Add(6); td.StrokeDashArray = dash;
                     canvas.Children.Add(td);
 

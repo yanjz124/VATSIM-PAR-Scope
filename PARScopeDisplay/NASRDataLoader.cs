@@ -59,6 +59,7 @@ namespace PARScopeDisplay
                     if (TryDownloadAndParse(url, out errorMessage, out notFound))
                     {
                         LastLoadedSource = url;
+                        SaveCache(); // Save to cache after successful load
                         return true;
                     }
 
@@ -94,7 +95,10 @@ namespace PARScopeDisplay
 
                 bool ok = ParseZipFile(zipPath, out errorMessage);
                 if (ok)
+                {
                     LastLoadedSource = zipPath;
+                    SaveCache(); // Save to cache after successful load
+                }
                 return ok;
             }
             catch (Exception ex)

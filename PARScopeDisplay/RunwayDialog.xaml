@@ -23,8 +23,8 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-    <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,2" VerticalAlignment="Center" Text="ICAO:"/>
-    <ComboBox x:Name="IcaoBox" Grid.Row="0" Grid.Column="1" Margin="6,2" IsEditable="True" StaysOpenOnEdit="True" IsTextSearchEnabled="True"/>
+    <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,2" VerticalAlignment="Center" Text="Airport ID:"/>
+    <ComboBox x:Name="IcaoBox" Grid.Row="0" Grid.Column="1" Margin="6,2" IsEditable="True" StaysOpenOnEdit="True" IsTextSearchEnabled="False"/>
 
         <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,2" VerticalAlignment="Center" Text="Runway:"/>
         <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
