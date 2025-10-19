@@ -400,15 +400,54 @@ namespace PARScopeDisplay
                         var line = new Line();
                         if (ang == 0.0) { line.Stroke = Brushes.LimeGreen; line.StrokeThickness = 2; }
                         else { line.Stroke = new SolidColorBrush(Color.FromRgb(160, 140, 40)); line.StrokeThickness = 1; var dash = new DoubleCollection(); dash.Add(4); dash.Add(6); line.StrokeDashArray = dash; }
+
                         // Draw deviation from TD origin: TD is where glideslope reaches field elevation
                         double startX = tdPixel; // TD origin in pixels
                         double startY = workH;   // field elevation (ground) at bottom
-                        // End X is TD plus display range
-                        double endX = tdPixel + (rangeNm * pxPerNm);
-                        // Altitude at distance s (from TD) along this dev-angle: fieldElev + tan(gs + a) * (s * 6076.12)
+
+                        // Compute line endpoint so the guideline extends to the TOP of the work area (y=0).
+                        // altitude at top of work area corresponds to fieldElev + altRangeFt
                         double angleRad = DegToRad(rs.GlideSlopeDeg + a);
-                        double altEnd = fieldElevFt + Math.Tan(angleRad) * (rangeNm * 6076.12);
-                        double endY = Math.Max(0, Math.Min(workH, workH - ((altEnd - fieldElevFt) * pxPerFt)));
+                        double endX = tdPixel + (rangeNm * pxPerNm);
+                        double endY;
+
+                        // If tan(angle) is significant, compute the distance (NM) at which this dev-line reaches the top altitude
+                        double tanA = Math.Tan(angleRad);
+                        if (Math.Abs(tanA) > 1e-6)
+                        {
+                            // s_topNm = altRangeFt / (tan(angle) * 6076.12)
+                            double sTopNm = altRangeFt / (tanA * 6076.12);
+                            double xTop = tdPixel + (sTopNm * pxPerNm);
+                            // Prefer to draw to the top (y=0) using xTop; clamp to canvas width
+                            endX = Math.Max(0, Math.Min(w, xTop));
+                            // If clamped, recompute corresponding endY for visual accuracy
+                            if (endX <= 0 || endX >= w)
+                            {
+                                // compute s for clamped X
+                                double sClamped = (endX - tdPixel) / pxPerNm;
+                                double altAtClamped = fieldElevFt + tanA * (sClamped * 6076.12);
+                                endY = Math.Max(0, Math.Min(workH, workH - ((altAtClamped - fieldElevFt) * pxPerFt)));
+                            }
+                            else
+                            {
+                                endY = 0; // reached top
+                            }
+                        }
+                        else
+                        {
+                            // Fallback: draw to the far end of the display range and compute Y there
+                            double altEnd = fieldElevFt + tanA * (rangeNm * 6076.12);
+                            endY = Math.Max(0, Math.Min(workH, workH - ((altEnd - fieldElevFt) * pxPerFt)));
+                        }
+
+                        // If endY wasn't set above (e.g., branch where endX clamped didn't set endY), ensure it's computed
+                        if (double.IsNaN(endY))
+                        {
+                            double s = (endX - tdPixel) / pxPerNm;
+                            double altAtX = fieldElevFt + tanA * (s * 6076.12);
+                            endY = Math.Max(0, Math.Min(workH, workH - ((altAtX - fieldElevFt) * pxPerFt)));
+                        }
+
                         line.X1 = startX; line.Y1 = startY; line.X2 = endX; line.Y2 = endY;
                         canvas.Children.Add(line);
                     }
@@ -483,7 +522,9 @@ namespace PARScopeDisplay
             nmLabel.Margin = new Thickness(2, 2, 0, 0);
             canvas.Children.Add(nmLabel);
 
-            // Centerline (horizontal) - removed per user request
+            // Centerline (horizontal) - show the 0° track
+            var centerline = new Line { X1 = 0, Y1 = h / 2.0, X2 = w, Y2 = h / 2.0, Stroke = Brushes.LimeGreen, StrokeThickness = 2 };
+            canvas.Children.Add(centerline);
             
             // Add lateral scale labels on left (NM from centerline)
             double halfWidthNm = 1.0; // display ±1 NM lateral
