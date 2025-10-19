@@ -1,0 +1,63 @@
+<Window x:Class="PARScopeDisplay.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="VATSIM PAR Scope Display" Height="600" Width="900">
+    <Grid>
+        <DockPanel>
+            <Menu DockPanel.Dock="Top">
+                <MenuItem Header="File">
+                    <MenuItem Header="Exit" Click="OnExitClick" />
+                </MenuItem>
+                <MenuItem Header="Airport/Runway">
+                    <MenuItem Header="Select..." Click="OnSelectRunwayClick" />
+                    <Separator />
+                    <MenuItem Header="Download Latest NASR Data..." Click="OnDownloadNASRClick" />
+                    <MenuItem Header="Load NASR from File..." Click="OnLoadNASRFileClick" />
+                </MenuItem>
+            </Menu>
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="10">
+                <TextBlock Text="Plugin Status: " FontWeight="Bold"/>
+                <TextBlock x:Name="StatusText" Text="Disconnected" Foreground="Red" Margin="5,0,0,0"/>
+                <TextBlock Text=" | Last Event: "/>
+                <TextBlock x:Name="LastEventText" Text="-"/>
+                <TextBlock Text=" | Runway: "/>
+                <TextBlock x:Name="RunwayText" Text="(not set)"/>
+            </StackPanel>
+            <Grid Margin="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: stacked Vertical (top) and Azimuth (bottom) -->
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" BorderBrush="Gray" BorderThickness="1" Margin="5">
+                        <Canvas x:Name="VerticalScopeCanvas" Background="#111"/>
+                    </Border>
+
+                    <!-- Splitter between Vertical and Azimuth -->
+                    <GridSplitter Grid.Row="1" Height="6" HorizontalAlignment="Stretch" Background="#333"/>
+
+                    <Border Grid.Row="2" BorderBrush="Gray" BorderThickness="1" Margin="5">
+                        <Canvas x:Name="AzimuthScopeCanvas" Background="#111"/>
+                    </Border>
+                </Grid>
+
+                <!-- Vertical splitter between left and right -->
+                <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="#333"/>
+
+                <!-- Right: Plan View -->
+                <Border Grid.Column="2" BorderBrush="Gray" BorderThickness="1" Margin="5">
+                    <Canvas x:Name="PlanViewCanvas" Background="#111"/>
+                </Border>
+            </Grid>
+        </DockPanel>
+    </Grid>
+</Window>
