@@ -59,6 +59,12 @@
                 <Button x:Name="RangeDown" Content="◄" Width="18" Height="18" Margin="0,0,1,0" Click="OnRangeDown" FontSize="8" Padding="0"/>
                 <TextBox x:Name="RangeBox" Width="35" Height="18" VerticalAlignment="Center" TextChanged="OnConfigChanged" Foreground="Black" Background="White" TextAlignment="Center" FontSize="10" Padding="0,1,0,0"/>
                 <Button x:Name="RangeUp" Content="►" Width="18" Height="18" Margin="1,0,0,0" Click="OnRangeUp" FontSize="8" Padding="0"/>
+                
+                <!-- Plan altitude top filter (hundreds of feet) -->
+                <TextBlock Text="Plan Alt Top (100s ft):" Foreground="LightGray" Margin="12,0,3,0" VerticalAlignment="Center" FontSize="10"/>
+                <Button x:Name="PlanAltTopDown" Content="◄" Width="18" Height="18" Margin="0,0,1,0" Click="OnPlanAltTopDown" FontSize="8" Padding="0" />
+                <TextBox x:Name="PlanAltTopBox" Width="40" Height="18" VerticalAlignment="Center" TextChanged="OnPlanAltTopChanged" Foreground="Black" Background="White" TextAlignment="Center" FontSize="10" Padding="0,1,0,0"/>
+                <Button x:Name="PlanAltTopUp" Content="►" Width="18" Height="18" Margin="1,0,8,0" Click="OnPlanAltTopUp" FontSize="8" Padding="0" />
             </StackPanel>
             <Expander x:Name="DebugExpander" DockPanel.Dock="Top" Header="Debug Traffic Data" IsExpanded="False" Margin="10,0">
                 <ScrollViewer Height="150" VerticalScrollBarVisibility="Auto">
