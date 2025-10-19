@@ -295,14 +295,7 @@ namespace PARScopeDisplay
             // Determine which integer tick corresponds to THR so we can label it
             int thrIndex = (int)Math.Round((thresholdX - tdPixel) / pxPerNm);
 
-            // DEBUG: show computed threshold/TD values (temporary)
-            try
-            {
-                var dbg = new TextBlock { Text = $"sensorOffNm={sensorOffsetNm:0.000} tdOffNm={tdOffsetNm:0.000} thrX={thresholdX:0.00} tdX={tdPixel:0.00}", Foreground = Brushes.Yellow, FontSize = 10 };
-                dbg.Margin = new Thickness(Math.Max(0, w - 420), 18, 0, 0);
-                canvas.Children.Add(dbg);
-            }
-            catch { }
+            // (debug labels removed)
 
             for (i = 0; i <= (int)Math.Floor(rangeNm); i++)
             {
@@ -476,14 +469,7 @@ namespace PARScopeDisplay
             double tdPixel = thresholdX - (tdOffsetNm * pxPerNm);
 
             int i;
-            // DEBUG: show computed threshold/TD values (temporary)
-            try
-            {
-                var dbg2 = new TextBlock { Text = $"sensorOffNm={sensorOffsetNm:0.000} tdOffNm={tdOffsetNm:0.000} thrX={thresholdX:0.00} tdX={tdPixel:0.00}", Foreground = Brushes.Yellow, FontSize = 10 };
-                dbg2.Margin = new Thickness(Math.Max(0, w - 420), 18, 0, 0);
-                canvas.Children.Add(dbg2);
-            }
-            catch { }
+            // (debug labels removed)
             for (i = 0; i <= (int)Math.Floor(rangeNm); i++)
             {
                 double x = tdPixel + i * pxPerNm; // origin at TD
@@ -639,9 +625,9 @@ namespace PARScopeDisplay
             double maxAzRad = DegToRad(maxAzDeg);
 
             // Sensor position: from threshold, move along APPROACH direction by sensor offset
-            // Approach direction is AWAY from the runway (opposite of landing direction)
-            double sx = cx + (sensorOffsetNm / nmPerPx) * Math.Sin(approachRad);
-            double sy = cy - (sensorOffsetNm / nmPerPx) * Math.Cos(approachRad);
+            // We want the sensor/apex on the runway side (i.e., opposite sign of the approach vector here)
+            double sx = cx - (sensorOffsetNm / nmPerPx) * Math.Sin(approachRad);
+            double sy = cy + (sensorOffsetNm / nmPerPx) * Math.Cos(approachRad);
 
             // Full range endpoint: from sensor, extend along APPROACH direction
             double fullRangeX = sx + (rangeNm / nmPerPx) * Math.Sin(approachRad);
@@ -840,13 +826,14 @@ namespace PARScopeDisplay
             double hdgRad = DegToRad(_runway.HeadingTrueDeg);
             double approachRad = hdgRad + Math.PI; // Reciprocal of runway heading (approach course)
             
-            // Sensor lat/lon: 0.5nm from threshold in approach direction
+            // Sensor lat/lon: 0.5nm from threshold. Place sensor on the runway side to match plan view.
             double sensorOffsetM = sensorOffsetNm * 1852.0; // meters
             double lat0Rad = DegToRad(_runway.ThresholdLat);
             double dLatM = sensorOffsetM * Math.Cos(approachRad);
             double dLonM = sensorOffsetM * Math.Sin(approachRad);
-            double sensorLat = _runway.ThresholdLat + (dLatM / 111319.9); // meters to degrees
-            double sensorLon = _runway.ThresholdLon + (dLonM / (111319.9 * Math.Cos(lat0Rad)));
+            // subtract to place sensor on runway side (consistent with plan view sign)
+            double sensorLat = _runway.ThresholdLat - (dLatM / 111319.9); // meters to degrees
+            double sensorLon = _runway.ThresholdLon - (dLonM / (111319.9 * Math.Cos(lat0Rad)));
             
             // Compute ENU coordinates relative to SENSOR (not threshold)
             double east = 0, north = 0;
@@ -865,22 +852,7 @@ namespace PARScopeDisplay
             double crossTrackM = -north * sinA + east * cosA;
             double crossTrackNm = crossTrackM / 1852.0;
 
-            // Calculate azimuth angle from centerline
-            double azimuthDeg = 0;
-            if (Math.Abs(alongTrackNm) > 0.01)
-            {
-                azimuthDeg = Math.Atan2(crossTrackNm, alongTrackNm) * 180.0 / Math.PI;
-            }
-
-            // Calculate elevation angle from sensor (at field elevation)
-            double altAboveFieldFt = alt - fieldElevFt;
-            double elevationDeg = 0;
-            if (Math.Abs(alongTrackNm) > 0.01)
-            {
-                elevationDeg = Math.Atan(altAboveFieldFt / (alongTrackNm * 6076.12)) * 180.0 / Math.PI;
-            }
-
-            // ALSO compute along-track relative to THRESHOLD to avoid origin mismatch
+            // ALSO compute along-track and cross-track relative to THRESHOLD to avoid origin mismatch
             double eastT = 0, northT = 0;
             GeoToEnu(_runway.ThresholdLat, _runway.ThresholdLon, lat, lon, out eastT, out northT);
             // Project relative to approach course (approachRad defined earlier)
@@ -888,40 +860,37 @@ namespace PARScopeDisplay
             double alongTrackFromThresholdNm = alongTrackFromThresholdM / 1852.0;
             double crossTrackFromThresholdM = -northT * sinA + eastT * cosA;
             double crossTrackFromThresholdNm = crossTrackFromThresholdM / 1852.0;
-            double elevationDegFromThreshold = 0;
+            double altAboveFieldFt = alt - fieldElevFt;
+            double azimuthDeg = 0;
+            double elevationDeg = 0;
             if (Math.Abs(alongTrackFromThresholdNm) > 0.01)
             {
-                elevationDegFromThreshold = Math.Atan(altAboveFieldFt / (alongTrackFromThresholdNm * 6076.12)) * 180.0 / Math.PI;
+                azimuthDeg = Math.Atan2(crossTrackFromThresholdNm, alongTrackFromThresholdNm) * 180.0 / Math.PI;
+                elevationDeg = Math.Atan(altAboveFieldFt / (alongTrackFromThresholdNm * 6076.12)) * 180.0 / Math.PI;
             }
+            double elevationDegFromThreshold = elevationDeg; // kept for compatibility
 
-            // Debug overlay: show last computed values for inspection
-            try
-            {
-                // Update sensor lat/lon for display (reuse existing variables)
-                try { GetSensorLatLon(_runway, sensorOffsetNm, out sensorLat, out sensorLon); } catch { }
-
-                var dbgTxt = string.Format("DBG {0} altMSL={1:0} altAboveField={2:0} alongSensorNm={3:0.000} crossSensorNm={4:0.000} elevSensor={5:0.00} alongThrNm={6:0.000} crossThrNm={7:0.000} elevThr={8:0.00} fieldElev={9:0} acLat={10:0.000000} acLon={11:0.000000} sLat={12:0.000000} sLon={13:0.000000}",
-                    callsign ?? "(no-call)", alt, altAboveFieldFt, alongTrackNm, crossTrackNm, elevationDeg, alongTrackFromThresholdNm, crossTrackFromThresholdNm, elevationDegFromThreshold, fieldElevFt, lat, lon, sensorLat, sensorLon);
-                var dbgBlock = new TextBlock { Text = dbgTxt, Foreground = Brushes.Yellow, FontSize = 11, Tag = "DBG" };
-                dbgBlock.Margin = new Thickness(6, 18, 0, 0);
-                VerticalScopeCanvas.Children.Add(dbgBlock);
-            }
-            catch { }
+            // (removed debug overlay)
 
             // Filtering for vertical and azimuth scopes:
             // Check if aircraft is within the scope range (from -sensorOffset to +rangeNm from sensor)
             // This allows aircraft approaching from far out to be displayed
             // Allow negative elevation angles to catch aircraft on or landing on the runway
-            bool inVerticalAzimuthScope = Math.Abs(azimuthDeg) <= maxAzDeg && elevationDeg >= -1.0 && elevationDeg <= 6.0 && alongTrackNm >= -sensorOffsetNm && alongTrackNm <= rangeNm;
+            // Use threshold-based along-track for inclusion; allow a small buffer so targets don't disappear
+            double includeNegBuffer = 0.3; // allow slightly past the sensor plane toward runway
+            double includePosBuffer = 0.5; // allow slightly beyond configured range
+            bool inAzimuthScope = Math.Abs(azimuthDeg) <= maxAzDeg && alongTrackFromThresholdNm >= -sensorOffsetNm - includeNegBuffer && alongTrackFromThresholdNm <= rangeNm + includePosBuffer;
+            // Vertical scope additionally requires elevation within vertical limits (use elevationDeg computed from threshold)
+            bool inVerticalScope = inAzimuthScope && elevationDeg >= -1.0 && elevationDeg <= 6.0;
 
-            Debug.WriteLine($"DrawAircraft: {callsign} alongTrack={alongTrackNm:F2}nm (from sensor), crossTrack={crossTrackNm:F2}nm, az={azimuthDeg:F1}°, elev={elevationDeg:F1}°, alt={alt:F0}ft MSL, inScope={inVerticalAzimuthScope}");
+            Debug.WriteLine($"DrawAircraft: {callsign} alongTrack={alongTrackNm:F2}nm (from sensor), crossTrack={crossTrackNm:F2}nm, az={azimuthDeg:F1}°, elev={elevationDeg:F1}°, alt={alt:F0}ft MSL, inAzimuth={inAzimuthScope}, inVertical={inVerticalScope}");
 
             // Get history object for this callsign (used by all three scopes)
             var hist = _histories.ContainsKey(callsign) ? _histories[callsign] : null;
 
             // === VERTICAL SCOPE ===
-            // Only draw if aircraft is in the vertical/azimuth sensing area
-            if (inVerticalAzimuthScope)
+            // Only draw if aircraft is in the vertical sensing area
+            if (inVerticalScope)
             {
                 // X-axis: distance from sensor (0 to rangeNm)
                 // Y-axis: altitude MSL, with 0° (field elevation) as horizontal reference
@@ -944,14 +913,16 @@ namespace PARScopeDisplay
                 // Store history in normalized coordinates
                 if (hist != null)
                 {
-                    var currentNorm = new System.Windows.Point(normX, normAlt);
+                    // Store vertical history in physical units: X=alongTrackNm, Y=altitude MSL (ft)
+                    var currentPhys = new System.Windows.Point(alongTrackNm, alt);
+                    // Use tolerances: 0.01 NM (~18.5m) for position, 50 ft for altitude
                     if (double.IsNaN(hist.LastVertical.X) ||
-                        Math.Abs(currentNorm.X - hist.LastVertical.X) > 0.001 ||
-                        Math.Abs(currentNorm.Y - hist.LastVertical.Y) > 0.001)
+                        Math.Abs(currentPhys.X - hist.LastVertical.X) > 0.01 ||
+                        Math.Abs(currentPhys.Y - hist.LastVertical.Y) > 50.0)
                     {
-                        hist.Vertical.Enqueue(currentNorm);
+                        hist.Vertical.Enqueue(currentPhys);
                         while (hist.Vertical.Count > 20) hist.Vertical.Dequeue();
-                        hist.LastVertical = currentNorm;
+                        hist.LastVertical = currentPhys;
                     }
                     int totalCount = hist.Vertical.Count;
                     if (totalCount > 1)
@@ -961,8 +932,14 @@ namespace PARScopeDisplay
                         for (int i = 0; i < historyDots.Count; i++)
                         {
                             var p = historyDots[i];
-                            double hx = p.X * vWidth;
-                            double hy = vHeight - (p.Y * vHeight);
+                            // p.X = alongTrackNm, p.Y = altitude MSL (ft)
+                            // Reuse totalRangeNm, altAt6DegAtFullRange and altRangeFt declared earlier in this vertical block
+                            double normXp = (p.X + sensorOffsetNm) / totalRangeNm;
+                            double normAltp = (p.Y - fieldElevFt) / altRangeFt;
+                            normXp = Math.Max(0, Math.Min(1, normXp));
+                            normAltp = Math.Max(0, Math.Min(1, normAltp));
+                            double hx = normXp * vWidth;
+                            double hy = vHeight - (normAltp * vHeight);
                             float alpha = 0.15f + ((float)i / Math.Max(1, historyDots.Count - 1)) * 0.30f;
                             var dot = new Ellipse { Width = 5, Height = 5, Fill = new SolidColorBrush(Color.FromScRgb(alpha, 1f, 1f, 1f)) };
                             dot.Margin = new Thickness(hx - 2.5, hy - 2.5, 0, 0);
@@ -980,8 +957,8 @@ namespace PARScopeDisplay
             }
 
             // === AZIMUTH SCOPE ===
-            // Only draw if aircraft is in the vertical/azimuth sensing area
-            if (inVerticalAzimuthScope)
+            // Only draw if aircraft is in the azimuth sensing area
+            if (inAzimuthScope)
             {
                 // Azimuth scope: sensor at LEFT, approach course pointing RIGHT
                 // Use same coordinate system as vertical scope for X-axis consistency
@@ -1000,14 +977,16 @@ namespace PARScopeDisplay
                 double curAy = normAy * aHeight;
                 if (hist != null)
                 {
-                    var currentNorm = new System.Windows.Point(normAx, normAy);
+                    // Store azimuth history in physical units: X=alongTrackNm, Y=crossTrackNm
+                    var currentPhysAz = new System.Windows.Point(alongTrackNm, crossTrackNm);
+                    // Tolerances: 0.01 NM for along and cross track
                     if (double.IsNaN(hist.LastAzimuth.X) ||
-                        Math.Abs(currentNorm.X - hist.LastAzimuth.X) > 0.001 ||
-                        Math.Abs(currentNorm.Y - hist.LastAzimuth.Y) > 0.001)
+                        Math.Abs(currentPhysAz.X - hist.LastAzimuth.X) > 0.01 ||
+                        Math.Abs(currentPhysAz.Y - hist.LastAzimuth.Y) > 0.01)
                     {
-                        hist.Azimuth.Enqueue(currentNorm);
+                        hist.Azimuth.Enqueue(currentPhysAz);
                         while (hist.Azimuth.Count > 20) hist.Azimuth.Dequeue();
-                        hist.LastAzimuth = currentNorm;
+                        hist.LastAzimuth = currentPhysAz;
                     }
                     int totalCount = hist.Azimuth.Count;
                     if (totalCount > 1)
@@ -1017,8 +996,14 @@ namespace PARScopeDisplay
                         for (int i = 0; i < historyDots.Count; i++)
                         {
                             var p = historyDots[i];
-                            double hx = p.X * aWidth;
-                            double hy = p.Y * aHeight;
+                            // p.X = alongTrackNm, p.Y = crossTrackNm
+                            // Reuse totalRangeNm and maxCrossTrackNm declared earlier in this azimuth block
+                            double normAxp = (p.X + sensorOffsetNm) / totalRangeNm;
+                            double normAyp = 0.5 + (p.Y / (2 * maxCrossTrackNm));
+                            normAxp = Math.Max(0, Math.Min(1, normAxp));
+                            normAyp = Math.Max(0, Math.Min(1, normAyp));
+                            double hx = normAxp * aWidth;
+                            double hy = normAyp * aHeight;
                             float alpha = 0.15f + ((float)i / Math.Max(1, historyDots.Count - 1)) * 0.30f;
                             var dot = new Ellipse { Width = 5, Height = 5, Fill = new SolidColorBrush(Color.FromScRgb(alpha, 1f, 1f, 1f)) };
                             dot.Margin = new Thickness(hx - 2.5, hy - 2.5, 0, 0);
@@ -1052,46 +1037,54 @@ namespace PARScopeDisplay
             // Calculate ENU relative to THRESHOLD (not sensor) for plan view
             double eastFromThreshold = 0, northFromThreshold = 0;
             GeoToEnu(_runway.ThresholdLat, _runway.ThresholdLon, lat, lon, out eastFromThreshold, out northFromThreshold);
-            
+
+            // Convert ENU meters to nautical miles for normalized storage
+            double eastNm = eastFromThreshold / 1852.0;
+            double northNm = northFromThreshold / 1852.0;
+
             // Aircraft position in screen coordinates (north = -Y, east = +X)
-            double px = pcx + (eastFromThreshold / 1852.0) / nmPerPx;
-            double py = pcy - (northFromThreshold / 1852.0) / nmPerPx;
-            
+            double px = pcx + (eastNm) / nmPerPx;
+            double py = pcy - (northNm) / nmPerPx;
+
             if (hist != null)
             {
-                var currentPos = new System.Windows.Point(px, py);
-                // Only add to history if position changed significantly
+                // Store history in NM-relative coordinates (eastNm, northNm) so resizing or range changes reproject correctly
+                var currentNm = new System.Windows.Point(eastNm, northNm);
+                // Only add to history if position changed significantly (use ~0.01 NM ~ 18.5m tolerance)
                 if (double.IsNaN(hist.LastPlan.X) || 
-                    Math.Abs(currentPos.X - hist.LastPlan.X) > 0.5 || 
-                    Math.Abs(currentPos.Y - hist.LastPlan.Y) > 0.5)
+                    Math.Abs(currentNm.X - hist.LastPlan.X) > 0.01 || 
+                    Math.Abs(currentNm.Y - hist.LastPlan.Y) > 0.01)
                 {
-                    hist.Plan.Enqueue(currentPos);
+                    hist.Plan.Enqueue(currentNm);
                     while (hist.Plan.Count > 20) hist.Plan.Dequeue(); // Keep last 20 actual positions
-                    hist.LastPlan = currentPos;
+                    hist.LastPlan = currentNm;
                 }
-                
+
                 // Draw only the selected number of history dots
                 int totalCount = hist.Plan.Count;
                 if (totalCount > 1)
                 {
                     int dotsToShow = Math.Min(_historyDotsCount, totalCount - 1);
                     var historyDots = hist.Plan.Skip(Math.Max(0, totalCount - dotsToShow - 1)).Take(dotsToShow).ToList();
-                    
+
                     for (int i = 0; i < historyDots.Count; i++)
                     {
                         var p = historyDots[i];
+                        // p is in NM (eastNm, northNm) — reproject to pixels for current canvas size and range
+                        double hx = pcx + (p.X) / nmPerPx;
+                        double hy = pcy - (p.Y) / nmPerPx;
                         float alpha = 0.15f + ((float)i / Math.Max(1, historyDots.Count - 1)) * 0.30f;
                         // Only draw history dots within canvas bounds
-                        if (p.X >= 0 && p.X <= pWidth && p.Y >= 0 && p.Y <= pHeight)
+                        if (hx >= 0 && hx <= pWidth && hy >= 0 && hy <= pHeight)
                         {
                             var dot = new Ellipse { Width = 4, Height = 4, Fill = new SolidColorBrush(Color.FromScRgb(alpha, 1f, 1f, 1f)) };
-                            dot.Margin = new Thickness(p.X - 2, p.Y - 2, 0, 0);
+                            dot.Margin = new Thickness(hx - 2, hy - 2, 0, 0);
                             PlanViewCanvas.Children.Add(dot);
                         }
                     }
                 }
             }
-            
+
             // Only draw on plan view if within canvas bounds
             if (px >= 0 && px <= pWidth && py >= 0 && py <= pHeight)
             {
