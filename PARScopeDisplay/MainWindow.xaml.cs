@@ -30,6 +30,8 @@ namespace PARScopeDisplay
     private readonly Dictionary<string, TargetHistory> _histories = new Dictionary<string, TargetHistory>(StringComparer.OrdinalIgnoreCase);
         private bool _hideGroundTraffic = false;
         private int _historyDotsCount = 5; // Number of history dots to display (user configurable)
+    private bool _showVerticalDevLines = true;
+    private bool _showAzimuthDevLines = true;
 
         public MainWindow()
         {
@@ -239,6 +241,16 @@ namespace PARScopeDisplay
             _hideGroundTraffic = HideGroundCheckBox.IsChecked == true;
         }
 
+        private void OnShowVerticalDevChanged(object sender, RoutedEventArgs e)
+        {
+            _showVerticalDevLines = ShowVerticalDevCheckBox.IsChecked == true;
+        }
+
+        private void OnShowAzimuthDevChanged(object sender, RoutedEventArgs e)
+        {
+            _showAzimuthDevLines = ShowAzimuthDevCheckBox.IsChecked == true;
+        }
+
         private void OnHistoryDotsChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             _historyDotsCount = (int)HistoryDotsSlider.Value;
@@ -362,6 +374,47 @@ namespace PARScopeDisplay
             // Glide slope reference line
             DrawGlideSlope(canvas, w, h, rangeNm);
 
+            // Vertical deviation guideline set (origin at glideslope at threshold + TCH)
+            if (_showVerticalDevLines)
+            {
+                // Compute altitude at threshold where GS passes: field elev + TCH
+                double tchDev = rs.ThrCrossingHgtFt > 0 ? rs.ThrCrossingHgtFt : 0.0;
+                double alt0 = fieldElevFt + tchDev; // altitude at threshold on GS
+                // TD is at distance from threshold where GS reaches field elevation
+                double tdOffsetNmLocal = 0;
+                double gsRadLocal = DegToRad(rs.GlideSlopeDeg);
+                if (gsRadLocal > 0.000001 && tchDev > 0)
+                {
+                    double distFtLocal = tchDev / Math.Tan(gsRadLocal);
+                    tdOffsetNmLocal = distFtLocal / 6076.12;
+                }
+
+                // angles in degrees to draw (0, ±0.5°, ±1°, ±2°) originating at TD
+                var vAngles = new List<double> { 0.0, 0.5, 1.0, 2.0 };
+                foreach (var ang in vAngles)
+                {
+                    for (int sign = -1; sign <= 1; sign += 2)
+                    {
+                        if (ang == 0.0 && sign == -1) continue;
+                        double a = ang * sign;
+                        var line = new Line();
+                        if (ang == 0.0) { line.Stroke = Brushes.LimeGreen; line.StrokeThickness = 2; }
+                        else { line.Stroke = new SolidColorBrush(Color.FromRgb(160, 140, 40)); line.StrokeThickness = 1; var dash = new DoubleCollection(); dash.Add(4); dash.Add(6); line.StrokeDashArray = dash; }
+                        // Draw deviation from TD origin: TD is where glideslope reaches field elevation
+                        double startX = tdPixel; // TD origin in pixels
+                        double startY = workH;   // field elevation (ground) at bottom
+                        // End X is TD plus display range
+                        double endX = tdPixel + (rangeNm * pxPerNm);
+                        // Altitude at distance s (from TD) along this dev-angle: fieldElev + tan(gs + a) * (s * 6076.12)
+                        double angleRad = DegToRad(rs.GlideSlopeDeg + a);
+                        double altEnd = fieldElevFt + Math.Tan(angleRad) * (rangeNm * 6076.12);
+                        double endY = Math.Max(0, Math.Min(workH, workH - ((altEnd - fieldElevFt) * pxPerFt)));
+                        line.X1 = startX; line.Y1 = startY; line.X2 = endX; line.Y2 = endY;
+                        canvas.Children.Add(line);
+                    }
+                }
+            }
+
             // Draw thick blue runway line at the glideslope touchdown point (bottom of triangle)
             double runwayY = workH; // At field elevation (bottom of the triangle)
             // Render runway as a thick blue bar from the left edge (sensor side) to the threshold
@@ -482,38 +535,33 @@ namespace PARScopeDisplay
             // Azimuth wedge envelope and guide lines
             DrawAzimuthWedge(canvas, w, h, rs);
 
-            // Azimuth deviation guideline set:
-            // originate from TD (tdPixel) and draw lines at ±0.5°, ±1°, ±2°, then every 2° until maxAz
+            // Azimuth deviation guideline set: originate from TD (tdPixel)
+            // Only include 0.0, ±0.5°, ±1°, ±2° as requested
             double maxAz = rs.MaxAzimuthDeg > 0 ? rs.MaxAzimuthDeg : 10.0;
-            // Build angle list starting from smallest intervals requested
-            var angleList = new List<double>();
-            // Add the symmetric small angles
-            angleList.Add(0.0);
-            angleList.Add(0.5);
-            angleList.Add(1.0);
-            angleList.Add(2.0);
-            // then every 2 degrees starting at 4 up to maxAz
-            for (double a = 4.0; a <= maxAz; a += 2.0) angleList.Add(a);
+            var angleList = new List<double> { 0.5, 1.0, 2.0 };
 
-            // Draw positive and negative sides
-            for (int idx = 0; idx < angleList.Count; idx++)
+            // Draw positive and negative sides (only if enabled)
+            if (_showAzimuthDevLines)
             {
-                double ang = angleList[idx];
-                // Skip the 0.0 duplicate for negative side
-                for (int sign = -1; sign <= 1; sign += 2)
+                for (int idx = 0; idx < angleList.Count; idx++)
                 {
-                    if (ang == 0.0 && sign == -1) continue; // 0 only once
-                    double a = ang * sign;
-                    var line = new Line();
-                    if (ang == 0.0) { line.Stroke = Brushes.LimeGreen; line.StrokeThickness = 2; }
-                    else { line.Stroke = new SolidColorBrush(Color.FromRgb(160, 140, 40)); line.StrokeThickness = 1; var dash = new DoubleCollection(); dash.Add(4); dash.Add(6); line.StrokeDashArray = dash; }
-                    // Start at TD on centerline
-                    line.X1 = tdPixel; line.Y1 = h / 2.0;
-                    line.X2 = w; // extend to right edge
-                    double yNm = Math.Tan(DegToRad(a)) * totalRangeNm; // lateral offset at full totalRange
-                    double yOffset = yNm * pxPerNmY;
-                    line.Y2 = Math.Max(0, Math.Min(h, h / 2.0 - yOffset)); // clamp
-                    canvas.Children.Add(line);
+                    double ang = angleList[idx];
+                    // Skip the 0.0 duplicate for negative side
+                    for (int sign = -1; sign <= 1; sign += 2)
+                    {
+                        if (ang == 0.0 && sign == -1) continue; // 0 only once
+                        double a = ang * sign;
+                        var line = new Line();
+                        if (ang == 0.0) { line.Stroke = Brushes.LimeGreen; line.StrokeThickness = 2; }
+                        else { line.Stroke = new SolidColorBrush(Color.FromRgb(160, 140, 40)); line.StrokeThickness = 1; var dash = new DoubleCollection(); dash.Add(4); dash.Add(6); line.StrokeDashArray = dash; }
+                        // Start at TD on centerline
+                        line.X1 = tdPixel; line.Y1 = h / 2.0;
+                        line.X2 = w; // extend to right edge
+                        double yNm = Math.Tan(DegToRad(a)) * totalRangeNm; // lateral offset at full totalRange
+                        double yOffset = yNm * pxPerNmY;
+                        line.Y2 = Math.Max(0, Math.Min(h, h / 2.0 - yOffset)); // clamp
+                        canvas.Children.Add(line);
+                    }
                 }
             }
 

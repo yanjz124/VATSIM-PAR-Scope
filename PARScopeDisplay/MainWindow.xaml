@@ -30,6 +30,8 @@
                             ValueChanged="OnHistoryDotsChanged" VerticalAlignment="Center" Background="Transparent"/>
                     <TextBlock x:Name="HistoryDotsLabel" Text="5" Foreground="Black" Margin="8,0,0,0" Width="28" FontWeight="Bold" FontSize="13"/>
                 </StackPanel>
+                <CheckBox x:Name="ShowVerticalDevCheckBox" Margin="20,0,0,0" VerticalAlignment="Center" Foreground="Black" IsChecked="True" Checked="OnShowVerticalDevChanged" Unchecked="OnShowVerticalDevChanged" Content="Show Vertical Dev Lines"/>
+                <CheckBox x:Name="ShowAzimuthDevCheckBox" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="Black" IsChecked="True" Checked="OnShowAzimuthDevChanged" Unchecked="OnShowAzimuthDevChanged" Content="Show Azimuth Dev Lines"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Background="#1a1a1a" Height="28">
                 <TextBlock Text="PAR Config:" Foreground="White" Margin="8,0,15,0" VerticalAlignment="Center" FontSize="11" FontWeight="Bold"/>
