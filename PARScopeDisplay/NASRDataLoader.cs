@@ -6,6 +6,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Web.Script.Serialization;
 
 namespace PARScopeDisplay
 {
@@ -33,6 +34,8 @@ namespace PARScopeDisplay
         {
             _runwayData = new Dictionary<string, List<RunwayEndData>>(StringComparer.OrdinalIgnoreCase);
             LastLoadedSource = null;
+            // Try to load cached data from AppData
+            try { LoadCache(); } catch { }
         }
 
         /// <summary>
@@ -139,7 +142,8 @@ namespace PARScopeDisplay
         /// </summary>
         public List<string> GetAirportIds()
         {
-            return new List<string>(_runwayData.Keys);
+            // Return only all-letter ICAO-like identifiers to keep dropdown small
+            return _runwayData.Keys.Where(k => !string.IsNullOrEmpty(k) && k.All(ch => char.IsLetter(ch))).ToList();
         }
 
         private string ConstructZipFilename(DateTime date)
@@ -336,7 +340,7 @@ namespace PARScopeDisplay
                                 runwayId = slash >= 0 ? pair.Substring(0, slash) : pair;
                             }
                         }
-                        runwayId = NormalizeRunwayId(runwayId);
+                        // keep raw runway id text in the data model; matching uses NormalizeRunwayId later
                         
                         if (string.IsNullOrEmpty(airportId) || string.IsNullOrEmpty(runwayId))
                             continue;
@@ -435,6 +439,62 @@ namespace PARScopeDisplay
             }
             list.Add(sb.ToString());
             return list.ToArray();
+        }
+
+        private string GetCachePath()
+        {
+            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            string folder = Path.Combine(appData, "VATSIM-PAR-Scope");
+            try { Directory.CreateDirectory(folder); } catch { }
+            return Path.Combine(folder, "nasr_cache.json");
+        }
+
+        private void SaveCache()
+        {
+            try
+            {
+                var ser = new JavaScriptSerializer();
+                var dump = _runwayData.ToDictionary(k => k.Key, v => v.Value);
+                string json = ser.Serialize(dump);
+                File.WriteAllText(GetCachePath(), json, Encoding.UTF8);
+            }
+            catch { }
+        }
+
+        private void LoadCache()
+        {
+            try
+            {
+                string path = GetCachePath();
+                if (!File.Exists(path)) return;
+                string json = File.ReadAllText(path, Encoding.UTF8);
+                var ser = new JavaScriptSerializer();
+                var obj = ser.DeserializeObject(json) as Dictionary<string, object>;
+                if (obj == null) return;
+                _runwayData.Clear();
+                foreach (var kv in obj)
+                {
+                    var list = new List<RunwayEndData>();
+                    var arr = kv.Value as object[];
+                    if (arr == null) continue;
+                    foreach (var it in arr)
+                    {
+                        var map = it as Dictionary<string, object>;
+                        if (map == null) continue;
+                        var r = new RunwayEndData();
+                        r.AirportId = map.ContainsKey("AirportId") ? (string)map["AirportId"] : kv.Key;
+                        r.RunwayId = map.ContainsKey("RunwayId") ? (string)map["RunwayId"] : null;
+                        r.Latitude = map.ContainsKey("Latitude") ? Convert.ToDouble(map["Latitude"]) : 0;
+                        r.Longitude = map.ContainsKey("Longitude") ? Convert.ToDouble(map["Longitude"]) : 0;
+                        r.TrueHeading = map.ContainsKey("TrueHeading") ? Convert.ToDouble(map["TrueHeading"]) : 0;
+                        r.FieldElevationFt = map.ContainsKey("FieldElevationFt") ? Convert.ToDouble(map["FieldElevationFt"]) : 0;
+                        r.ThrCrossingHgtFt = map.ContainsKey("ThrCrossingHgtFt") ? Convert.ToDouble(map["ThrCrossingHgtFt"]) : 0;
+                        list.Add(r);
+                    }
+                    _runwayData[kv.Key] = list;
+                }
+            }
+            catch { }
         }
 
         private static string NormalizeRunwayId(string rwy)

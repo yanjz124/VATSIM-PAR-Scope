@@ -9,6 +9,7 @@ namespace PARScopeDisplay
     {
         private MainWindow.RunwaySettings _init;
         private NASRDataLoader _nasrLoader;
+        private System.Collections.Generic.List<string> _allIcaoCodes;
 
         public RunwayDialog()
         {
@@ -21,16 +22,51 @@ namespace PARScopeDisplay
             LookupButton.IsEnabled = (loader != null);
             if (loader != null)
             {
-                // Populate ICAO dropdown (letters-only IDs like DCA; exclude codes with digits like 7AL9)
+                // Store all ICAO codes (letters-only IDs like DCA; exclude codes with digits like 7AL9)
                 var ids = loader.GetAirportIds();
-                ids = ids.Where(id => !string.IsNullOrEmpty(id) && id.All(ch => ch >= 'A' && ch <= 'Z')).ToList();
-                ids.Sort(StringComparer.OrdinalIgnoreCase);
-                IcaoBox.ItemsSource = ids;
-                IcaoBox.SelectionChanged += (s, e) => RefreshRunwayList();
+                _allIcaoCodes = ids.Where(id => !string.IsNullOrEmpty(id) && id.All(ch => ch >= 'A' && ch <= 'Z')).ToList();
+                _allIcaoCodes.Sort(StringComparer.OrdinalIgnoreCase);
+                
+                // Initially show top 50 codes
+                IcaoBox.ItemsSource = _allIcaoCodes.Take(50).ToList();
                 IcaoBox.IsEditable = true;
-                IcaoBox.KeyUp += (s, e) => RefreshRunwayList();
+                
+                // Wire up dynamic filtering on text change
+                IcaoBox.KeyUp += IcaoBox_KeyUp;
+                IcaoBox.SelectionChanged += (s, e) => RefreshRunwayList();
                 IcaoBox.LostFocus += (s, e) => RefreshRunwayList();
             }
+        }
+
+        private void IcaoBox_KeyUp(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (_allIcaoCodes == null || _allIcaoCodes.Count == 0) return;
+            
+            string text = (IcaoBox.Text ?? "").Trim().ToUpperInvariant();
+            if (string.IsNullOrEmpty(text))
+            {
+                // Show top 50 when empty
+                IcaoBox.ItemsSource = _allIcaoCodes.Take(50).ToList();
+            }
+            else
+            {
+                // Filter to matches starting with typed text, then containing it
+                var startsWith = _allIcaoCodes.Where(id => id.StartsWith(text, StringComparison.OrdinalIgnoreCase)).ToList();
+                var contains = _allIcaoCodes.Where(id => id.IndexOf(text, StringComparison.OrdinalIgnoreCase) > 0).ToList();
+                
+                var matches = startsWith.Concat(contains).Distinct().Take(50).ToList();
+                
+                // If exactly one match, ensure it's at the top
+                if (matches.Count == 1 && !matches[0].Equals(text, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Already at top, just ensure dropdown shows it
+                }
+                
+                IcaoBox.ItemsSource = matches;
+                IcaoBox.IsDropDownOpen = matches.Count > 0;
+            }
+            
+            RefreshRunwayList();
         }
 
         public void SetInitial(MainWindow.RunwaySettings set)
