@@ -295,6 +295,15 @@ namespace PARScopeDisplay
             // Determine which integer tick corresponds to THR so we can label it
             int thrIndex = (int)Math.Round((thresholdX - tdPixel) / pxPerNm);
 
+            // DEBUG: show computed threshold/TD values (temporary)
+            try
+            {
+                var dbg = new TextBlock { Text = $"sensorOffNm={sensorOffsetNm:0.000} tdOffNm={tdOffsetNm:0.000} thrX={thresholdX:0.00} tdX={tdPixel:0.00}", Foreground = Brushes.Yellow, FontSize = 10 };
+                dbg.Margin = new Thickness(Math.Max(0, w - 420), 18, 0, 0);
+                canvas.Children.Add(dbg);
+            }
+            catch { }
+
             for (i = 0; i <= (int)Math.Floor(rangeNm); i++)
             {
                 double x = tdPixel + i * pxPerNm; // origin now at TD
@@ -467,6 +476,14 @@ namespace PARScopeDisplay
             double tdPixel = thresholdX - (tdOffsetNm * pxPerNm);
 
             int i;
+            // DEBUG: show computed threshold/TD values (temporary)
+            try
+            {
+                var dbg2 = new TextBlock { Text = $"sensorOffNm={sensorOffsetNm:0.000} tdOffNm={tdOffsetNm:0.000} thrX={thresholdX:0.00} tdX={tdPixel:0.00}", Foreground = Brushes.Yellow, FontSize = 10 };
+                dbg2.Margin = new Thickness(Math.Max(0, w - 420), 18, 0, 0);
+                canvas.Children.Add(dbg2);
+            }
+            catch { }
             for (i = 0; i <= (int)Math.Floor(rangeNm); i++)
             {
                 double x = tdPixel + i * pxPerNm; // origin at TD
@@ -648,12 +665,112 @@ namespace PARScopeDisplay
             // Draw centerline (green)
             var centerline = new Line(); centerline.X1 = sx; centerline.Y1 = sy; centerline.X2 = fullRangeX; centerline.Y2 = fullRangeY; centerline.Stroke = Brushes.LimeGreen; centerline.StrokeThickness = 1.5; canvas.Children.Add(centerline);
             
-            // Draw runway as a thick line (heading from threshold)
-            double rwLen = 2.0; // runway length in NM for display
-            double x1 = cx; double y1 = cy;
-            double x2 = cx + (rwLen / nmPerPx) * Math.Sin(hdgRad);
-            double y2 = cy - (rwLen / nmPerPx) * Math.Cos(hdgRad);
-            var rw = new Line(); rw.X1 = x1; rw.Y1 = y1; rw.X2 = x2; rw.Y2 = y2; rw.Stroke = Brushes.White; rw.StrokeThickness = 4; canvas.Children.Add(rw);
+            // Draw runways for the selected airport using NASR data if available
+            bool drewAnyRunways = false;
+            try
+            {
+                if (_nasrLoader != null && _runway != null && !string.IsNullOrEmpty(_runway.Icao))
+                {
+                    var ends = _nasrLoader.GetAirportRunways(_runway.Icao);
+
+                    // local helper: normalize runway id like NASR normalization (number + optional L/R/C)
+                    string NormalizeRwy(string r)
+                    {
+                        if (string.IsNullOrEmpty(r)) return r;
+                        r = r.Trim().ToUpperInvariant();
+                        var numPart = new string(r.TakeWhile(char.IsDigit).ToArray());
+                        var rest = r.Substring(numPart.Length).Trim();
+                        if (rest == "LEFT") rest = "L"; else if (rest == "RIGHT") rest = "R"; else if (rest == "CENTER" || rest == "CENTRE") rest = "C";
+                        return numPart.TrimStart('0') + rest;
+                    }
+
+                    // helper to parse numeric and side
+                    bool ParseRwy(string r, out int num, out string side)
+                    {
+                        num = 0; side = "";
+                        if (string.IsNullOrEmpty(r)) return false;
+                        var s = r.Trim().ToUpperInvariant();
+                        var digits = new string(s.TakeWhile(char.IsDigit).ToArray());
+                        if (!int.TryParse(digits, out num)) return false;
+                        side = s.Substring(digits.Length).Trim();
+                        return true;
+                    }
+
+                    var used = new HashSet<int>();
+                    for (int iidx = 0; iidx < ends.Count; iidx++)
+                    {
+                        if (used.Contains(iidx)) continue;
+                        var a = ends[iidx];
+                        if (string.IsNullOrEmpty(a.RunwayId)) continue;
+                        if (!ParseRwy(a.RunwayId, out int anum, out string aside)) continue;
+
+                        // compute reciprocal number (add 18 -> opposite direction)
+                        int recipNum = ((anum + 18 - 1) % 36) + 1;
+                        // swap side (L<->R)
+                        string recipSide = aside;
+                        if (recipSide == "L") recipSide = "R"; else if (recipSide == "R") recipSide = "L";
+
+                        string recipNorm = recipNum.ToString() + recipSide;
+                        // find matching runway end
+                        int found = -1;
+                        for (int j = 0; j < ends.Count; j++)
+                        {
+                            if (j == iidx) continue;
+                            if (used.Contains(j)) continue;
+                            var b = ends[j];
+                            if (string.IsNullOrEmpty(b.RunwayId)) continue;
+                            var bn = NormalizeRwy(b.RunwayId);
+                            if (bn == recipNorm)
+                            {
+                                found = j; break;
+                            }
+                        }
+
+                        // fallback: match reciprocal number ignoring side
+                        if (found < 0)
+                        {
+                            string recipNumStr = recipNum.ToString();
+                            for (int j = 0; j < ends.Count; j++)
+                            {
+                                if (j == iidx) continue;
+                                if (used.Contains(j)) continue;
+                                var b = ends[j];
+                                if (string.IsNullOrEmpty(b.RunwayId)) continue;
+                                var bn = NormalizeRwy(b.RunwayId);
+                                if (bn.StartsWith(recipNumStr)) { found = j; break; }
+                            }
+                        }
+
+                        if (found >= 0)
+                        {
+                            // draw line between a and ends[found]
+                            var b = ends[found];
+                            double east1, north1, east2, north2;
+                            GeoToEnu(_runway.ThresholdLat, _runway.ThresholdLon, a.Latitude, a.Longitude, out east1, out north1);
+                            GeoToEnu(_runway.ThresholdLat, _runway.ThresholdLon, b.Latitude, b.Longitude, out east2, out north2);
+                            double px1 = cx + (east1 / 1852.0) / nmPerPx;
+                            double py1 = cy - (north1 / 1852.0) / nmPerPx;
+                            double px2 = cx + (east2 / 1852.0) / nmPerPx;
+                            double py2 = cy - (north2 / 1852.0) / nmPerPx;
+                            var runwayLine = new Line { X1 = px1, Y1 = py1, X2 = px2, Y2 = py2, Stroke = Brushes.DimGray, StrokeThickness = 3 };
+                            canvas.Children.Add(runwayLine);
+                            used.Add(iidx); used.Add(found);
+                            drewAnyRunways = true;
+                        }
+                    }
+                }
+            }
+            catch { /* ignore drawing errors */ }
+
+            if (!drewAnyRunways)
+            {
+                // Fallback: draw a simple runway indicator at threshold
+                double rwLen = 2.0; // runway length in NM for display
+                double x1 = cx; double y1 = cy;
+                double x2 = cx + (rwLen / nmPerPx) * Math.Sin(hdgRad);
+                double y2 = cy - (rwLen / nmPerPx) * Math.Cos(hdgRad);
+                var rw = new Line(); rw.X1 = x1; rw.Y1 = y1; rw.X2 = x2; rw.Y2 = y2; rw.Stroke = Brushes.White; rw.StrokeThickness = 4; canvas.Children.Add(rw);
+            }
 
             // Threshold marker (green)
             var thr = new Ellipse(); thr.Width = 8; thr.Height = 8; thr.Fill = Brushes.LimeGreen; thr.Margin = new Thickness(cx - 4, cy - 4, 0, 0); canvas.Children.Add(thr);
@@ -697,6 +814,14 @@ namespace PARScopeDisplay
             string callsign = ac.ContainsKey("callsign") && ac["callsign"] != null ? ac["callsign"].ToString() : "";
 
             Debug.WriteLine($"DrawAircraft: {callsign} lat={lat}, lon={lon}, alt={alt}, ThresholdLat={_runway.ThresholdLat}, ThresholdLon={_runway.ThresholdLon}");
+
+            // Remove any previous debug overlays (tagged "DBG") to keep only one
+            try
+            {
+                var old = VerticalScopeCanvas.Children.OfType<UIElement>().Where(c => (c is FrameworkElement fe) && fe.Tag != null && fe.Tag.ToString() == "DBG").ToList();
+                foreach (var o in old) VerticalScopeCanvas.Children.Remove(o);
+            }
+            catch { }
 
             // Canvas dimensions
             double vWidth = VerticalScopeCanvas.ActualWidth > 0 ? VerticalScopeCanvas.ActualWidth : 400;
@@ -754,6 +879,34 @@ namespace PARScopeDisplay
             {
                 elevationDeg = Math.Atan(altAboveFieldFt / (alongTrackNm * 6076.12)) * 180.0 / Math.PI;
             }
+
+            // ALSO compute along-track relative to THRESHOLD to avoid origin mismatch
+            double eastT = 0, northT = 0;
+            GeoToEnu(_runway.ThresholdLat, _runway.ThresholdLon, lat, lon, out eastT, out northT);
+            // Project relative to approach course (approachRad defined earlier)
+            double alongTrackFromThresholdM = northT * cosA + eastT * sinA;
+            double alongTrackFromThresholdNm = alongTrackFromThresholdM / 1852.0;
+            double crossTrackFromThresholdM = -northT * sinA + eastT * cosA;
+            double crossTrackFromThresholdNm = crossTrackFromThresholdM / 1852.0;
+            double elevationDegFromThreshold = 0;
+            if (Math.Abs(alongTrackFromThresholdNm) > 0.01)
+            {
+                elevationDegFromThreshold = Math.Atan(altAboveFieldFt / (alongTrackFromThresholdNm * 6076.12)) * 180.0 / Math.PI;
+            }
+
+            // Debug overlay: show last computed values for inspection
+            try
+            {
+                // Update sensor lat/lon for display (reuse existing variables)
+                try { GetSensorLatLon(_runway, sensorOffsetNm, out sensorLat, out sensorLon); } catch { }
+
+                var dbgTxt = string.Format("DBG {0} altMSL={1:0} altAboveField={2:0} alongSensorNm={3:0.000} crossSensorNm={4:0.000} elevSensor={5:0.00} alongThrNm={6:0.000} crossThrNm={7:0.000} elevThr={8:0.00} fieldElev={9:0} acLat={10:0.000000} acLon={11:0.000000} sLat={12:0.000000} sLon={13:0.000000}",
+                    callsign ?? "(no-call)", alt, altAboveFieldFt, alongTrackNm, crossTrackNm, elevationDeg, alongTrackFromThresholdNm, crossTrackFromThresholdNm, elevationDegFromThreshold, fieldElevFt, lat, lon, sensorLat, sensorLon);
+                var dbgBlock = new TextBlock { Text = dbgTxt, Foreground = Brushes.Yellow, FontSize = 11, Tag = "DBG" };
+                dbgBlock.Margin = new Thickness(6, 18, 0, 0);
+                VerticalScopeCanvas.Children.Add(dbgBlock);
+            }
+            catch { }
 
             // Filtering for vertical and azimuth scopes:
             // Check if aircraft is within the scope range (from -sensorOffset to +rangeNm from sensor)

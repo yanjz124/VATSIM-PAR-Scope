@@ -28,6 +28,9 @@ namespace PARScopeDisplay
             public double TrueHeading { get; set; }
             public double FieldElevationFt { get; set; }
             public double ThrCrossingHgtFt { get; set; }
+            // Additional fields from NASR CSV that we want to retain
+            public string RwyIdCsv { get; set; }
+            public string ApchLgtSystemCode { get; set; }
         }
 
         public NASRDataLoader()
@@ -304,6 +307,10 @@ namespace PARScopeDisplay
                     int colTch = Array.FindIndex(headerNorm, c =>
                         c == "THR_CROSSING_HGT" || c == "THRESHOLD_CROSSING_HEIGHT" || c.Contains("THR") && c.Contains("CROSS") && c.Contains("HGT"));
 
+                    // Optional fields we want to retain: raw RWY_ID and approach lighting system code
+                    int colApchLgt = Array.FindIndex(headerNorm, c =>
+                        c == "APCH_LGT_SYSTEM_CODE" || (c.Contains("APCH") && c.Contains("LGT")));
+
                 if (colAirportId < 0 || (colRunwayEndId < 0 && colRunwayPairId < 0) || colLat < 0 || colLon < 0 || colTrueHdg < 0)
                 {
                         string colInfo = string.Format("Header: {0}\n\nColumns: Airport={1}, RunwayEnd={2}, RunwayPair={3}, Lat={4}, Lon={5}, Hdg={6}",
@@ -321,6 +328,8 @@ namespace PARScopeDisplay
                     string[] cols = SplitCsvLine(line);
                     
                     int rwyCol = colRunwayEndId >= 0 ? colRunwayEndId : colRunwayPairId;
+                    // capture optional column indexes
+                    int colApchLgtLocal = Array.FindIndex(headerNorm, c => c == "APCH_LGT_SYSTEM_CODE" || (c.Contains("APCH") && c.Contains("LGT")));
                     if (cols.Length <= Math.Max(Math.Max(colAirportId, rwyCol),
                                                 Math.Max(colLat, Math.Max(colLon, colTrueHdg))))
                         continue;
@@ -368,6 +377,17 @@ namespace PARScopeDisplay
                             double.TryParse(cols[colTch].Trim().Trim('"'), NumberStyles.Float, CultureInfo.InvariantCulture, out tch);
                         }
 
+                        string rawRwyIdCsv = null;
+                        if (rwyCol >= 0 && rwyCol < cols.Length)
+                        {
+                            rawRwyIdCsv = cols[rwyCol].Trim().Trim('"');
+                        }
+                        string apchLgtCode = null;
+                        if (colApchLgtLocal >= 0 && colApchLgtLocal < cols.Length)
+                        {
+                            apchLgtCode = cols[colApchLgtLocal].Trim().Trim('"');
+                        }
+
                         var data = new RunwayEndData
                         {
                             AirportId = airportId,
@@ -377,6 +397,8 @@ namespace PARScopeDisplay
                             TrueHeading = hdg,
                             FieldElevationFt = elev,
                             ThrCrossingHgtFt = tch
+                            ,RwyIdCsv = rawRwyIdCsv
+                            ,ApchLgtSystemCode = apchLgtCode
                         };
 
                         List<RunwayEndData> list;
@@ -503,6 +525,8 @@ namespace PARScopeDisplay
                         r.TrueHeading = map.ContainsKey("TrueHeading") ? Convert.ToDouble(map["TrueHeading"]) : 0;
                         r.FieldElevationFt = map.ContainsKey("FieldElevationFt") ? Convert.ToDouble(map["FieldElevationFt"]) : 0;
                         r.ThrCrossingHgtFt = map.ContainsKey("ThrCrossingHgtFt") ? Convert.ToDouble(map["ThrCrossingHgtFt"]) : 0;
+                        r.RwyIdCsv = map.ContainsKey("RwyIdCsv") ? (string)map["RwyIdCsv"] : null;
+                        r.ApchLgtSystemCode = map.ContainsKey("ApchLgtSystemCode") ? (string)map["ApchLgtSystemCode"] : null;
                         list.Add(r);
                     }
                     _runwayData[kv.Key] = list;
