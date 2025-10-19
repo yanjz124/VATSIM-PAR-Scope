@@ -950,6 +950,18 @@ namespace PARScopeDisplay
             // History bucket
             var hist = _histories.ContainsKey(callsign) ? _histories[callsign] : null;
 
+            // Compute a ground check for Plan view (reuse threshold ENU computed above)
+            bool isGroundPlan = false;
+            try
+            {
+                double distFromThrM_plan = Math.Sqrt(east_t * east_t + north_t * north_t);
+                double distanceFromThresholdFt_plan = distFromThrM_plan * 3.28084;
+                double halfDegGlideAlt_plan = fieldElevFt + Math.Tan(DegToRad(0.5)) * distanceFromThresholdFt_plan;
+                double groundThreshold_plan = Math.Max(fieldElevFt + 20, halfDegGlideAlt_plan);
+                isGroundPlan = (alt < groundThreshold_plan);
+            }
+            catch { isGroundPlan = false; }
+
             // Enqueue history using change-detection (matching Plan behavior) and respecting ground-hide
             if (hist != null)
             {
@@ -1148,8 +1160,8 @@ namespace PARScopeDisplay
                 double eastNmP = eastFromThreshold / 1852.0, northNmP = northFromThreshold / 1852.0;
                 double px = pcx + (eastNmP) / nmPerPx, py = pcy - (northNmP) / nmPerPx;
 
-                // Draw plan history (respecting plan altitude filter)
-                if (hist != null && (!(_hideGroundTraffic && alt < fieldElevFt)))
+                // Draw plan history (respecting plan altitude filter and hide-ground setting)
+                if (hist != null && (!_hideGroundTraffic || !isGroundPlan))
                 {
                     if (!(_planAltTopHundreds > 0 && alt > _planAltTopHundreds * 100))
                     {
@@ -1172,7 +1184,7 @@ namespace PARScopeDisplay
                 }
 
                 // Draw current plan marker and datablock
-                if (px >= 0 && px <= pWidth && py >= 0 && py <= pHeight && !(_planAltTopHundreds > 0 && alt > _planAltTopHundreds * 100))
+                if (px >= 0 && px <= pWidth && py >= 0 && py <= pHeight && (!_hideGroundTraffic || !isGroundPlan) && !(_planAltTopHundreds > 0 && alt > _planAltTopHundreds * 100))
                 {
                     double rectW = 10.0, rectH = 4.0;
                     double sensorPxX = pcx + (-sensorOffsetNm / nmPerPx) * Math.Sin(approachRad);
