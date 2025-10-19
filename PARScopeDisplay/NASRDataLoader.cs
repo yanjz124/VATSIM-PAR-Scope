@@ -460,9 +460,14 @@ namespace PARScopeDisplay
                 var ser = new JavaScriptSerializer();
                 var dump = _runwayData.ToDictionary(k => k.Key, v => v.Value);
                 string json = ser.Serialize(dump);
-                File.WriteAllText(GetCachePath(), json, Encoding.UTF8);
+                string cachePath = GetCachePath();
+                File.WriteAllText(cachePath, json, Encoding.UTF8);
+                System.Diagnostics.Debug.WriteLine($"NASR cache saved to: {cachePath} ({json.Length} bytes)");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error saving NASR cache: {ex.Message}");
+            }
         }
 
         private void LoadCache()
@@ -470,8 +475,13 @@ namespace PARScopeDisplay
             try
             {
                 string path = GetCachePath();
-                if (!File.Exists(path)) return;
+                if (!File.Exists(path))
+                {
+                    System.Diagnostics.Debug.WriteLine($"NASR cache not found at: {path}");
+                    return;
+                }
                 string json = File.ReadAllText(path, Encoding.UTF8);
+                System.Diagnostics.Debug.WriteLine($"NASR cache loaded from: {path} ({json.Length} bytes)");
                 var ser = new JavaScriptSerializer();
                 var obj = ser.DeserializeObject(json) as Dictionary<string, object>;
                 if (obj == null) return;
@@ -497,8 +507,12 @@ namespace PARScopeDisplay
                     }
                     _runwayData[kv.Key] = list;
                 }
+                System.Diagnostics.Debug.WriteLine($"NASR cache loaded: {_runwayData.Count} airports");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error loading NASR cache: {ex.Message}");
+            }
         }
 
         private static string NormalizeRunwayId(string rwy)
