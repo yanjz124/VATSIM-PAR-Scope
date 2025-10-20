@@ -1,0 +1,6 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="PARScopeDisplay_Avalonia.App">
+  <!-- Minimal styles: none to avoid external theme package in this skeleton -->
+  <Application.Styles />
+</Application>
