@@ -11,7 +11,7 @@ This repo contains two things:
 
 Who made this
 -------------
-I vibe-coded the whole project — developer: JY (Yan J.).
+I vibe-coded the whole project.
 
 Quick notes
 -----------
