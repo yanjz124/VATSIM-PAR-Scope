@@ -17,6 +17,11 @@
                     <MenuItem Header="Download Latest NASR Data..." Click="OnDownloadNASRClick" />
                     <MenuItem Header="Load NASR from File..." Click="OnLoadNASRFileClick" />
                 </MenuItem>
+                <MenuItem Header="Display">
+                    <MenuItem x:Name="Display_ShowApproachLights" Header="Approach Lights" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
+                        <MenuItem x:Name="Display_ShowVerticalDev" Header="Vertical Dev Lines" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
+                        <MenuItem x:Name="Display_ShowAzimuthDev" Header="Azimuth Dev Lines" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
+                </MenuItem>
             </Menu>
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="10">
                 <TextBlock Text="Plugin Status: " FontWeight="Bold"/>
@@ -33,9 +38,9 @@
                             ValueChanged="OnHistoryDotsChanged" VerticalAlignment="Center" Background="Transparent"/>
                     <TextBlock x:Name="HistoryDotsLabel" Text="5" Foreground="Black" Margin="8,0,0,0" Width="28" FontWeight="Bold" FontSize="13"/>
                 </StackPanel>
-                <CheckBox x:Name="ShowVerticalDevCheckBox" Margin="20,0,0,0" VerticalAlignment="Center" Foreground="Black" IsChecked="True" Checked="OnShowVerticalDevChanged" Unchecked="OnShowVerticalDevChanged" Content="Show Vertical Dev Lines"/>
-                <CheckBox x:Name="ShowAzimuthDevCheckBox" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="Black" IsChecked="True" Checked="OnShowAzimuthDevChanged" Unchecked="OnShowAzimuthDevChanged" Content="Show Azimuth Dev Lines"/>
+                <!-- Dev-line checkboxes removed from top bar - use Display menu -->
             </StackPanel>
+            <!-- (Display menu is defined in the top Menu) -->
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Background="#1a1a1a" Height="28">
                 <TextBlock Text="PAR Config:" Foreground="White" Margin="8,0,15,0" VerticalAlignment="Center" FontSize="11" FontWeight="Bold"/>
                 
@@ -63,6 +68,9 @@
                 <TextBox x:Name="RangeBox" Width="35" Height="18" VerticalAlignment="Center" TextChanged="OnConfigChanged" Foreground="Black" Background="White" TextAlignment="Center" FontSize="10" Padding="0,1,0,0"/>
                 <Button x:Name="RangeUp" Content="►" Width="18" Height="18" Margin="1,0,0,0" Click="OnRangeUp" FontSize="8" Padding="0"/>
                 
+                <!-- Approach lights override (feet) -->
+                <TextBlock Text="ApproachLights(ft):" Foreground="LightGray" Margin="8,0,3,0" VerticalAlignment="Center" FontSize="10"/>
+                <TextBox x:Name="ApproachLightsBox" Width="50" Height="18" VerticalAlignment="Center" TextChanged="OnConfigChanged" Foreground="Black" Background="White" TextAlignment="Center" FontSize="10" Padding="0,1,0,0"/>
                 <!-- Plan altitude top filter (hundreds of feet) -->
                 <TextBlock Text="Plan Alt Top (100s ft):" Foreground="LightGray" Margin="12,0,3,0" VerticalAlignment="Center" FontSize="10"/>
                 <Button x:Name="PlanAltTopDown" Content="◄" Width="18" Height="18" Margin="0,0,1,0" Click="OnPlanAltTopDown" FontSize="8" Padding="0" />

@@ -34,6 +34,7 @@ namespace PARScopeDisplay
         private int _historyDotsCount = 5; // Number of history dots to display (user configurable)
     private bool _showVerticalDevLines = true;
     private bool _showAzimuthDevLines = true;
+    private bool _showApproachLights = true;
     private int _planAltTopHundreds = 999; // e.g. 100 -> 10000 ft top threshold
     private readonly SolidColorBrush _centerlineBrush = new SolidColorBrush(Color.FromArgb(160, 60, 120, 60)); // semi-transparent darker green
 
@@ -51,6 +52,11 @@ namespace PARScopeDisplay
             LoadHistoryDotsCount();
             LoadPlanAltTop();
             UpdateConfigBoxes();
+            // Initialize view toggles from UI checkboxes (Display menu)
+            OnViewToggleChanged(null, null);
+
+            // Keyboard hooks: allow PageUp/PageDown to adjust Range
+            this.PreviewKeyDown += MainWindow_PreviewKeyDown;
             
             StartUdpListener();
 
@@ -243,12 +249,29 @@ namespace PARScopeDisplay
 
         private void OnShowVerticalDevChanged(object sender, RoutedEventArgs e)
         {
-            _showVerticalDevLines = ShowVerticalDevCheckBox.IsChecked == true;
+            // wired to legacy handler - read from Display menu
+            if (Display_ShowVerticalDev != null)
+                _showVerticalDevLines = Display_ShowVerticalDev.IsChecked == true;
         }
 
         private void OnShowAzimuthDevChanged(object sender, RoutedEventArgs e)
         {
-            _showAzimuthDevLines = ShowAzimuthDevCheckBox.IsChecked == true;
+            // wired to legacy handler - read from Display menu
+            if (Display_ShowAzimuthDev != null)
+                _showAzimuthDevLines = Display_ShowAzimuthDev.IsChecked == true;
+        }
+
+        private void OnViewToggleChanged(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                _showApproachLights = (Display_ShowApproachLights != null && Display_ShowApproachLights.IsChecked == true);
+                _showVerticalDevLines = (Display_ShowVerticalDev != null && Display_ShowVerticalDev.IsChecked == true);
+                _showAzimuthDevLines = (Display_ShowAzimuthDev != null && Display_ShowAzimuthDev.IsChecked == true);
+                // Refresh UI to apply new toggles
+                UpdateUi();
+            }
+            catch { }
         }
 
         private void OnHistoryDotsChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -258,6 +281,37 @@ namespace PARScopeDisplay
             {
                 HistoryDotsLabel.Text = _historyDotsCount.ToString();
             }
+        }
+
+        private void MainWindow_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            try
+            {
+                if (e.Key == System.Windows.Input.Key.PageUp)
+                {
+                    // Increase range by 1 (or to next integer if currently fractional)
+                    if (double.TryParse(RangeBox.Text, out double rng))
+                    {
+                        // If the value is fractional, round up to next integer; otherwise add 1
+                        double newR = Math.Ceiling(rng) > rng ? Math.Ceiling(rng) : (rng + 1.0);
+                        RangeBox.Text = newR.ToString("F1");
+                        OnConfigChanged(RangeBox, null);
+                        e.Handled = true;
+                    }
+                }
+                else if (e.Key == System.Windows.Input.Key.PageDown)
+                {
+                    if (double.TryParse(RangeBox.Text, out double rng))
+                    {
+                        double newR = Math.Floor(rng) < rng ? Math.Floor(rng) : (rng - 1.0);
+                        if (newR < 0) newR = 0;
+                        RangeBox.Text = newR.ToString("F1");
+                        OnConfigChanged(RangeBox, null);
+                        e.Handled = true;
+                    }
+                }
+            }
+            catch { }
         }
 
         private void DrawVerticalEmpty(System.Windows.Controls.Canvas canvas)
@@ -370,6 +424,45 @@ namespace PARScopeDisplay
 
             // Vertical wedge envelope: from threshold to 10 NM and up to 6° ceiling
             DrawVerticalWedge(canvas, w, h, rs, rangeNm);
+
+            // Approach lighting: render a thin, lighter-blue line starting at threshold going toward the runway
+            try
+            {
+                // honor view toggle
+                if (!_showApproachLights) { /* skip drawing approach lights */ }
+                else
+                {
+                // Query NASR for approach lighting code for this runway (if loader present)
+                string apchCode = null;
+                if (_nasrLoader != null && rs != null && !string.IsNullOrEmpty(rs.Icao))
+                {
+                    var rwd = _nasrLoader.GetRunway(rs.Icao, rs.Runway);
+                    if (rwd != null) apchCode = rwd.ApchLgtSystemCode;
+                }
+                // Prefer explicit runway override if user set a custom length
+                double apchLenFt = 0.0;
+                if (rs != null && rs.ApproachLightLengthFt > 0) apchLenFt = rs.ApproachLightLengthFt;
+                else apchLenFt = GetApproachLightLengthFt(apchCode);
+                if (apchLenFt > 0)
+                {
+                    // convert feet to pixels along centerline (from threshold toward runway side = negative X direction)
+                    double pxPerNmLocal = pxPerNm; // already computed earlier
+                    double apchLenNm = apchLenFt / 6076.12;
+                    double startX = thresholdX;
+                    double endX = Math.Min(w, thresholdX + (apchLenNm * pxPerNmLocal));
+                    // Lift the approach-light line only a pixel or two above the runway so it remains visible
+                    double approachThickness = 2.0;
+                    // Keep the approach light just above the runway bar (approx 1-2 px). Use approach half-thickness + 1px gap.
+                    double liftPx = (approachThickness / 2.0) + 1.0;
+                    double y = Math.Max(0, workH - liftPx);
+                    var apchLine = new Line { X1 = startX, X2 = endX, Y1 = y, Y2 = y, Stroke = new SolidColorBrush(Color.FromArgb(200, 135, 206, 250)), StrokeThickness = approachThickness };
+                    apchLine.Tag = "DBG";
+                    canvas.Children.Add(apchLine);
+                    Canvas.SetZIndex(apchLine, 900);
+                }
+                }
+            }
+            catch { }
 
             // Glide slope reference line
             DrawGlideSlope(canvas, w, h, rangeNm);
@@ -572,6 +665,31 @@ namespace PARScopeDisplay
                 canvas.Children.Add(vline);
                 var lbl = new TextBlock(); lbl.Foreground = Brushes.White; lbl.FontSize = 12; lbl.Text = (i == 0) ? "TD" : (i + "NM"); lbl.Margin = new Thickness(Math.Max(0, x + 3), h - 18, 0, 0); canvas.Children.Add(lbl);
             }
+
+            // Approach lighting: render a thin, lighter-blue line starting at threshold going toward the runway
+            try
+            {
+                string apchCode = null;
+                if (_nasrLoader != null && rs != null && !string.IsNullOrEmpty(rs.Icao))
+                {
+                    var rwd = _nasrLoader.GetRunway(rs.Icao, rs.Runway);
+                    if (rwd != null) apchCode = rwd.ApchLgtSystemCode;
+                }
+                double apchLenFt = 0.0;
+                if (rs != null && rs.ApproachLightLengthFt > 0) apchLenFt = rs.ApproachLightLengthFt;
+                else apchLenFt = GetApproachLightLengthFt(apchCode);
+                if (apchLenFt > 0)
+                {
+                    double apchLenNm = apchLenFt / 6076.12;
+                    double startX = thresholdX;
+                    double endX = Math.Min(w, thresholdX + (apchLenNm * pxPerNm));
+                    double y = h / 2.0; // centerline for azimuth
+                    var apchLine = new Line { X1 = startX, X2 = endX, Y1 = y, Y2 = y, Stroke = new SolidColorBrush(Color.FromArgb(180, 135, 206, 250)), StrokeThickness = 2 };
+                    apchLine.Tag = "DBG";
+                    canvas.Children.Add(apchLine);
+                }
+            }
+            catch { }
 
             // Azimuth wedge envelope and guide lines
             DrawAzimuthWedge(canvas, w, h, rs);
@@ -1296,6 +1414,26 @@ namespace PARScopeDisplay
             north = dlat * R;
         }
 
+        /// <summary>
+        /// Map NASR approach lighting system code to nominal approach light length in feet.
+        /// ALSF-1 / ALSF-2 / MALSR => 2400 ft
+        /// SSALR / SSALS / SSALF => 1500 ft
+        /// Unknown or null => 0
+        /// </summary>
+        /// <param name="apchCode">NASR APCH_LGT_SYSTEM_CODE value</param>
+        /// <returns>Length in feet (0 = none)</returns>
+        public static double GetApproachLightLengthFt(string apchCode)
+        {
+            if (string.IsNullOrEmpty(apchCode)) return 0;
+            var c = apchCode.Trim().ToUpperInvariant();
+            // Some NASR data may include variants or spacing, normalize common forms
+            if (c.Contains("ALSF-1") || c.Contains("ALSF1") || c.Contains("ALSF-1")) return 2400.0;
+            if (c.Contains("ALSF-2") || c.Contains("ALSF2") || c.Contains("ALSF-2")) return 2400.0;
+            if (c.Contains("MALSR")) return 2400.0;
+            if (c.Contains("SSALR") || c.Contains("SSALS") || c.Contains("SSALF")) return 1500.0;
+            return 0.0;
+        }
+
         private RunwaySettings LoadRunwaySettings()
         {
             try
@@ -1350,6 +1488,7 @@ namespace PARScopeDisplay
             public double MaxAzimuthDeg;
             public double VerticalCeilingFt;
             public double SensorOffsetNm;
+            public double ApproachLightLengthFt;
         }
 
         private void DrawGlideSlope(System.Windows.Controls.Canvas canvas, double w, double h, double rangeNm)
@@ -1684,6 +1823,7 @@ namespace PARScopeDisplay
             DecisionHeightBox.Text = rs.DecisionHeightFt.ToString("F0");
             MaxAzBox.Text = rs.MaxAzimuthDeg.ToString("F1");
             RangeBox.Text = rs.RangeNm.ToString("F1");
+            ApproachLightsBox.Text = (rs.ApproachLightLengthFt > 0 ? rs.ApproachLightLengthFt.ToString("F0") : "0");
         }
 
         private void OnConfigChanged(object sender, TextChangedEventArgs e)
@@ -1695,6 +1835,7 @@ namespace PARScopeDisplay
             if (double.TryParse(DecisionHeightBox.Text, out double dh)) _runway.DecisionHeightFt = dh;
             if (double.TryParse(MaxAzBox.Text, out double maxAz)) _runway.MaxAzimuthDeg = maxAz;
             if (double.TryParse(RangeBox.Text, out double rng)) _runway.RangeNm = rng;
+            if (double.TryParse(ApproachLightsBox.Text, out double al)) _runway.ApproachLightLengthFt = al;
             
             // Save the updated settings
             SaveRunwaySettings(_runway);

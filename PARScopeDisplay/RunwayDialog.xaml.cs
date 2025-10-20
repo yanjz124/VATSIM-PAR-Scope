@@ -25,7 +25,8 @@ namespace PARScopeDisplay
         private TextBox RangeBox;
         private TextBox DHBox;
         private TextBox MaxAzBox;
-        private TextBox SensorOffsetBox;
+    private TextBox SensorOffsetBox;
+    private TextBox ApproachLightsBox;
 #endif
 
         public RunwayDialog()
@@ -126,6 +127,7 @@ namespace PARScopeDisplay
             DHBox.Text = set.DecisionHeightFt.ToString(CultureInfo.InvariantCulture);
             MaxAzBox.Text = set.MaxAzimuthDeg.ToString(CultureInfo.InvariantCulture);
             SensorOffsetBox.Text = set.SensorOffsetNm.ToString(CultureInfo.InvariantCulture);
+            ApproachLightsBox.Text = (set.ApproachLightLengthFt > 0 ? set.ApproachLightLengthFt.ToString(CultureInfo.InvariantCulture) : "0");
         }
 
         // Helper: clear any text selection in the editable part of a ComboBox and move caret to end
@@ -163,6 +165,7 @@ namespace PARScopeDisplay
             s.DecisionHeightFt = ParseDouble(DHBox.Text, _init != null ? _init.DecisionHeightFt : 200);
             s.MaxAzimuthDeg = ParseDouble(MaxAzBox.Text, _init != null ? _init.MaxAzimuthDeg : 10);
             s.SensorOffsetNm = ParseDouble(SensorOffsetBox.Text, _init != null ? _init.SensorOffsetNm : 0.5);
+            s.ApproachLightLengthFt = ParseDouble(ApproachLightsBox.Text, _init != null ? _init.ApproachLightLengthFt : 0.0);
             return s;
         }
 
@@ -221,6 +224,17 @@ namespace PARScopeDisplay
             HdgBox.Text = data.TrueHeading.ToString(CultureInfo.InvariantCulture);
             TchBox.Text = data.ThrCrossingHgtFt.ToString(CultureInfo.InvariantCulture);
             ElevBox.Text = data.FieldElevationFt.ToString(CultureInfo.InvariantCulture);
+            // If NASR contains approach light code, compute a default length for display/override
+            try
+            {
+                double defaultLen = 0.0;
+                if (!string.IsNullOrEmpty(data.ApchLgtSystemCode))
+                {
+                    defaultLen = MainWindow.GetApproachLightLengthFt(data.ApchLgtSystemCode);
+                }
+                ApproachLightsBox.Text = (defaultLen > 0 ? defaultLen.ToString(CultureInfo.InvariantCulture) : "0");
+            }
+            catch { ApproachLightsBox.Text = "0"; }
 
             MessageBox.Show(this, 
                 string.Format("Runway data loaded:\n\nLat: {0:F6}\nLon: {1:F6}\nHeading: {2:F1}°\nElevation: {3:F0} ft",
