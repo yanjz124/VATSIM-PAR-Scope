@@ -1,0 +1,173 @@
+<Window x:Class="PARScopeDisplay.SimulatorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Simulator" Height="540" Width="920" MinWidth="900" MinHeight="480">
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <!-- make the left column wider by default and enforce min widths so contents don't clip -->
+            <ColumnDefinition Width="3*" MinWidth="420" />
+            <ColumnDefinition Width="2*" MinWidth="380" />
+        </Grid.ColumnDefinitions>
+
+        <Grid Grid.Column="0" Margin="6">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="1*" MinHeight="260" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Fake Aircraft" FontWeight="Bold" Margin="0,0,0,6" Grid.Row="0" />
+
+            <!-- Spawn controls moved above the list so new aircraft appear immediately -->
+            <Grid Grid.Row="1" Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="1" BorderBrush="#333" BorderThickness="1" Padding="6">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Spawn relative to runway:" FontWeight="SemiBold" Margin="0,0,6,6" />
+                        <!-- status inside the border, top-right -->
+                        <TextBlock x:Name="StatusText" Grid.Row="0" Grid.Column="1" VerticalAlignment="Top" HorizontalAlignment="Right" Margin="6,0,0,0" Foreground="Gray">Simulator bound to runway N/A</TextBlock>
+
+                        <!-- 3 columns with label above input so inputs line up vertically -->
+                        <Grid Grid.Row="1" Grid.ColumnSpan="2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="1*" />
+                                <ColumnDefinition Width="1*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <!-- labels row -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Bearing (deg):" VerticalAlignment="Center" HorizontalAlignment="Left" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="Range (NM):" VerticalAlignment="Center" HorizontalAlignment="Left" />
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Alt (ft):" VerticalAlignment="Center" HorizontalAlignment="Left" />
+
+                            <!-- inputs row (aligned) -->
+                            <TextBox Grid.Row="1" Grid.Column="0" x:Name="SpawnBearingBox" Width="140" Text="360" FontSize="12" Height="22" HorizontalAlignment="Left" Margin="0,4,8,4" TextAlignment="Center" />
+                            <TextBox Grid.Row="1" Grid.Column="1" x:Name="SpawnRangeBox" Width="140" Text="5" FontSize="12" Height="22" HorizontalAlignment="Left" Margin="0,4,8,4" TextAlignment="Center" />
+                            <TextBox Grid.Row="1" Grid.Column="2" x:Name="SpawnAltBox" Width="140" Text="3000" FontSize="12" Height="22" HorizontalAlignment="Left" Margin="0,4,0,4" TextAlignment="Center" />
+
+                            <!-- secondary labels -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Speed (kts):" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,6,0,0" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="Heading (deg):" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,6,0,0" />
+                            <!-- Spawn button centered under Alt column -->
+                            <StackPanel Grid.Row="2" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,6,0,0">
+                                <Button x:Name="SpawnBtn" Content="Spawn" Width="86" Click="OnSpawnClick" />
+                            </StackPanel>
+
+                            <!-- secondary inputs row (speed/heading) placed below labels -->
+                            <TextBox Grid.Row="3" Grid.Column="0" x:Name="SpawnSpeedBox" Width="140" Text="140" FontSize="12" Height="22" HorizontalAlignment="Left" Margin="0,4,8,0" TextAlignment="Center" />
+                            <TextBox Grid.Row="3" Grid.Column="1" x:Name="SpawnHeadingBox" Width="140" Text="180" FontSize="12" Height="22" HorizontalAlignment="Left" Margin="0,4,8,0" TextAlignment="Center" />
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Border Grid.Row="2" BorderBrush="#DDD" BorderThickness="1" CornerRadius="4" Padding="6" Background="WhiteSmoke">
+                <!-- List with left-aligned callsign and right-aligned pause/delete buttons -->
+                <ListBox x:Name="AircraftList" SelectionChanged="AircraftList_SelectionChanged" MinHeight="220">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{Binding Callsign}" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="6,0,0,0">
+                                    <ToggleButton Width="72" Margin="0,0,6,0" Click="OnTogglePauseClick">
+                                        <ToggleButton.Style>
+                                            <Style TargetType="ToggleButton">
+                                                <Setter Property="Content" Value="Pause" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsPaused}" Value="True">
+                                                        <Setter Property="Content" Value="Unpause" />
+                                                        <Setter Property="IsChecked" Value="True" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </ToggleButton.Style>
+                                    </ToggleButton>
+                                    <Button Content="Delete" Width="56" Click="OnDeleteItemClick" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+
+            <!-- manual Add/Auto controls removed -->
+        </Grid>
+
+        <!-- Allow user to resize left/right panes -->
+        <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Left" VerticalAlignment="Stretch" Background="#EEE" Margin="-3,0,0,0"/>
+
+        <StackPanel Grid.Column="1" Margin="6">
+            <TextBlock Text="Properties" FontWeight="Bold" Margin="0,0,0,6" />
+            <Grid Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <!-- label | textbox | minus | plus -->
+                    <ColumnDefinition Width="140" MinWidth="140" />
+                    <ColumnDefinition Width="120" MinWidth="100" />
+                    <ColumnDefinition Width="32" />
+                    <ColumnDefinition Width="32" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="28" />
+                    <RowDefinition Height="28" />
+                    <RowDefinition Height="28" />
+                    <RowDefinition Height="28" />
+                    <RowDefinition Height="28" />
+                    <RowDefinition Height="28" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Callsign:" VerticalAlignment="Center" />
+                <TextBox Grid.Row="0" Grid.Column="1" x:Name="CallsignBox" Width="120" Height="20" FontSize="12" LostFocus="OnPropertyLostFocus" KeyDown="OnPropertyEnterKeyDown" />
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="TypeCode:" VerticalAlignment="Center" />
+                <TextBox Grid.Row="1" Grid.Column="1" x:Name="TypeCodeBox" Width="120" Height="20" FontSize="12" LostFocus="OnPropertyLostFocus" KeyDown="OnPropertyEnterKeyDown" />
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Alt (ft):" VerticalAlignment="Center" />
+                <RepeatButton Grid.Row="2" Grid.Column="2" Content="-" Click="OnAltDec" ToolTip="Decrease altitude by 100 ft" Delay="200" Interval="120" />
+                <TextBox Grid.Row="2" Grid.Column="1" x:Name="AltBox" Width="120" Height="20" FontSize="12" LostFocus="OnPropertyLostFocus" KeyDown="OnPropertyEnterKeyDown" />
+                <RepeatButton Grid.Row="2" Grid.Column="3" Content="+" Click="OnAltInc" ToolTip="Increase altitude by 100 ft" Delay="200" Interval="120" />
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Heading (deg):" VerticalAlignment="Center" />
+                <RepeatButton Grid.Row="3" Grid.Column="2" Content="-" Click="OnHeadingDec" ToolTip="Decrease heading by 5°" Delay="200" Interval="120" />
+                <TextBox Grid.Row="3" Grid.Column="1" x:Name="HeadingBox" Width="120" Height="20" FontSize="12" LostFocus="OnPropertyLostFocus" KeyDown="OnPropertyEnterKeyDown" />
+                <RepeatButton Grid.Row="3" Grid.Column="3" Content="+" Click="OnHeadingInc" ToolTip="Increase heading by 5°" Delay="200" Interval="120" />
+
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Speed (kts):" VerticalAlignment="Center" />
+                <RepeatButton Grid.Row="4" Grid.Column="2" Content="-" Click="OnSpeedDec" ToolTip="Decrease speed by 5 kts" Delay="200" Interval="120" />
+                <TextBox Grid.Row="4" Grid.Column="1" x:Name="SpeedBox" Width="120" Height="20" FontSize="12" LostFocus="OnPropertyLostFocus" KeyDown="OnPropertyEnterKeyDown" />
+                <RepeatButton Grid.Row="4" Grid.Column="3" Content="+" Click="OnSpeedInc" ToolTip="Increase speed by 5 kts" Delay="200" Interval="120" />
+
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="VS (fpm):" VerticalAlignment="Center" />
+                <RepeatButton Grid.Row="5" Grid.Column="2" Content="-" Click="OnVsDec" ToolTip="Decrease vertical speed by 100 fpm" Delay="200" Interval="120" />
+                <TextBox Grid.Row="5" Grid.Column="1" x:Name="VsBox" Width="120" Height="20" FontSize="12" LostFocus="OnPropertyLostFocus" KeyDown="OnPropertyEnterKeyDown" />
+                <RepeatButton Grid.Row="5" Grid.Column="3" Content="+" Click="OnVsInc" ToolTip="Increase vertical speed by 100 fpm" Delay="200" Interval="120" />
+            </Grid>
+
+            <!-- Updates are automatic on Enter or when a field loses focus; manual buttons removed -->
+
+            <!-- Spawn moved to left pane; right properties pane no longer shows spawn controls -->
+        </StackPanel>
+    </Grid>
+</Window>

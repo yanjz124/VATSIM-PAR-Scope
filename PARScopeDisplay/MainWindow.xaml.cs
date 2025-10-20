@@ -1273,6 +1273,13 @@ namespace PARScopeDisplay
             }
         }
 
+        private void OnOpenSimulatorClick(object sender, RoutedEventArgs e)
+        {
+            var win = new SimulatorWindow(_runway);
+            win.Owner = this;
+            win.Show();
+        }
+
         private static double DegToRad(double deg)
         {
             return deg * Math.PI / 180.0;

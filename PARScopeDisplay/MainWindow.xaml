@@ -8,6 +8,9 @@
                 <MenuItem Header="File">
                     <MenuItem Header="Exit" Click="OnExitClick" />
                 </MenuItem>
+                <MenuItem Header="Tools">
+                    <MenuItem Header="Simulator..." Click="OnOpenSimulatorClick" />
+                </MenuItem>
                 <MenuItem Header="Airport/Runway">
                     <MenuItem Header="Select..." Click="OnSelectRunwayClick" />
                     <Separator />
