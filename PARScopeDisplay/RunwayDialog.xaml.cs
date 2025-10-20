@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace PARScopeDisplay
 {
@@ -10,6 +11,22 @@ namespace PARScopeDisplay
         private MainWindow.RunwaySettings _init;
         private NASRDataLoader _nasrLoader;
         private System.Collections.Generic.List<string> _allIcaoCodes;
+        // Editor-only stubs disabled for normal build to avoid duplicate symbols
+#if false
+        private Button LookupButton;
+        private ComboBox IcaoBox;
+        private ComboBox RunwayBox;
+        private TextBox LatBox;
+        private TextBox LonBox;
+        private TextBox HdgBox;
+        private TextBox GsBox;
+        private TextBox TchBox;
+        private TextBox ElevBox;
+        private TextBox RangeBox;
+        private TextBox DHBox;
+        private TextBox MaxAzBox;
+        private TextBox SensorOffsetBox;
+#endif
 
         public RunwayDialog()
         {
@@ -37,6 +54,7 @@ namespace PARScopeDisplay
                 {
                     // When dropdown opens, clear selection to show filtered list without highlighting
                     IcaoBox.SelectedIndex = -1;
+                    ClearComboSelection(IcaoBox);
                 };
                 IcaoBox.SelectionChanged += (s, e) =>
                 {
@@ -44,6 +62,13 @@ namespace PARScopeDisplay
                         RefreshRunwayList();
                 };
                 IcaoBox.LostFocus += (s, e) => RefreshRunwayList();
+                
+                // Also clear selection and caret behavior for RunwayBox when its dropdown opens
+                RunwayBox.DropDownOpened += (s, e) =>
+                {
+                    RunwayBox.SelectedIndex = -1;
+                    ClearComboSelection(RunwayBox);
+                };
             }
         }
 
@@ -74,8 +99,9 @@ namespace PARScopeDisplay
                 IcaoBox.ItemsSource = matches;
                 IcaoBox.IsDropDownOpen = matches.Count > 0;
                 
-                // Clear selection to prevent text overwrite
+                // Clear selection to prevent text overwrite and keep caret at end
                 IcaoBox.SelectedIndex = -1;
+                ClearComboSelection(IcaoBox);
             }
             
             RefreshRunwayList();
@@ -86,8 +112,10 @@ namespace PARScopeDisplay
             _init = set;
             if (set == null) return;
             IcaoBox.Text = set.Icao;
+            ClearComboSelection(IcaoBox);
             RefreshRunwayList();
             RunwayBox.Text = set.Runway;
+            ClearComboSelection(RunwayBox);
             LatBox.Text = set.ThresholdLat.ToString(CultureInfo.InvariantCulture);
             LonBox.Text = set.ThresholdLon.ToString(CultureInfo.InvariantCulture);
             HdgBox.Text = set.HeadingTrueDeg.ToString(CultureInfo.InvariantCulture);
@@ -98,6 +126,26 @@ namespace PARScopeDisplay
             DHBox.Text = set.DecisionHeightFt.ToString(CultureInfo.InvariantCulture);
             MaxAzBox.Text = set.MaxAzimuthDeg.ToString(CultureInfo.InvariantCulture);
             SensorOffsetBox.Text = set.SensorOffsetNm.ToString(CultureInfo.InvariantCulture);
+        }
+
+        // Helper: clear any text selection in the editable part of a ComboBox and move caret to end
+        private void ClearComboSelection(ComboBox cb)
+        {
+            if (cb == null) return;
+            try
+            {
+                var tb = cb.Template.FindName("PART_EditableTextBox", cb) as TextBox;
+                if (tb != null)
+                {
+                    int len = (tb.Text ?? string.Empty).Length;
+                    tb.SelectionStart = len;
+                    tb.SelectionLength = 0;
+                }
+            }
+            catch
+            {
+                // ignore if template not applied yet
+            }
         }
 
         public MainWindow.RunwaySettings GetSettings()
@@ -200,6 +248,8 @@ namespace PARScopeDisplay
             }
             ids.Sort(StringComparer.OrdinalIgnoreCase);
             RunwayBox.ItemsSource = ids;
+            // Clear selection in the editable runway box so typed text is not highlighted
+            ClearComboSelection(RunwayBox);
         }
     }
 }
