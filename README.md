@@ -1,5 +1,89 @@
 # VATSIM PAR Scope
 
+This repository contains a vPilot plugin that streams aircraft position data over UDP as NDJSON and a WPF PAR-style radar scope display that consumes those messages and renders vertical, azimuth and plan views useful for Precision Approach Radar (PAR) experimentation.
+
+## Current status (Oct 2025)
+
+Implemented
+
+- RadarStreamerPlugin: vPilot plugin that streams aircraft add/update/delete events as NDJSON over UDP (default 127.0.0.1:49090).
+- PAR Scope Display (WPF): a working Windows app that renders three coordinated scopes:
+   - Vertical scope (altitude vs along-track) with history replay stored in physical units and reprojection on draw.
+
+- History handling:
+   - History is stored in physical units (NM/ft) per target and reprojected to each scope on redraw so resizing/range changes are handled.
+   - History is update-driven (change-detection) and retains the most recent N entries (user-adjustable via slider).
+
+- Known working binaries (after a successful build)
+- `PARScopeDisplay\\bin\\Release\\PARScopeDisplay.exe` — the WPF scope application.
+- Plugin: `RadarStreamerPlugin\\bin\\Release\\RadarStreamerPlugin.dll` (drop in vPilot Plugins folder).
+
+## Quick start — build and run
+
+Prerequisites
+
+- Windows with .NET Framework 4.7.2+ (project targets .NET Framework 4.7.2)
+- MSBuild (Visual Studio or Build Tools) available on PATH
+- vPilot if you plan to run the plugin live
+
+Build (from repo root)
+
+```powershell
+
+Or build the solution:
+
+```powershell
+
+Run the PAR scope app
+
+- After a successful build, run the app:
+
+- The app listens for NDJSON on UDP 127.0.0.1:49090 by default.
+
+Run the plugin (for live vPilot use)
+
+- Build the plugin project and copy `RadarStreamerPlugin.dll` into vPilot's `Plugins` folder. See plugin docs in the plugin folder for details.
+
+## NDJSON message format (same as before)
+
+Each UDP line is a JSON object (NDJSON). Example events:
+
+Add event
+
+Update event
+
+```json
+
+Fields are documented in the original README but include: type, t (ms epoch), callsign, typeCode, lat, lon, alt_ft, pressAlt_ft, pitch_deg, bank_deg, heading_deg, speed_kts.
+
+## Configuration
+
+- The UDP host/port are currently hardcoded in the plugin; the scope app listens on 127.0.0.1:49090 by default. Making these configurable via INI or command-line is a planned improvement.
+- UI persistence: history-dots count and plan-alt-top are stored in AppData files in `\\%APPDATA%\\VATSIM-PAR-Scope`.
+
+## Files of interest
+
+- `PARScopeDisplay\\MainWindow.xaml` / `MainWindow.xaml.cs` — main WPF app UI and drawing logic.
+- `RadarStreamerPlugin\\Plugin.cs` — plugin implementation for vPilot.
+- `IniFile.cs` — small helper to read INI files (used by plugin if needed).
+
+## Remaining TODOs (short)
+- Standardize inline two-line datablocks across all scopes (callsign + alt/gs).
+- Finalize centerline color and visual tuning.
+- Make UDP host/port configurable (INI or UI).
+- Optional: add NDJSON playback test harness for easier visual verification.
+
+## Contributing
+- PRs welcome. Please run the Release build and ensure no compile errors before submitting.
+
+---
+
+If you'd like, I can also:
+- Run the built PAR scope app now and exercise it with a small NDJSON emitter to demonstrate the Plan ground filter and history behavior.
+- Tidy the datablock formatting across scopes (I can implement and test a consistent two-line style).
+
+# VATSIM PAR Scope
+
 A vPilot plugin and radar scope system for streaming aircraft position data to simulate a **Precision Approach Radar (PAR)** display on VATSIM.
 
 ## Project Overview
@@ -163,13 +247,10 @@ VATSIM-PAR-Scope/
 
 ## Roadmap
 
-- [ ] Add INI configuration for UDP host/port
-- [ ] Optional throttle/coalesce updates to reduce bandwidth
-- [ ] Add range/altitude filters
-- [ ] Build Part 2: PAR Scope display application
-- [ ] Implement vertical and lateral cross-section views
-- [ ] Add 1 Hz refresh timer and target smoothing
-- [ ] Integrate real-world PAR symbology and scales
+
+- [ ] Integrate real-world PAR symbology
+- [ ] Add log scale for x axis
+
 
 ---
 
