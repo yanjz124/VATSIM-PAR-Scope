@@ -35,6 +35,9 @@ namespace PARScopeDisplay
     private bool _showVerticalDevLines = true;
     private bool _showAzimuthDevLines = true;
     private bool _showApproachLights = true;
+    // Debug wedge filtering toggles: when false, scopes will not filter by wedge (show everything)
+    private bool _enableVerticalWedgeFilter = true;
+    private bool _enableAzimuthWedgeFilter = true;
     private int _planAltTopHundreds = 999; // e.g. 100 -> 10000 ft top threshold
     private readonly SolidColorBrush _centerlineBrush = new SolidColorBrush(Color.FromArgb(160, 60, 120, 60)); // semi-transparent darker green
 
@@ -268,6 +271,8 @@ namespace PARScopeDisplay
                 _showApproachLights = (Display_ShowApproachLights != null && Display_ShowApproachLights.IsChecked == true);
                 _showVerticalDevLines = (Display_ShowVerticalDev != null && Display_ShowVerticalDev.IsChecked == true);
                 _showAzimuthDevLines = (Display_ShowAzimuthDev != null && Display_ShowAzimuthDev.IsChecked == true);
+                _enableAzimuthWedgeFilter = (Display_EnableAzimuthWedgeFilter != null && Display_EnableAzimuthWedgeFilter.IsChecked == true);
+                _enableVerticalWedgeFilter = (Display_EnableVerticalWedgeFilter != null && Display_EnableVerticalWedgeFilter.IsChecked == true);
                 // Refresh UI to apply new toggles
                 UpdateUi();
             }
@@ -1065,6 +1070,10 @@ namespace PARScopeDisplay
             bool inAzimuthScope = Math.Abs(azimuthDeg) <= maxAzDeg && alongTrackFromThresholdNm >= -sensorOffsetNm - includeNegBuffer && alongTrackFromThresholdNm <= rangeNm + includePosBuffer;
             bool inVerticalScope = inAzimuthScope && elevationDeg <= 6.0;
 
+            // Respect debug wedge-filter toggles: when a filter is disabled we treat the scope as allowing all targets
+            bool azFiltered = _enableAzimuthWedgeFilter ? inAzimuthScope : true;
+            bool vertFiltered = _enableVerticalWedgeFilter ? inVerticalScope : true;
+
             // History bucket
             var hist = _histories.ContainsKey(callsign) ? _histories[callsign] : null;
 
@@ -1152,8 +1161,8 @@ namespace PARScopeDisplay
                 double vx = normX * vWidth;
                 double vy = workH - (normAlt * workH);
 
-                // Draw vertical history only when within azimuth sensing range (left-side gating)
-                if (hist != null && inAzimuthScope)
+                // Draw vertical history only when azimuth filtering allows it
+                if (hist != null && azFiltered)
                 {
                     var historyDots = hist.Vertical.ToList();
                     int take = Math.Max(1, Math.Min(historyDots.Count, _historyDotsCount));
@@ -1174,8 +1183,8 @@ namespace PARScopeDisplay
                         Canvas.SetZIndex(dot, 1000);
                     }
 
-                    // Draw datablock near most recent history (if any) but only when in vertical scope
-                    if (subset.Count > 0 && inVerticalScope)
+                    // Draw datablock near most recent history (if any) but only when vertical filtering allows it
+                    if (subset.Count > 0 && vertFiltered)
                     {
                         var last = subset.Last().P;
                         int altHundreds = (int)Math.Round(last.Y / 100.0);
@@ -1195,8 +1204,8 @@ namespace PARScopeDisplay
                         t2.Margin = new Thickness(labelX, labelY + 16, 0, 0); VerticalScopeCanvas.Children.Add(t2); Canvas.SetZIndex(t2, 1000);
                     }
 
-                    // Draw current vertical marker (only when inVerticalScope)
-                    if (inVerticalScope && vx >= 0 && vx <= vWidth && vy >= 0 && vy <= vHeight)
+                    // Draw current vertical marker (only when vertical filtering allows it)
+                    if (vertFiltered && vx >= 0 && vx <= vWidth && vy >= 0 && vy <= vHeight)
                     {
                         double rectW = 14.0, rectH = 4.0;
                         double sensorPxX = 0, sensorPxY = workH;
@@ -1215,7 +1224,7 @@ namespace PARScopeDisplay
             // --- DRAW AZIMUTH SCOPE ---
             try
             {
-                if (inAzimuthScope)
+                if (azFiltered)
                 {
                     double totalRangeNmA = rangeNm + sensorOffsetNm;
                     double maxCrossTrackNm = Math.Tan(DegToRad(maxAzDeg)) * rangeNm;
@@ -1224,7 +1233,7 @@ namespace PARScopeDisplay
                     normAx = Math.Max(0, Math.Min(1, normAx)); normAy = Math.Max(0, Math.Min(1, normAy));
                     double curAx = normAx * aWidth, curAy = normAy * aHeight;
 
-                    // Draw azimuth history only when within azimuth sensing range (left-side gating)
+                    // Draw azimuth history only when azimuth filtering allows it
                     if (hist != null)
                     {
                         var historyDots = hist.Azimuth.ToList();
@@ -1243,8 +1252,8 @@ namespace PARScopeDisplay
                         }
                     }
 
-                    // Draw current azimuth marker (only if also in vertical scope)
-                    if (curAx >= 0 && curAx <= aWidth && curAy >= 0 && curAy <= aHeight && inVerticalScope)
+                    // Draw current azimuth marker (only if vertical filtering allows it)
+                    if (curAx >= 0 && curAx <= aWidth && curAy >= 0 && curAy <= aHeight && vertFiltered)
                     {
                         double rectW = 14.0, rectH = 4.0;
                         double sensorPxX = 0, sensorPxY = aHeight / 2.0;

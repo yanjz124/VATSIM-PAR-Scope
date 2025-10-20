@@ -4,6 +4,7 @@
     Title="Select Runway" Height="420" Width="520" MinHeight="360" MinWidth="480" WindowStartupLocation="CenterOwner" ResizeMode="CanResize">
     <Grid Margin="10">
         <Grid.RowDefinitions>
+            <!-- Fields: keep as Auto rows -->
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -16,6 +17,10 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <!-- Spacer to push buttons lower so they don't overlap fields -->
+            <RowDefinition Height="*"/>
+            <!-- Button row -->
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
@@ -65,7 +70,7 @@
         <TextBlock Grid.Row="12" Grid.Column="0" Margin="0,2" VerticalAlignment="Center" Text="Approach lights (ft, 0=NASR):"/>
         <TextBox x:Name="ApproachLightsBox" Grid.Row="12" Grid.Column="1" Margin="6,2" />
 
-        <StackPanel Grid.Row="13" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+        <StackPanel Grid.Row="14" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
             <Button Width="80" Margin="6,0" Content="OK" IsDefault="True" Click="OnOk"/>
             <Button Width="80" Margin="6,0" Content="Cancel" IsCancel="True"/>
         </StackPanel>

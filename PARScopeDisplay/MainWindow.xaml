@@ -21,6 +21,9 @@
                     <MenuItem x:Name="Display_ShowApproachLights" Header="Approach Lights" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
                         <MenuItem x:Name="Display_ShowVerticalDev" Header="Vertical Dev Lines" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
                         <MenuItem x:Name="Display_ShowAzimuthDev" Header="Azimuth Dev Lines" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
+                            <Separator />
+                            <MenuItem x:Name="Display_EnableAzimuthWedgeFilter" Header="Enable Azimuth Wedge Filter" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
+                            <MenuItem x:Name="Display_EnableVerticalWedgeFilter" Header="Enable Vertical Wedge Filter" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
                 </MenuItem>
             </Menu>
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="10">
