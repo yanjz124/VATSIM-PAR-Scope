@@ -531,6 +531,13 @@ namespace PARScopeDisplay
 
         protected override void OnClosing(CancelEventArgs e)
         {
+            // If there are no generated aircraft, close without prompting
+            if (_aircraft == null || _aircraft.Count == 0)
+            {
+                base.OnClosing(e);
+                return;
+            }
+
             // Warn the user that closing the simulator will delete all generated aircraft
             var res = MessageBox.Show(this,
                 "Closing the simulator will send delete messages for all generated aircraft and remove them from the scope. Continue?",

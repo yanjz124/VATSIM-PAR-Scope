@@ -608,9 +608,19 @@ namespace PARScopeDisplay
             // Border
             var border = new Rectangle(); border.Width = w; border.Height = h; border.Stroke = Brushes.Gray; border.StrokeThickness = 1; canvas.Children.Add(border);
 
-            // Title and info
+            // Title and concise magnetic info (only magnetic runway heading and mag var)
             var title = new TextBlock(); title.Text = "AZIMUTH"; title.Foreground = Brushes.White; title.FontWeight = FontWeights.Bold; title.Margin = new Thickness(40, 2, 0, 0); canvas.Children.Add(title);
-            var info = new TextBlock(); info.Text = string.Format("Max AZ Ang {0:0}°  -  RWY Hdg {1:0.0}°", rs.MaxAzimuthDeg, rs.HeadingTrueDeg); info.Foreground = Brushes.LightGray; info.Margin = new Thickness(130, 2, 0, 0); canvas.Children.Add(info);
+            // Compute magnetic heading and normalize to 0-359 (headings wrap: 367 -> 007).
+            // Special case: 0 is displayed as 360 per user preference ("000 will show 360").
+            double magHeadingRaw = rs.HeadingTrueDeg + rs.MagVariationDeg;
+            int magHeadingInt = ((int)Math.Round(magHeadingRaw) % 360 + 360) % 360; // ensures 0..359
+            int displayHeading = magHeadingInt == 0 ? 360 : magHeadingInt;
+            int magVarInt = (int)Math.Round(rs.MagVariationDeg);
+            // Display mag var with sign where West is positive (+) and East is negative (-)
+            string magVarStr = magVarInt >= 0 ? "+" + magVarInt.ToString("D0") + "°" : "-" + Math.Abs(magVarInt).ToString("D0") + "°";
+            var info = new TextBlock();
+            info.Text = string.Format("RWY Hdg (M) {0:D3}°   Mag Var {1}", displayHeading, magVarStr);
+            info.Foreground = Brushes.LightGray; info.Margin = new Thickness(130, 2, 0, 0); canvas.Children.Add(info);
 
             // Add "NM" label at top left for lateral scale
             var nmLabel = new TextBlock();
@@ -1500,6 +1510,9 @@ namespace PARScopeDisplay
             public double VerticalCeilingFt;
             public double SensorOffsetNm;
             public double ApproachLightLengthFt;
+            // Magnetic variation (signed degrees). West is positive (+), East is negative (-)
+            // (i.e. Magnetic = True + MagVariationDeg when MagVariationDeg is West-positive)
+            public double MagVariationDeg;
         }
 
         private void DrawGlideSlope(System.Windows.Controls.Canvas canvas, double w, double h, double rangeNm)

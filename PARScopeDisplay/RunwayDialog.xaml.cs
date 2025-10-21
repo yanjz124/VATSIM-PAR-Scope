@@ -120,6 +120,8 @@ namespace PARScopeDisplay
             LatBox.Text = set.ThresholdLat.ToString(CultureInfo.InvariantCulture);
             LonBox.Text = set.ThresholdLon.ToString(CultureInfo.InvariantCulture);
             HdgBox.Text = set.HeadingTrueDeg.ToString(CultureInfo.InvariantCulture);
+            // show signed magnetic variation if present in settings (editable)
+            MagVarBox.Text = (set.MagVariationDeg >= 0 ? "+" : "") + set.MagVariationDeg.ToString("F1", CultureInfo.InvariantCulture);
             GsBox.Text = set.GlideSlopeDeg.ToString(CultureInfo.InvariantCulture);
             TchBox.Text = set.ThrCrossingHgtFt.ToString(CultureInfo.InvariantCulture);
             ElevBox.Text = set.FieldElevFt.ToString(CultureInfo.InvariantCulture);
@@ -128,6 +130,7 @@ namespace PARScopeDisplay
             MaxAzBox.Text = set.MaxAzimuthDeg.ToString(CultureInfo.InvariantCulture);
             SensorOffsetBox.Text = set.SensorOffsetNm.ToString(CultureInfo.InvariantCulture);
             ApproachLightsBox.Text = (set.ApproachLightLengthFt > 0 ? set.ApproachLightLengthFt.ToString(CultureInfo.InvariantCulture) : "0");
+            // Mag var is shown in the editable MagVarBox above
         }
 
         // Helper: clear any text selection in the editable part of a ComboBox and move caret to end
@@ -166,6 +169,34 @@ namespace PARScopeDisplay
             s.MaxAzimuthDeg = ParseDouble(MaxAzBox.Text, _init != null ? _init.MaxAzimuthDeg : 10);
             s.SensorOffsetNm = ParseDouble(SensorOffsetBox.Text, _init != null ? _init.SensorOffsetNm : 0.5);
             s.ApproachLightLengthFt = ParseDouble(ApproachLightsBox.Text, _init != null ? _init.ApproachLightLengthFt : 0.0);
+            // If NASR loader available, pull airport-level magnetic variation for this airport/runway
+            try
+            {
+                if (_nasrLoader != null && !string.IsNullOrEmpty(s.Icao))
+                {
+                    var r = _nasrLoader.GetRunway(s.Icao, s.Runway);
+                    if (r != null)
+                    {
+                        s.MagVariationDeg = r.MagneticVariationDeg;
+                        // If user manually entered a MagVar, prefer that value
+                        if (!string.IsNullOrEmpty(MagVarBox.Text))
+                        {
+                            if (double.TryParse(MagVarBox.Text.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double userMv))
+                                s.MagVariationDeg = userMv;
+                        }
+                    }
+                }
+            }
+            catch { }
+            // If NASR not used, still allow the user-entered mag var to be captured
+            if (string.IsNullOrEmpty(s.Icao) || _nasrLoader == null)
+            {
+                if (!string.IsNullOrEmpty(MagVarBox.Text))
+                {
+                    if (double.TryParse(MagVarBox.Text.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double userMv2))
+                        s.MagVariationDeg = userMv2;
+                }
+            }
             return s;
         }
 
@@ -235,6 +266,14 @@ namespace PARScopeDisplay
                 ApproachLightsBox.Text = (defaultLen > 0 ? defaultLen.ToString(CultureInfo.InvariantCulture) : "0");
             }
             catch { ApproachLightsBox.Text = "0"; }
+
+            // Show magnetic variation if available (editable box)
+            try
+            {
+                double mv = data.MagneticVariationDeg;
+                MagVarBox.Text = (mv >= 0 ? "+" : "") + mv.ToString("F1", CultureInfo.InvariantCulture);
+            }
+            catch { MagVarBox.Text = string.Empty; }
 
             MessageBox.Show(this, 
                 string.Format("Runway data loaded:\n\nLat: {0:F6}\nLon: {1:F6}\nHeading: {2:F1}°\nElevation: {3:F0} ft",

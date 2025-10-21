@@ -15,6 +15,8 @@ namespace PARScopeDisplay
     /// </summary>
     public class NASRDataLoader
     {
+        // airport-level magnetic variation map: ARPT_ID -> (variation deg, hemisphere string)
+        private Dictionary<string, Tuple<double, string>> _aptBaseMag;
         private const string NASR_BASE_URL = "https://nfdc.faa.gov/webContent/28DaySub/extra/";
         private Dictionary<string, List<RunwayEndData>> _runwayData;
         public string LastLoadedSource { get; private set; }
@@ -31,6 +33,10 @@ namespace PARScopeDisplay
             // Additional fields from NASR CSV that we want to retain
             public string RwyIdCsv { get; set; }
             public string ApchLgtSystemCode { get; set; }
+            // Airport-level magnetic variation (degrees). If not present in APT_BASE.csv use 0
+            public double MagneticVariationDeg { get; set; }
+            // Raw hemisphere string from APT_BASE.csv (may be empty)
+            public string MagneticHemisphere { get; set; }
         }
 
         public NASRDataLoader()
@@ -229,6 +235,17 @@ namespace PARScopeDisplay
             {
                 using (ZipArchive archive = ZipFile.OpenRead(zipPath))
                 {
+                    // Try to parse airport base file first to collect MAG_VARN/MAG_HEMIS per ARPT_ID
+                    var aptBaseEntry = archive.Entries.FirstOrDefault(e => e.Name.Equals("APT_BASE.csv", StringComparison.OrdinalIgnoreCase));
+                    Dictionary<string, Tuple<double, string>> aptMag = null;
+                    if (aptBaseEntry != null)
+                    {
+                        using (var basestream = aptBaseEntry.Open())
+                        using (var basereader = new StreamReader(basestream))
+                        {
+                            aptMag = ParseAptBaseCsv(basereader);
+                        }
+                    }
                     // Find APT_RWY_END.csv
                     ZipArchiveEntry entry = archive.Entries.FirstOrDefault(e => 
                         e.Name.Equals("APT_RWY_END.csv", StringComparison.OrdinalIgnoreCase));
@@ -239,7 +256,8 @@ namespace PARScopeDisplay
                         return false;
                     }
 
-                    // Parse CSV
+                    // Parse CSV (pass aptMag via a field so ParseRunwayEndCsv can pick it up)
+                    _aptBaseMag = aptMag ?? new Dictionary<string, Tuple<double, string>>(StringComparer.OrdinalIgnoreCase);
                     using (Stream stream = entry.Open())
                     using (StreamReader reader = new StreamReader(stream))
                     {
@@ -399,6 +417,9 @@ namespace PARScopeDisplay
                             ThrCrossingHgtFt = tch
                             ,RwyIdCsv = rawRwyIdCsv
                             ,ApchLgtSystemCode = apchLgtCode
+                            // Merge airport-level magnetic variation if available
+                            ,MagneticVariationDeg = (_aptBaseMag != null && _aptBaseMag.TryGetValue(airportId, out var mv) ? mv.Item1 : 0.0)
+                            ,MagneticHemisphere = (_aptBaseMag != null && _aptBaseMag.TryGetValue(airportId, out var mh) ? mh.Item2 : string.Empty)
                         };
 
                         List<RunwayEndData> list;
@@ -467,6 +488,66 @@ namespace PARScopeDisplay
             return list.ToArray();
         }
 
+        /// <summary>
+        /// Parse APT_BASE.csv stream and return mapping ARPT_ID -> (MAG_VARN degrees, MAG_HEMIS string)
+        /// </summary>
+        private Dictionary<string, Tuple<double, string>> ParseAptBaseCsv(StreamReader reader)
+        {
+            var dict = new Dictionary<string, Tuple<double, string>>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                string header = reader.ReadLine();
+                if (string.IsNullOrEmpty(header)) return dict;
+                Func<string, string> norm = s => (s ?? string.Empty).Trim().Trim('"').Replace(" ", "_").ToUpperInvariant();
+                var cols = SplitCsvLine(header).Select(norm).ToArray();
+                int colArpt = Array.FindIndex(cols, c => c == "ARPT_ID" || c == "ARPT_IDENT" || c == "APRT_ID" || c == "APT_ID");
+                int colMag = Array.FindIndex(cols, c => c == "MAG_VARN" || c == "MAG_VARN".ToUpperInvariant());
+                int colHem = Array.FindIndex(cols, c => c == "MAG_HEMIS" || c == "MAG_HEMIS".ToUpperInvariant() || c == "MAG_HEMISPHERE");
+
+                string line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    var parts = SplitCsvLine(line);
+                    if (parts == null || parts.Length == 0) continue;
+                    if (colArpt < 0 || colArpt >= parts.Length) continue;
+                    string arpt = parts[colArpt].Trim().Trim('"');
+                    if (string.IsNullOrEmpty(arpt)) continue;
+                    double mag = 0.0;
+                    string hem = string.Empty;
+                    if (colMag >= 0 && colMag < parts.Length)
+                    {
+                        var s = parts[colMag].Trim().Trim('"');
+                        if (!string.IsNullOrEmpty(s))
+                        {
+                            double.TryParse(s, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out mag);
+                        }
+                    }
+                    if (colHem >= 0 && colHem < parts.Length)
+                    {
+                        hem = parts[colHem].Trim().Trim('"');
+                    }
+
+                    // Normalize hemisphere into signed variation where WEST is positive and EAST is negative
+                    // So: Magnetic = True + MagVariationDeg  (True + West = Magnetic; True - East = Magnetic)
+                    double signedMag = 0.0;
+                    if (!string.IsNullOrEmpty(hem))
+                    {
+                        var h0 = hem.Trim().ToUpperInvariant();
+                        if (h0.StartsWith("W")) signedMag = Math.Abs(mag);
+                        else if (h0.StartsWith("E")) signedMag = -Math.Abs(mag);
+                        else signedMag = mag;
+                    }
+                    else
+                    {
+                        signedMag = mag;
+                    }
+                    dict[arpt] = Tuple.Create(signedMag, hem);
+                }
+            }
+            catch { }
+            return dict;
+        }
+
         private string GetCachePath()
         {
             string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
@@ -480,7 +561,14 @@ namespace PARScopeDisplay
             try
             {
                 var ser = new JavaScriptSerializer();
-                var dump = _runwayData.ToDictionary(k => k.Key, v => v.Value);
+                var dump = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                dump["runways"] = _runwayData.ToDictionary(k => k.Key, v => v.Value);
+                // include apt base magnetic map if present
+                if (_aptBaseMag != null && _aptBaseMag.Count > 0)
+                {
+                    var magmap = _aptBaseMag.ToDictionary(k => k.Key, v => new { mag = v.Value.Item1, hem = v.Value.Item2 });
+                    dump["aptMag"] = magmap;
+                }
                 string json = ser.Serialize(dump);
                 string cachePath = GetCachePath();
                 File.WriteAllText(cachePath, json, Encoding.UTF8);
@@ -508,28 +596,52 @@ namespace PARScopeDisplay
                 var obj = ser.DeserializeObject(json) as Dictionary<string, object>;
                 if (obj == null) return;
                 _runwayData.Clear();
-                foreach (var kv in obj)
+                // Expect cached structure: { runways: { ARPT: [ ... ] }, aptMag: { ARPT: { mag: number, hem: string } } }
+                object runwaysObj = null;
+                if (obj.TryGetValue("runways", out runwaysObj) && runwaysObj is Dictionary<string, object> runDict)
                 {
-                    var list = new List<RunwayEndData>();
-                    var arr = kv.Value as object[];
-                    if (arr == null) continue;
-                    foreach (var it in arr)
+                    foreach (var kv in runDict)
                     {
-                        var map = it as Dictionary<string, object>;
-                        if (map == null) continue;
-                        var r = new RunwayEndData();
-                        r.AirportId = map.ContainsKey("AirportId") ? (string)map["AirportId"] : kv.Key;
-                        r.RunwayId = map.ContainsKey("RunwayId") ? (string)map["RunwayId"] : null;
-                        r.Latitude = map.ContainsKey("Latitude") ? Convert.ToDouble(map["Latitude"]) : 0;
-                        r.Longitude = map.ContainsKey("Longitude") ? Convert.ToDouble(map["Longitude"]) : 0;
-                        r.TrueHeading = map.ContainsKey("TrueHeading") ? Convert.ToDouble(map["TrueHeading"]) : 0;
-                        r.FieldElevationFt = map.ContainsKey("FieldElevationFt") ? Convert.ToDouble(map["FieldElevationFt"]) : 0;
-                        r.ThrCrossingHgtFt = map.ContainsKey("ThrCrossingHgtFt") ? Convert.ToDouble(map["ThrCrossingHgtFt"]) : 0;
-                        r.RwyIdCsv = map.ContainsKey("RwyIdCsv") ? (string)map["RwyIdCsv"] : null;
-                        r.ApchLgtSystemCode = map.ContainsKey("ApchLgtSystemCode") ? (string)map["ApchLgtSystemCode"] : null;
-                        list.Add(r);
+                        var list = new List<RunwayEndData>();
+                        var arr = kv.Value as object[];
+                        if (arr == null) continue;
+                        foreach (var it in arr)
+                        {
+                            var map = it as Dictionary<string, object>;
+                            if (map == null) continue;
+                            var r = new RunwayEndData();
+                            r.AirportId = map.ContainsKey("AirportId") ? (string)map["AirportId"] : kv.Key;
+                            r.RunwayId = map.ContainsKey("RunwayId") ? (string)map["RunwayId"] : null;
+                            r.Latitude = map.ContainsKey("Latitude") ? Convert.ToDouble(map["Latitude"]) : 0;
+                            r.Longitude = map.ContainsKey("Longitude") ? Convert.ToDouble(map["Longitude"]) : 0;
+                            r.TrueHeading = map.ContainsKey("TrueHeading") ? Convert.ToDouble(map["TrueHeading"]) : 0;
+                            r.FieldElevationFt = map.ContainsKey("FieldElevationFt") ? Convert.ToDouble(map["FieldElevationFt"]) : 0;
+                            r.ThrCrossingHgtFt = map.ContainsKey("ThrCrossingHgtFt") ? Convert.ToDouble(map["ThrCrossingHgtFt"]) : 0;
+                            r.RwyIdCsv = map.ContainsKey("RwyIdCsv") ? (string)map["RwyIdCsv"] : null;
+                            r.ApchLgtSystemCode = map.ContainsKey("ApchLgtSystemCode") ? (string)map["ApchLgtSystemCode"] : null;
+                            list.Add(r);
+                        }
+                        _runwayData[kv.Key] = list;
                     }
-                    _runwayData[kv.Key] = list;
+                }
+
+                // Restore aptMag if present
+                _aptBaseMag = new Dictionary<string, Tuple<double, string>>(StringComparer.OrdinalIgnoreCase);
+                if (obj.TryGetValue("aptMag", out var aptMagObj) && aptMagObj is Dictionary<string, object> aptMagDict)
+                {
+                    foreach (var kv in aptMagDict)
+                    {
+                        try
+                        {
+                            var inner = kv.Value as Dictionary<string, object>;
+                            if (inner == null) continue;
+                            double mag = 0.0; string hem = string.Empty;
+                            if (inner.ContainsKey("mag")) mag = Convert.ToDouble(inner["mag"]);
+                            if (inner.ContainsKey("hem")) hem = inner["hem"] as string ?? string.Empty;
+                            _aptBaseMag[kv.Key] = Tuple.Create(mag, hem);
+                        }
+                        catch { }
+                    }
                 }
                 System.Diagnostics.Debug.WriteLine($"NASR cache loaded: {_runwayData.Count} airports");
             }
