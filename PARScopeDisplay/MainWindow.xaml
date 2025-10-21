@@ -25,6 +25,10 @@
                             <MenuItem x:Name="Display_EnableAzimuthWedgeFilter" Header="Enable Azimuth Wedge Filter" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
                             <MenuItem x:Name="Display_EnableVerticalWedgeFilter" Header="Enable Vertical Wedge Filter" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
                 </MenuItem>
+                <MenuItem Header="Debug">
+                    <MenuItem x:Name="Debug_ShowAgeLabels" Header="Show History Age Labels" IsCheckable="True" IsChecked="False" Click="OnToggleShowAgeLabels" />
+                    <MenuItem x:Name="Debug_ShowTrafficData" Header="Debug Traffic Data" IsCheckable="True" IsChecked="False" Click="OnToggleDebugTraffic" />
+                </MenuItem>
             </Menu>
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="10">
                 <TextBlock Text="Plugin Status: " FontWeight="Bold"/>
@@ -40,6 +44,10 @@
                             TickFrequency="1" IsSnapToTickEnabled="True" 
                             ValueChanged="OnHistoryDotsChanged" VerticalAlignment="Center" Background="Transparent"/>
                     <TextBlock x:Name="HistoryDotsLabel" Text="5" Foreground="Black" Margin="8,0,0,0" Width="28" FontWeight="Bold" FontSize="13"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="20,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="Scan Interval (s):" Foreground="Black" Margin="0,0,6,0" VerticalAlignment="Center"/> 
+                    <TextBox x:Name="ScanIntervalBox" Width="45" Height="18" VerticalAlignment="Center" TextChanged="OnScanIntervalChanged" Foreground="Black" Background="White" TextAlignment="Center" FontSize="10" Padding="0,1,0,0" />
                 </StackPanel>
                 <!-- Dev-line checkboxes removed from top bar - use Display menu -->
             </StackPanel>
