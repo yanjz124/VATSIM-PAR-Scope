@@ -68,6 +68,9 @@ namespace PARScopeDisplay
         private double _radarScanIntervalSec = 1.0;
         private DispatcherTimer _radarTimer;
 
+    // Single-file application state filename
+    private const string AppStateFileName = "app_state.json";
+
         public MainWindow()
         {
             InitializeComponent();
@@ -84,15 +87,17 @@ namespace PARScopeDisplay
                 if (ScanIntervalLabel != null) ScanIntervalLabel.Text = _radarScanIntervalSec.ToString("F1") + "s";
             }
             
-            // Initialize NASR loader and try to load cached data
+            // Load application state (single file) if present. This will restore
+            // runway, UI settings and optionally the NASR cache. We must restore
+            // NASR cache file BEFORE constructing NASRDataLoader so it can pick it up.
+            try { LoadAppState(); } catch { }
+
+            // Initialize NASR loader and try to load cached data (will read nasr_cache.json)
             _nasrLoader = new NASRDataLoader();
-            
-            // Load last used runway from settings and window position
-            _runway = LoadRunwaySettings();
-            LoadWindowPosition();
-            LoadShowGroundSetting();
-            LoadHistoryDotsCount();
-            LoadPlanAltTop();
+            // Update NASR status text in the UI
+            try { UpdateNasrStatus(); } catch { }
+
+            // Ensure UI config boxes reflect restored runway and settings
             UpdateConfigBoxes();
             // Initialize view toggles from UI checkboxes (Display menu)
             OnViewToggleChanged(null, null);
@@ -111,13 +116,9 @@ namespace PARScopeDisplay
             _radarTimer.Tick += (s, e) => SampleRadar();
             _radarTimer.Start();
             
-            this.Closed += (s, e) => 
+            this.Closed += (s, e) =>
             {
-                SaveRunwaySettings(_runway);
-                SaveWindowPosition();
-                SaveShowGroundSetting();
-                SaveHistoryDotsCount();
-                SavePlanAltTop();
+                try { SaveAppState(); } catch { }
             };
         }
 
@@ -1849,6 +1850,71 @@ namespace PARScopeDisplay
             }
         }
 
+        /// <summary>
+        /// Update the NASR status text block with version (from filename) and last-loaded timestamp.
+        /// Format: "02OCT2025 — 2025-10-02 12:34Z (2445 airports)" if data present, else "(not loaded)".
+        /// </summary>
+        private void UpdateNasrStatus()
+        {
+            try
+            {
+                if (NASRStatusText == null) return;
+                if (_nasrLoader == null || string.IsNullOrEmpty(_nasrLoader.LastLoadedSource))
+                {
+                    NASRStatusText.Text = "(not loaded)";
+                    return;
+                }
+
+                // Prefer metadata timestamp if cached
+                string version = null;
+                if (_nasrLoader.LastLoadedSource != null)
+                {
+                    // Try to parse file name for DD_MMM_YYYY pattern
+                    try
+                    {
+                        var src = _nasrLoader.LastLoadedSource;
+                        var fn = System.IO.Path.GetFileName(src).ToUpperInvariant();
+                        // Filename may be like 02_Oct_2025_APT_CSV.zip -> normalize to 02OCT2025
+                        var parts = fn.Split('_');
+                        if (parts.Length >= 3)
+                        {
+                            string day = parts[0].PadLeft(2, '0');
+                            string mon = parts[1].ToUpperInvariant();
+                            string year = parts[2];
+                            version = day + mon + year;
+                        }
+                    }
+                    catch { }
+                }
+
+                string timeStr = null;
+                if (_nasrLoader.LastLoadedUtc.HasValue)
+                {
+                    var dt = _nasrLoader.LastLoadedUtc.Value;
+                    // show local-ish user-friendly time in UTC 'yyyy-MM-dd HH:mmZ'
+                    timeStr = dt.ToString("yyyy-MM-dd HH:mm\"Z\"");
+                }
+
+                // Airport count if available
+                string countStr = null;
+                try
+                {
+                    var ids = _nasrLoader.GetAirportIds();
+                    if (ids != null) countStr = ids.Count.ToString();
+                }
+                catch { }
+
+                var partsOut = new List<string>();
+                if (!string.IsNullOrEmpty(version)) partsOut.Add(version);
+                if (!string.IsNullOrEmpty(timeStr)) partsOut.Add(timeStr);
+                if (!string.IsNullOrEmpty(countStr)) partsOut.Add(countStr + " airports");
+
+                if (partsOut.Count == 0) NASRStatusText.Text = _nasrLoader.LastLoadedSource ?? "(loaded)";
+                else NASRStatusText.Text = string.Join(" — ", partsOut);
+            }
+            catch { }
+        }
+
         private void OnDownloadNASRClick(object sender, RoutedEventArgs e)
         {
             if (_nasrLoader == null)
@@ -1882,9 +1948,8 @@ namespace PARScopeDisplay
                     if (success)
                     {
                         int airportCount = _nasrLoader.GetAirportIds().Count;
-                        MessageBox.Show(this, 
-                            string.Format("NASR data loaded successfully!\n\n{0} airports in database.\nSource: {1}", airportCount, _nasrLoader.LastLoadedSource ?? "(unknown)"),
-                            "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show(this, string.Format("NASR data loaded successfully!\n\n{0} airports in database.\nSource: {1}", airportCount, _nasrLoader.LastLoadedSource ?? "(unknown)"), "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                        try { UpdateNasrStatus(); } catch { }
                     }
                     else
                     {
@@ -1919,6 +1984,7 @@ namespace PARScopeDisplay
                 MessageBox.Show(this, 
             string.Format("NASR data loaded successfully!\n\n{0} airports in database.\nSource: {1}", airportCount, _nasrLoader.LastLoadedSource ?? "(unknown)"),
                     "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                try { UpdateNasrStatus(); } catch { }
             }
             else
             {
@@ -2119,6 +2185,215 @@ namespace PARScopeDisplay
             catch (Exception ex)
             {
                 Debug.WriteLine("Error saving history dots count: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Load application state from single JSON file (app_state.json) in AppData.
+        /// If not present, falls back to legacy per-file loaders.
+        /// If NASR cache content is embedded, write it out to nasr_cache.json so NASRDataLoader can pick it up.
+        /// </summary>
+        private void LoadAppState()
+        {
+            try
+            {
+                string appDataPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VATSIM-PAR-Scope");
+                string stateFile = System.IO.Path.Combine(appDataPath, AppStateFileName);
+                if (!System.IO.File.Exists(stateFile))
+                {
+                    // Fallback to existing per-file loaders
+                    _runway = LoadRunwaySettings();
+                    LoadWindowPosition();
+                    LoadShowGroundSetting();
+                    LoadHistoryDotsCount();
+                    LoadPlanAltTop();
+                    return;
+                }
+
+                string json = System.IO.File.ReadAllText(stateFile, Encoding.UTF8);
+                var obj = _json.DeserializeObject(json) as Dictionary<string, object>;
+                if (obj == null)
+                {
+                    // fallback
+                    _runway = LoadRunwaySettings();
+                    LoadWindowPosition();
+                    LoadShowGroundSetting();
+                    LoadHistoryDotsCount();
+                    LoadPlanAltTop();
+                    return;
+                }
+
+                // Restore runway
+                if (obj.TryGetValue("runway", out var runObj) && runObj is Dictionary<string, object> runDict)
+                {
+                    try
+                    {
+                        string runJson = _json.Serialize(runDict);
+                        _runway = _json.Deserialize<RunwaySettings>(runJson);
+                    }
+                    catch { _runway = LoadRunwaySettings(); }
+                }
+                else
+                {
+                    _runway = LoadRunwaySettings();
+                }
+
+                // Restore window position
+                if (obj.TryGetValue("window", out var winObj) && winObj is Dictionary<string, object> winDict)
+                {
+                    try
+                    {
+                        string winJson = _json.Serialize(winDict);
+                        var pos = _json.Deserialize<WindowPosition>(winJson);
+                        if (pos != null)
+                        {
+                            this.Left = pos.Left; this.Top = pos.Top; this.Width = pos.Width; this.Height = pos.Height;
+                            if (pos.IsMaximized) this.WindowState = WindowState.Maximized;
+                        }
+                    }
+                    catch { LoadWindowPosition(); }
+                }
+                else
+                {
+                    LoadWindowPosition();
+                }
+
+                // Show ground
+                if (obj.TryGetValue("show_ground", out var sg))
+                {
+                    try
+                    {
+                        bool showGround = Convert.ToBoolean(sg);
+                        if (HideGroundCheckBox != null) HideGroundCheckBox.IsChecked = showGround;
+                        _hideGroundTraffic = !showGround;
+                    }
+                    catch { LoadShowGroundSetting(); }
+                }
+
+                // History dots
+                if (obj.TryGetValue("history_dots", out var hd))
+                {
+                    try
+                    {
+                        int count = Convert.ToInt32(hd);
+                        _historyDotsCount = Math.Max(1, Math.Min(20, count));
+                        if (HistoryDotsSlider != null) HistoryDotsSlider.Value = _historyDotsCount;
+                        if (HistoryDotsLabel != null) HistoryDotsLabel.Text = _historyDotsCount.ToString();
+                    }
+                    catch { LoadHistoryDotsCount(); }
+                }
+
+                // Plan altitude top
+                if (obj.TryGetValue("plan_alt_top", out var pat))
+                {
+                    try
+                    {
+                        int v = Convert.ToInt32(pat);
+                        _planAltTopHundreds = Math.Max(1, Math.Min(9999, v));
+                        if (PlanAltTopBox != null) PlanAltTopBox.Text = _planAltTopHundreds.ToString();
+                    }
+                    catch { LoadPlanAltTop(); }
+                }
+
+                // Radar scan interval
+                if (obj.TryGetValue("radar_scan_interval", out var rsi))
+                {
+                    try
+                    {
+                        double d = Convert.ToDouble(rsi);
+                        _radarScanIntervalSec = Math.Max(0.5, Math.Min(10.0, d));
+                        if (ScanIntervalSlider != null) ScanIntervalSlider.Value = _radarScanIntervalSec;
+                        if (ScanIntervalLabel != null) ScanIntervalLabel.Text = _radarScanIntervalSec.ToString("F1") + "s";
+                    }
+                    catch { }
+                }
+
+                // UI toggles
+                try
+                {
+                    if (obj.TryGetValue("show_vertical_dev", out var sv)) _showVerticalDevLines = Convert.ToBoolean(sv);
+                    if (obj.TryGetValue("show_azimuth_dev", out var sa)) _showAzimuthDevLines = Convert.ToBoolean(sa);
+                    if (obj.TryGetValue("show_approach_lights", out var sal)) _showApproachLights = Convert.ToBoolean(sal);
+                    if (obj.TryGetValue("enable_azimuth_wedge", out var eaz)) _enableAzimuthWedgeFilter = Convert.ToBoolean(eaz);
+                    if (obj.TryGetValue("enable_vertical_wedge", out var ev)) _enableVerticalWedgeFilter = Convert.ToBoolean(ev);
+                }
+                catch { }
+
+                // Restore NASR cache if embedded
+                if (obj.TryGetValue("nasr_cache", out var nasrobj) && nasrobj != null)
+                {
+                    try
+                    {
+                        string nasrJson = _json.Serialize(nasrobj);
+                        string cachePath = System.IO.Path.Combine(appDataPath, "nasr_cache.json");
+                        System.IO.File.WriteAllText(cachePath, nasrJson, Encoding.UTF8);
+                    }
+                    catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error loading app state: " + ex.Message);
+                // fallback to legacy loads
+                try { _runway = LoadRunwaySettings(); } catch { }
+                try { LoadWindowPosition(); } catch { }
+                try { LoadShowGroundSetting(); } catch { }
+                try { LoadHistoryDotsCount(); } catch { }
+                try { LoadPlanAltTop(); } catch { }
+            }
+        }
+
+        /// <summary>
+        /// Save application state to a single JSON file in AppData (app_state.json).
+        /// Also embeds the existing NASR cache if present.
+        /// </summary>
+        private void SaveAppState()
+        {
+            try
+            {
+                string appDataPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VATSIM-PAR-Scope");
+                System.IO.Directory.CreateDirectory(appDataPath);
+                string stateFile = System.IO.Path.Combine(appDataPath, AppStateFileName);
+
+                var dump = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+
+                // Runway
+                if (_runway != null) dump["runway"] = _runway;
+
+                // Window
+                var pos = new WindowPosition { Left = this.Left, Top = this.Top, Width = this.Width, Height = this.Height, IsMaximized = this.WindowState == WindowState.Maximized };
+                dump["window"] = pos;
+
+                // UI settings
+                dump["show_ground"] = !_hideGroundTraffic; // store as 'show' semantics
+                dump["history_dots"] = _historyDotsCount;
+                dump["plan_alt_top"] = _planAltTopHundreds;
+                dump["radar_scan_interval"] = _radarScanIntervalSec;
+                dump["show_vertical_dev"] = _showVerticalDevLines;
+                dump["show_azimuth_dev"] = _showAzimuthDevLines;
+                dump["show_approach_lights"] = _showApproachLights;
+                dump["enable_azimuth_wedge"] = _enableAzimuthWedgeFilter;
+                dump["enable_vertical_wedge"] = _enableVerticalWedgeFilter;
+
+                // Embed NASR cache if present on-disk
+                string cachePath = System.IO.Path.Combine(appDataPath, "nasr_cache.json");
+                if (System.IO.File.Exists(cachePath))
+                {
+                    try
+                    {
+                        string nasrJson = System.IO.File.ReadAllText(cachePath, Encoding.UTF8);
+                        var nasrObj = _json.DeserializeObject(nasrJson);
+                        dump["nasr_cache"] = nasrObj;
+                    }
+                    catch { }
+                }
+
+                string outJson = _json.Serialize(dump);
+                System.IO.File.WriteAllText(stateFile, outJson, Encoding.UTF8);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Error saving app state: " + ex.Message);
             }
         }
 

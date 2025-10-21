@@ -37,20 +37,10 @@
                 <TextBlock x:Name="LastEventText" Text="-"/>
                 <TextBlock Text=" | Runway: "/>
                 <TextBlock x:Name="RunwayText" Text="(not set)"/>
-                <CheckBox x:Name="HideGroundCheckBox" Margin="20,0,0,0" VerticalAlignment="Center" Foreground="Black" IsChecked="True" Checked="OnHideGroundChanged" Unchecked="OnHideGroundChanged" Content="Show Ground Traffic"/>
+                <!-- NASR status (moved here temporarily) -->
                 <StackPanel Orientation="Horizontal" Margin="20,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="History Dots:" Foreground="Black" Margin="0,0,5,0" FontWeight="Bold" FontSize="13"/>
-                    <Slider x:Name="HistoryDotsSlider" Minimum="1" Maximum="20" Value="5" Width="110" 
-                            TickFrequency="1" IsSnapToTickEnabled="True" 
-                            ValueChanged="OnHistoryDotsChanged" VerticalAlignment="Center" Background="Transparent"/>
-                    <TextBlock x:Name="HistoryDotsLabel" Text="5" Foreground="Black" Margin="8,0,0,0" Width="28" FontWeight="Bold" FontSize="13"/>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="20,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="Scan Interval:" Foreground="Black" Margin="0,0,5,0" FontWeight="Bold" FontSize="13"/>
-                    <Slider x:Name="ScanIntervalSlider" Minimum="0.5" Maximum="10" Value="1.0" Width="110" 
-                            TickFrequency="0.5" IsSnapToTickEnabled="True" 
-                            ValueChanged="OnScanIntervalChanged" VerticalAlignment="Center" Background="Transparent"/>
-                    <TextBlock x:Name="ScanIntervalLabel" Text="1.0s" Foreground="Black" Margin="8,0,0,0" Width="35" FontWeight="Bold" FontSize="13"/>
+                    <TextBlock Text="NASR:" FontWeight="Bold" Foreground="Black" FontSize="10" />
+                    <TextBlock x:Name="NASRStatusText" Text="(not loaded)" Foreground="Black" Margin="6,0,0,0" FontSize="10" />
                 </StackPanel>
                 <!-- Dev-line checkboxes removed from top bar - use Display menu -->
             </StackPanel>
@@ -90,6 +80,23 @@
                 <Button x:Name="PlanAltTopDown" Content="◄" Width="18" Height="18" Margin="0,0,1,0" Click="OnPlanAltTopDown" FontSize="8" Padding="0" />
                 <TextBox x:Name="PlanAltTopBox" Width="40" Height="18" VerticalAlignment="Center" TextChanged="OnPlanAltTopChanged" Foreground="Black" Background="White" TextAlignment="Center" FontSize="10" Padding="0,1,0,0"/>
                 <Button x:Name="PlanAltTopUp" Content="►" Width="18" Height="18" Margin="1,0,8,0" Click="OnPlanAltTopUp" FontSize="8" Padding="0" />
+
+                <!-- Moved controls: Show Ground, History Dots, Scan Interval -->
+                <CheckBox x:Name="HideGroundCheckBox" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="LightGray" FontSize="10" IsChecked="True" Checked="OnHideGroundChanged" Unchecked="OnHideGroundChanged" Content="Show Ground Traffic"/>
+                <StackPanel Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="History Dots:" Foreground="LightGray" Margin="0,0,5,0" FontSize="10"/>
+                    <Slider x:Name="HistoryDotsSlider" Minimum="1" Maximum="20" Value="5" Width="110" 
+                            TickFrequency="1" IsSnapToTickEnabled="True" 
+                            ValueChanged="OnHistoryDotsChanged" VerticalAlignment="Center" Background="Transparent"/>
+                    <TextBlock x:Name="HistoryDotsLabel" Text="5" Foreground="LightGray" Margin="8,0,0,0" Width="28" FontSize="10"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="Scan Interval:" Foreground="LightGray" Margin="0,0,5,0" FontSize="10"/>
+                    <Slider x:Name="ScanIntervalSlider" Minimum="0.5" Maximum="10" Value="1.0" Width="110" 
+                            TickFrequency="0.5" IsSnapToTickEnabled="True" 
+                            ValueChanged="OnScanIntervalChanged" VerticalAlignment="Center" Background="Transparent"/>
+                    <TextBlock x:Name="ScanIntervalLabel" Text="1.0s" Foreground="LightGray" Margin="8,0,0,0" Width="35" FontSize="10"/>
+                </StackPanel>
             </StackPanel>
             <Expander x:Name="DebugExpander" DockPanel.Dock="Top" Header="Debug Traffic Data" IsExpanded="False" Margin="10,0">
                 <ScrollViewer Height="150" VerticalScrollBarVisibility="Auto">
