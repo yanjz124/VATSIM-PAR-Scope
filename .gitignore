@@ -92,3 +92,27 @@ $RECYCLE.BIN/
 
 ## Temporary files
 ~$*
+
+# Local helper tools and temporary artifacts created during development
+/tools/
+tools_backup_before_cleanup.zip
+
+# Release staging and packaged artifacts
+VATSIM-PAR-Scope-*/
+VATSIM-PAR-Scope-*.zip
+VATSIM-PAR-Scope-*.sha256.txt
+
+# Backups and temp files
+*.bak
+*.old
+
+# Private keys / code signing artifacts (do NOT commit)
+*.pfx
+*.p12
+*.key
+*.pem
+*.snk
+
+# CI / publishing settings
+*.publishsettings
+
