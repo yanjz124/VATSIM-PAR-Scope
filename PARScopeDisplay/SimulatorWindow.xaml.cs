@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.ComponentModel;
 
 namespace PARScopeDisplay
 {
@@ -453,6 +454,39 @@ namespace PARScopeDisplay
             OnStopAutoClick(this, null);
             try { _udp?.Close(); } catch { }
             base.OnClosed(e);
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            // Warn the user that closing the simulator will delete all generated aircraft
+            var res = MessageBox.Show(this,
+                "Closing the simulator will send delete messages for all generated aircraft and remove them from the scope. Continue?",
+                "Confirm simulator close",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (res != MessageBoxResult.Yes)
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            // Stop any auto movement and send delete messages for all generated targets
+            OnStopAutoClick(this, null);
+            try
+            {
+                // make a snapshot to avoid modification during enumeration
+                var snapshot = _aircraft.ToArray();
+                foreach (var ac in snapshot)
+                {
+                    try { SendNdjson(BuildDeleteJson(ac)); } catch { }
+                }
+                _aircraft.Clear();
+                RefreshList();
+            }
+            catch { }
+
+            base.OnClosing(e);
         }
 
         private class FakeAircraft

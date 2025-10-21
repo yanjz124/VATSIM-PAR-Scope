@@ -1056,18 +1056,20 @@ namespace PARScopeDisplay
             double alongTrackFromThresholdNm = (north_t * cosA + east_t * sinA) / 1852.0;
             double crossTrackFromThresholdNm = (-north_t * sinA + east_t * cosA) / 1852.0;
 
-            // Azimuth and elevation
+            // Azimuth and elevation — compute relative to the sensor apex so wedge filters align
             double azimuthDeg = 0.0, elevationDeg = 0.0;
-            if (Math.Abs(alongTrackFromThresholdNm) > 0.0001)
+            if (Math.Abs(alongTrackFromSensorNm) > 0.0001)
             {
-                azimuthDeg = Math.Atan2(crossTrackFromThresholdNm, alongTrackFromThresholdNm) * 180.0 / Math.PI;
-                double distFt = Math.Abs(alongTrackFromThresholdNm) * 6076.12;
+                // Use sensor-relative cross/along values so the angle originates at the sensor apex
+                azimuthDeg = Math.Atan2(crossTrackFromSensorNm, alongTrackFromSensorNm) * 180.0 / Math.PI;
+                double distFt = Math.Abs(alongTrackFromSensorNm) * 6076.12;
                 elevationDeg = Math.Atan2(alt - (fieldElevFt + tchFt), distFt) * 180.0 / Math.PI;
             }
 
             // Inclusion tests
             double includeNegBuffer = 0.3, includePosBuffer = 0.5;
-            bool inAzimuthScope = Math.Abs(azimuthDeg) <= maxAzDeg && alongTrackFromThresholdNm >= -sensorOffsetNm - includeNegBuffer && alongTrackFromThresholdNm <= rangeNm + includePosBuffer;
+            // Inclusion test should be referenced to the sensor apex: allow a small negative buffer behind sensor if necessary
+            bool inAzimuthScope = Math.Abs(azimuthDeg) <= maxAzDeg && alongTrackFromSensorNm >= -includeNegBuffer && alongTrackFromSensorNm <= rangeNm + includePosBuffer;
             bool inVerticalScope = inAzimuthScope && elevationDeg <= 6.0;
 
             // Respect debug wedge-filter toggles: when a filter is disabled we treat the scope as allowing all targets
