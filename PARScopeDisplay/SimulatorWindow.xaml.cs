@@ -43,6 +43,31 @@ namespace PARScopeDisplay
             }
         }
 
+        // Return a serializable snapshot of simulator configuration for persistence
+        public SimulatorConfig GetCurrentConfig()
+        {
+            double bearing = 360, range = 5, alt = 3000, speed = 140, heading = 180;
+            int interval = _updateIntervalMs;
+            try { double.TryParse(SpawnBearingBox.Text.Trim(), out bearing); } catch { }
+            try { double.TryParse(SpawnRangeBox.Text.Trim(), out range); } catch { }
+            try { double.TryParse(SpawnAltBox.Text.Trim(), out alt); } catch { }
+            try { double.TryParse(SpawnSpeedBox.Text.Trim(), out speed); } catch { }
+            try { double.TryParse(SpawnHeadingBox.Text.Trim(), out heading); } catch { }
+            return new SimulatorConfig { SpawnBearing = bearing, SpawnRange = range, SpawnAlt = alt, SpawnSpeed = speed, SpawnHeading = heading, UpdateIntervalMs = interval };
+        }
+
+        // Apply saved simulator configuration into UI controls (best-effort)
+        public void ApplySavedConfig(SimulatorConfig cfg)
+        {
+            if (cfg == null) return;
+            try { SpawnBearingBox.Text = cfg.SpawnBearing.ToString(); } catch { }
+            try { SpawnRangeBox.Text = cfg.SpawnRange.ToString(); } catch { }
+            try { SpawnAltBox.Text = cfg.SpawnAlt.ToString(); } catch { }
+            try { SpawnSpeedBox.Text = cfg.SpawnSpeed.ToString(); } catch { }
+            try { SpawnHeadingBox.Text = cfg.SpawnHeading.ToString(); } catch { }
+            try { _updateIntervalMs = cfg.UpdateIntervalMs > 0 ? cfg.UpdateIntervalMs : _updateIntervalMs; } catch { }
+        }
+
         private void RefreshList()
         {
             AircraftList.ItemsSource = null;

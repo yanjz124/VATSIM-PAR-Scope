@@ -42,6 +42,31 @@ namespace PARScopeDisplay
             {
                 // Store all ICAO codes (letters-only IDs like DCA; exclude codes with digits like 7AL9)
                 var ids = loader.GetAirportIds();
+                // If loader reports no data, try to explicitly load cache again (best-effort)
+                if ((ids == null || ids.Count == 0))
+                {
+                    TryLog("NASR loader GetAirportIds returned 0; attempting EnsureCacheLoaded()");
+                    try { if (loader.EnsureCacheLoaded()) ids = loader.GetAirportIds(); } catch { }
+                    TryLog("After EnsureCacheLoaded, GetAirportIds returned " + (ids?.Count ?? 0) + " items");
+                }
+                // If still empty, read cached JSON file directly as a last resort
+                if (ids == null || ids.Count == 0)
+                {
+                    try
+                    {
+                        var cacheIds = loader.ReadCachedAirportIds();
+                        if (cacheIds != null && cacheIds.Count > 0)
+                        {
+                            ids = cacheIds;
+                            TryLog("ReadCachedAirportIds found " + ids.Count + " airport keys in nasr_cache.json");
+                        }
+                        else
+                        {
+                            TryLog("ReadCachedAirportIds found no keys in nasr_cache.json");
+                        }
+                    }
+                    catch (Exception ex) { TryLog("ReadCachedAirportIds failed: " + ex.Message); }
+                }
                 _allIcaoCodes = ids.Where(id => !string.IsNullOrEmpty(id) && id.All(ch => ch >= 'A' && ch <= 'Z')).ToList();
                 _allIcaoCodes.Sort(StringComparer.OrdinalIgnoreCase);
                 
@@ -70,7 +95,74 @@ namespace PARScopeDisplay
                     RunwayBox.SelectedIndex = -1;
                     ClearComboSelection(RunwayBox);
                 };
+                // Show NASR cache metadata if available
+                try
+                {
+                    string info = "NASR: (not loaded)";
+                    if (loader.LastLoadedUtc.HasValue || !string.IsNullOrEmpty(loader.LastLoadedSource))
+                    {
+                        var dt = loader.LastLoadedUtc.HasValue ? loader.LastLoadedUtc.Value.ToString("yyyy-MM-dd HH:mm UTC") : "(unknown date)";
+                        var src = !string.IsNullOrEmpty(loader.LastLoadedSource) ? loader.LastLoadedSource : "(cached)";
+                        info = $"NASR: {dt} — {src}";
+                    }
+                    NasrInfoText.Text = info;
+                    if (_allIcaoCodes == null || _allIcaoCodes.Count == 0)
+                    {
+                        NasrInfoText.Text += " (no airports loaded)";
+                        TryLog("NASR loader initialized but no airport IDs found; NasrInfoText updated.");
+                    }
+                }
+                catch { }
             }
+        }
+
+        private void TryLog(string msg)
+        {
+            try
+            {
+                var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                var folder = System.IO.Path.Combine(appData, "VATSIM-PAR-Scope");
+                System.IO.Directory.CreateDirectory(folder);
+                var logPath = System.IO.Path.Combine(folder, "startup_log.txt");
+                System.IO.File.AppendAllText(logPath, DateTime.UtcNow.ToString("o") + " " + msg + System.Environment.NewLine);
+            }
+            catch { }
+        }
+
+        // Resolve an ICAO-like key into one present in the NASR loader. Tries exact, then with/without leading 'K', then suffix/contains match.
+        private string ResolveIcaoKey(string icao)
+        {
+            if (_nasrLoader == null || string.IsNullOrEmpty(icao)) return icao;
+            string want = icao.ToUpperInvariant();
+            // Exact
+            var ends = _nasrLoader.GetAirportRunways(want);
+            if (ends != null && ends.Count > 0) return want;
+
+            // Try adding or removing leading 'K' (common US variants)
+            if (!want.StartsWith("K") && want.Length == 3)
+            {
+                var k = "K" + want;
+                ends = _nasrLoader.GetAirportRunways(k);
+                if (ends != null && ends.Count > 0) return k;
+            }
+            if (want.StartsWith("K") && want.Length == 4)
+            {
+                var s = want.Substring(1);
+                ends = _nasrLoader.GetAirportRunways(s);
+                if (ends != null && ends.Count > 0) return s;
+            }
+
+            // Fall back to any loaded code that ends with or contains the typed text
+            if (_allIcaoCodes != null && _allIcaoCodes.Count > 0)
+            {
+                var endsWith = _allIcaoCodes.FirstOrDefault(a => a.EndsWith(want, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrEmpty(endsWith)) return endsWith;
+                var contains = _allIcaoCodes.FirstOrDefault(a => a.IndexOf(want, StringComparison.OrdinalIgnoreCase) >= 0);
+                if (!string.IsNullOrEmpty(contains)) return contains;
+            }
+
+            // As a last resort, return the original (will likely be empty results)
+            return want;
         }
 
         private void IcaoBox_KeyUp(object sender, System.Windows.Input.KeyEventArgs e)
@@ -174,17 +266,29 @@ namespace PARScopeDisplay
             {
                 if (_nasrLoader != null && !string.IsNullOrEmpty(s.Icao))
                 {
-                    var r = _nasrLoader.GetRunway(s.Icao, s.Runway);
-                    if (r != null)
+                    string key = ResolveIcaoKey(s.Icao);
+                    var r = _nasrLoader.GetRunway(key, s.Runway);
+                    try
                     {
-                        s.MagVariationDeg = r.MagneticVariationDeg;
-                        // If user manually entered a MagVar, prefer that value
-                        if (!string.IsNullOrEmpty(MagVarBox.Text))
+                        if (r != null)
                         {
-                            if (double.TryParse(MagVarBox.Text.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double userMv))
-                                s.MagVariationDeg = userMv;
+                            s.MagVariationDeg = r.MagneticVariationDeg;
+                            // If user manually entered a MagVar, prefer that value
+                            if (!string.IsNullOrEmpty(MagVarBox.Text))
+                            {
+                                if (double.TryParse(MagVarBox.Text.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double userMv))
+                                    s.MagVariationDeg = userMv;
+                            }
+                            // Log resolved key when different
+                            if (!string.Equals(key, s.Icao, StringComparison.OrdinalIgnoreCase))
+                                TryLog($"Resolved ICAO {s.Icao} -> {key} for magvar lookup");
+                        }
+                        else
+                        {
+                            TryLog($"MagVar lookup failed for {s.Icao}/{s.Runway} (resolved {key})");
                         }
                     }
+                    catch { }
                 }
             }
             catch { }
@@ -240,14 +344,18 @@ namespace PARScopeDisplay
                 return;
             }
 
-            var data = _nasrLoader.GetRunway(icao, runway);
+            string key = ResolveIcaoKey(icao);
+            var data = _nasrLoader.GetRunway(key, runway);
             if (data == null)
             {
+                TryLog($"Lookup failed for {icao}/{runway} (resolved {key})");
                 MessageBox.Show(this, 
                     string.Format("Runway {0}/{1} not found in NASR database.", icao, runway),
                     "Not Found", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
+            if (!string.Equals(key, icao, StringComparison.OrdinalIgnoreCase))
+                TryLog($"Lookup succeeded for {icao}/{runway} using resolved key {key}");
 
             // Populate fields from NASR data
             LatBox.Text = data.Latitude.ToString(CultureInfo.InvariantCulture);
@@ -286,7 +394,12 @@ namespace PARScopeDisplay
             if (_nasrLoader == null) return;
             string icao = (IcaoBox.Text ?? "").Trim().ToUpperInvariant();
             if (string.IsNullOrEmpty(icao)) { RunwayBox.ItemsSource = null; return; }
-            var ends = _nasrLoader.GetAirportRunways(icao);
+            var key = ResolveIcaoKey(icao);
+            var ends = _nasrLoader.GetAirportRunways(key);
+            if ((ends == null || ends.Count == 0) && !string.Equals(key, icao, StringComparison.OrdinalIgnoreCase))
+            {
+                TryLog($"RefreshRunwayList: resolved {icao} -> {key} but no runways found for resolved key");
+            }
             if (ends == null || ends.Count == 0)
             {
                 RunwayBox.ItemsSource = null;

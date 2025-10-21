@@ -16,6 +16,26 @@ using System.Diagnostics;
 
 namespace PARScopeDisplay
 {
+    // Radar sweep snapshot: captures all targets at a specific moment in time
+    public class RadarSweep
+    {
+        public DateTime SweepTime;
+        public List<HistoryDot> Dots = new List<HistoryDot>();
+    }
+
+    // Individual history dot: geographic position independent of callsign
+    public class HistoryDot
+    {
+        public double Lat;
+        public double Lon;
+        public double AltFt;
+        public string Callsign; // kept for debugging/labeling
+        // Flags indicating which scopes saw this dot at capture time
+        public bool SeenVertical;
+        public bool SeenAzimuth;
+        public bool SeenPlan;
+    }
+
     public partial class MainWindow : Window
     {
         private UdpClient _udpClient;
@@ -26,29 +46,43 @@ namespace PARScopeDisplay
         private readonly JavaScriptSerializer _json = new JavaScriptSerializer();
         private RunwaySettings _runway = null;
         private NASRDataLoader _nasrLoader = null;
-    // Per-callsign history of last few seconds for each scope
-    private readonly Dictionary<string, TargetHistory> _histories = new Dictionary<string, TargetHistory>(StringComparer.OrdinalIgnoreCase);
-    private const int HistoryLifetimeSec = 5; // seconds before history dots expire (timeout after 5s)
-    private const int HistorySampleIntervalSec = 5; // kept for potential sampling, but history is update-driven
+        
+        // Radar sweep history system: independent of per-callsign tracking
+        // Each sweep is a snapshot of all targets at that moment (lat/lon/alt)
+        private readonly List<RadarSweep> _radarSweeps = new List<RadarSweep>();
+        private const double HistoryLifetimeSec = 30.0; // seconds before history dots expire
         private bool _hideGroundTraffic = false;
-        private int _historyDotsCount = 5; // Number of history dots to display (user configurable)
-    private bool _showVerticalDevLines = true;
-    private bool _showAzimuthDevLines = true;
-    private bool _showApproachLights = true;
-    // Debug wedge filtering toggles: when false, scopes will not filter by wedge (show everything)
-    private bool _enableVerticalWedgeFilter = true;
-    private bool _enableAzimuthWedgeFilter = true;
-    private int _planAltTopHundreds = 999; // e.g. 100 -> 10000 ft top threshold
-    private readonly SolidColorBrush _centerlineBrush = new SolidColorBrush(Color.FromArgb(160, 60, 120, 60)); // semi-transparent darker green
-    // Debug/UI flags referenced by XAML event handlers
-    private bool _showHistoryAgeLabels = false;
-    private bool _debugShowTrafficData = false;
-    // Radar scan interval (seconds) - exposed in UI via ScanIntervalBox
-    private double _radarScanIntervalSec = 1.0;
+        private int _historyDotsCount = 5; // Number of history sweeps to display (user configurable)
+        private bool _showVerticalDevLines = true;
+        private bool _showAzimuthDevLines = true;
+        private bool _showApproachLights = true;
+        // Debug wedge filtering toggles: when false, scopes will not filter by wedge (show everything)
+        private bool _enableVerticalWedgeFilter = true;
+        private bool _enableAzimuthWedgeFilter = true;
+        private int _planAltTopHundreds = 999; // e.g. 100 -> 10000 ft top threshold
+        private readonly SolidColorBrush _centerlineBrush = new SolidColorBrush(Color.FromArgb(160, 60, 120, 60)); // semi-transparent darker green
+        // Debug/UI flags referenced by XAML event handlers
+        private bool _showHistoryAgeLabels = false;
+        private bool _debugShowTrafficData = false;
+        // Radar scan interval (seconds) - exposed in UI via ScanIntervalBox (0.5 to 10.0 sec)
+        private double _radarScanIntervalSec = 1.0;
+        private DispatcherTimer _radarTimer;
 
         public MainWindow()
         {
             InitializeComponent();
+            
+            // Initialize UI sliders
+            if (HistoryDotsSlider != null)
+            {
+                HistoryDotsSlider.Value = _historyDotsCount;
+                if (HistoryDotsLabel != null) HistoryDotsLabel.Text = _historyDotsCount.ToString();
+            }
+            if (ScanIntervalSlider != null)
+            {
+                ScanIntervalSlider.Value = _radarScanIntervalSec;
+                if (ScanIntervalLabel != null) ScanIntervalLabel.Text = _radarScanIntervalSec.ToString("F1") + "s";
+            }
             
             // Initialize NASR loader and try to load cached data
             _nasrLoader = new NASRDataLoader();
@@ -71,6 +105,11 @@ namespace PARScopeDisplay
             _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
             _uiTimer.Tick += (s, e) => UpdateUi();
             _uiTimer.Start();
+
+            // Start radar sampling timer (creates geographic snapshots at configured scan rate)
+            _radarTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(_radarScanIntervalSec) };
+            _radarTimer.Tick += (s, e) => SampleRadar();
+            _radarTimer.Start();
             
             this.Closed += (s, e) => 
             {
@@ -80,35 +119,6 @@ namespace PARScopeDisplay
                 SaveHistoryDotsCount();
                 SavePlanAltTop();
             };
-        }
-
-        private class TargetHistory
-        {
-            // HistoryEntry stores the point and the timestamp so we can age entries out over time
-            public struct HistoryEntry
-            {
-                public System.Windows.Point P;
-                public DateTime Time;
-                // Flags captured at the time of the sample so drawing can be based on where the
-                // target was seen when the snapshot was taken (decoupled from current-target visibility)
-                public bool SeenAzimuth;
-                public bool SeenVertical;
-                public bool SeenPlan;
-                public HistoryEntry(System.Windows.Point p, DateTime t, bool seenAz = true, bool seenVert = true, bool seenPlan = true)
-                {
-                    P = p; Time = t; SeenAzimuth = seenAz; SeenVertical = seenVert; SeenPlan = seenPlan;
-                }
-            }
-
-            public readonly Queue<HistoryEntry> Vertical = new Queue<HistoryEntry>();
-            public readonly Queue<HistoryEntry> Azimuth = new Queue<HistoryEntry>();
-            public readonly Queue<HistoryEntry> Plan = new Queue<HistoryEntry>();
-            // Last time we recorded a time-based history sample for this target
-            public DateTime LastSampleUtc = DateTime.MinValue;
-            // Track last actual position to detect real data changes (not UI refresh duplicates)
-            public System.Windows.Point LastVertical = new System.Windows.Point(double.NaN, double.NaN);
-            public System.Windows.Point LastAzimuth = new System.Windows.Point(double.NaN, double.NaN);
-            public System.Windows.Point LastPlan = new System.Windows.Point(double.NaN, double.NaN);
         }
 
         private void StartUdpListener()
@@ -164,9 +174,6 @@ namespace PARScopeDisplay
                 if (!string.IsNullOrEmpty(callsign))
                 {
                     _aircraft[callsign] = obj;
-                    // ensure history bucket exists
-                    if (!_histories.ContainsKey(callsign))
-                        _histories[callsign] = new TargetHistory();
                 }
             }
             else if (type == "delete")
@@ -174,16 +181,19 @@ namespace PARScopeDisplay
                 string callsign = obj.ContainsKey("callsign") && obj["callsign"] != null ? obj["callsign"].ToString() : null;
                 if (!string.IsNullOrEmpty(callsign))
                 {
-                    // Remove aircraft data but preserve history snapshots so dots persist until aged out
+                    // Remove aircraft from live data source
+                    // Radar sweeps will naturally stop capturing this target
                     Dictionary<string, object> removed;
                     _aircraft.TryRemove(callsign, out removed);
-                    // Do NOT remove _histories[callsign] here; keep history for display
                 }
             }
             else if (type == "network_disconnected" || type == "session_ended")
             {
                 _aircraft.Clear();
-                _histories.Clear();
+                lock (_radarSweeps)
+                {
+                    _radarSweeps.Clear();
+                }
                 Dispatcher.Invoke(() =>
                 {
                     StatusText.Text = "Disconnected";
@@ -216,48 +226,44 @@ namespace PARScopeDisplay
 
             var now = DateTime.UtcNow;
 
-            // (No time-based eviction: keep stored history until explicitly cleared)
+            // Debug text showing aircraft count and sweep count
             var sb = new StringBuilder();
             sb.AppendLine($"=== Traffic Data ({now:HH:mm:ss}) ===");
             sb.AppendLine($"Total Aircraft: {_aircraft.Count}");
+            lock (_radarSweeps)
+            {
+                sb.AppendLine($"Radar Sweeps: {_radarSweeps.Count}");
+                int totalDots = 0;
+                foreach (var sweep in _radarSweeps) totalDots += sweep.Dots.Count;
+                sb.AppendLine($"Total History Dots: {totalDots}");
+            }
             sb.AppendLine();
             
             // Table header with fixed-width columns
-            sb.AppendLine("Callsign  Latitude    Longitude    Altitude   Speed  History");
-            sb.AppendLine("--------  ----------  -----------  ---------  -----  -------");
+            sb.AppendLine("Callsign  Latitude    Longitude    Altitude   Speed");
+            sb.AppendLine("--------  ----------  -----------  ---------  -----");
             
             foreach (var kvp in _aircraft)
             {
                 var ac = kvp.Value;
                 var callsign = ac.ContainsKey("callsign") && ac["callsign"] != null ? ac["callsign"].ToString() : "";
-                var hist = _histories.ContainsKey(callsign) ? _histories[callsign] : null;
-                int histCount = hist != null ? hist.Vertical.Count : 0;
                 
                 double lat = GetDouble(ac, "lat", 0);
                 double lon = GetDouble(ac, "lon", 0);
                 double alt = GetDouble(ac, "alt_ft", 0);
                 double gs = GetGroundSpeedKts(ac);
                 
-                // Note: ground-traffic filtering is now applied only to the Plan view (not here)
-                
                 // Format as fixed-width table row
-                string row = string.Format("{0,-9} {1,10:F4}  {2,11:F4}  {3,8:F0}ft  {4,4:F0}kt  {5,3}pts",
-                    callsign, lat, lon, alt, gs, histCount);
+                string row = string.Format("{0,-9} {1,10:F4}  {2,11:F4}  {3,8:F0}ft  {4,4:F0}kt",
+                    callsign, lat, lon, alt, gs);
                 sb.AppendLine(row);
                 
-                // Draw all aircraft, no timeout
+                // Draw current targets (live radar returns)
                 DrawAircraft(ac);
             }
 
-            // Draw histories for callsigns that are not currently in the _aircraft list
-            // This keeps history dots visible after an aircraft has left the active set (they age out separately)
-            foreach (var kv in _histories)
-            {
-                var callsign = kv.Key;
-                if (_aircraft.ContainsKey(callsign)) continue; // already drawn with live data
-                var hist = kv.Value;
-                try { DrawHistoryOnly(hist, callsign); } catch { }
-            }
+            // Draw all history dots from radar sweeps (independent of current targets)
+            DrawHistoryDots();
             
             DebugText.Text = sb.ToString();
         }
@@ -317,14 +323,211 @@ namespace PARScopeDisplay
             try { UpdateUi(); } catch { }
         }
 
-        private void OnScanIntervalChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        private void OnScanIntervalChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (ScanIntervalBox == null) return;
-            if (double.TryParse(ScanIntervalBox.Text, out double v))
+            if (ScanIntervalSlider == null) return;
+            _radarScanIntervalSec = ScanIntervalSlider.Value;
+            if (ScanIntervalLabel != null)
             {
-                _radarScanIntervalSec = Math.Max(0.5, Math.Min(10.0, v));
-                // keep text normalized
-                ScanIntervalBox.Text = _radarScanIntervalSec.ToString("F1");
+                ScanIntervalLabel.Text = _radarScanIntervalSec.ToString("F1") + "s";
+            }
+            // Update timer interval
+            if (_radarTimer != null)
+            {
+                _radarTimer.Interval = TimeSpan.FromSeconds(_radarScanIntervalSec);
+            }
+        }
+
+        /// <summary>
+        /// Radar sampling logic: captures a geographic snapshot of all current targets at this moment.
+        /// This runs on a timer at the configured scan rate (0.5-10 seconds).
+        /// Each sweep creates history dots that are independent of future target state.
+        /// </summary>
+        private void SampleRadar()
+        {
+            if (_runway == null) return;
+            
+            var sweep = new RadarSweep { SweepTime = DateTime.UtcNow };
+            
+            // Snapshot all current aircraft positions (geographic coordinates)
+            foreach (var kvp in _aircraft)
+            {
+                var ac = kvp.Value;
+                string callsign = ac.ContainsKey("callsign") && ac["callsign"] != null ? ac["callsign"].ToString() : "";
+                
+                double lat = GetDouble(ac, "lat", 0);
+                double lon = GetDouble(ac, "lon", 0);
+                double alt = GetDouble(ac, "alt_ft", 0);
+                
+                // Determine which scopes "saw" this target at sample time
+                // Use actual wedge geometry to mark visibility per scope
+                bool seenVert = false, seenAzi = false, seenPlan = false;
+                
+                try
+                {
+                    // Compute wedge membership (same logic as DrawAircraft filtering)
+                    double sensorOffsetNm = _runway.SensorOffsetNm > 0 ? _runway.SensorOffsetNm : 0.5;
+                    double rangeNm = _runway.RangeNm > 0 ? _runway.RangeNm : 10.0;
+                    double maxAzDeg = _runway.MaxAzimuthDeg > 0 ? _runway.MaxAzimuthDeg : 10.0;
+                    
+                    // Get sensor position
+                    double sensorLat, sensorLon;
+                    GetSensorLatLon(_runway, sensorOffsetNm, out sensorLat, out sensorLon);
+                    
+                    // ENU relative to sensor
+                    double east_s = 0, north_s = 0;
+                    GeoToEnu(sensorLat, sensorLon, lat, lon, out east_s, out north_s);
+                    
+                    double hdgRad = DegToRad(_runway.HeadingTrueDeg);
+                    double approachRad = hdgRad + Math.PI;
+                    double cosA = Math.Cos(approachRad), sinA = Math.Sin(approachRad);
+                    double alongFromSensorNm = (north_s * cosA + east_s * sinA) / 1852.0;
+                    double crossFromSensorNm = (-north_s * sinA + east_s * cosA) / 1852.0;
+                    
+                    // Azimuth and elevation
+                    double azimuthDeg = 0.0, elevationDeg = 0.0;
+                    if (Math.Abs(alongFromSensorNm) > 0.0001)
+                    {
+                        azimuthDeg = Math.Atan2(crossFromSensorNm, alongFromSensorNm) * 180.0 / Math.PI;
+                        double distFt = Math.Abs(alongFromSensorNm) * 6076.12;
+                        elevationDeg = Math.Atan2(alt - (_runway.FieldElevFt + _runway.ThrCrossingHgtFt), distFt) * 180.0 / Math.PI;
+                    }
+                    
+                    // Wedge membership tests
+                    double includeNegBuffer = 0.3, includePosBuffer = 0.5;
+                    bool inAzimuthScope = Math.Abs(azimuthDeg) <= maxAzDeg && alongFromSensorNm >= -includeNegBuffer && alongFromSensorNm <= rangeNm + includePosBuffer;
+                    bool inVerticalScope = inAzimuthScope && elevationDeg <= 6.0;
+                    
+                    // Apply filter toggles
+                    seenAzi = _enableAzimuthWedgeFilter ? inAzimuthScope : true;
+                    seenVert = _enableVerticalWedgeFilter ? inVerticalScope : true;
+                    
+                    // Plan view: check ground filter and altitude ceiling
+                    bool isGround = false;
+                    double east_t = 0, north_t = 0;
+                    GeoToEnu(_runway.ThresholdLat, _runway.ThresholdLon, lat, lon, out east_t, out north_t);
+                    double distFromThrM = Math.Sqrt(east_t * east_t + north_t * north_t);
+                    double distanceFromThresholdFt = distFromThrM * 3.28084;
+                    double halfDegGlideAlt = _runway.FieldElevFt + Math.Tan(DegToRad(0.5)) * distanceFromThresholdFt;
+                    double groundThreshold = Math.Max(_runway.FieldElevFt + 20, halfDegGlideAlt);
+                    isGround = (alt < groundThreshold);
+                    
+                    seenPlan = (!_hideGroundTraffic || !isGround) && !(_planAltTopHundreds > 0 && alt > _planAltTopHundreds * 100);
+                }
+                catch
+                {
+                    // On error, default to visible
+                    seenVert = true;
+                    seenAzi = true;
+                    seenPlan = true;
+                }
+                
+                // Add dot to this sweep (store geographic position)
+                sweep.Dots.Add(new HistoryDot
+                {
+                    Lat = lat,
+                    Lon = lon,
+                    AltFt = alt,
+                    Callsign = callsign,
+                    SeenVertical = seenVert,
+                    SeenAzimuth = seenAzi,
+                    SeenPlan = seenPlan
+                });
+            }
+            
+            // Add sweep to history
+            lock (_radarSweeps)
+            {
+                _radarSweeps.Add(sweep);
+                
+                // Prune old sweeps (older than HistoryLifetimeSec)
+                var now = DateTime.UtcNow;
+                _radarSweeps.RemoveAll(s => (now - s.SweepTime).TotalSeconds > HistoryLifetimeSec);
+            }
+        }
+
+        /// <summary>
+        /// Draw all history dots from radar sweeps, projecting from geographic coordinates at draw time.
+        /// Dots are faded based on sweep age (older = more transparent).
+        /// Dots are filtered by their stored "Seen" flags (captured at sample time).
+        /// </summary>
+        private void DrawHistoryDots()
+        {
+            if (_runway == null) return;
+            
+            RadarSweep[] sweeps;
+            lock (_radarSweeps)
+            {
+                sweeps = _radarSweeps.ToArray();
+            }
+            
+            if (sweeps.Length == 0) return;
+            
+            // Limit to most recent N sweeps based on _historyDotsCount
+            int startIdx = Math.Max(0, sweeps.Length - _historyDotsCount);
+            var displaySweeps = sweeps.Skip(startIdx).ToArray();
+            
+            var now = DateTime.UtcNow;
+            
+            // Canvas sizes
+            double vWidth = VerticalScopeCanvas.ActualWidth > 0 ? VerticalScopeCanvas.ActualWidth : 400;
+            double vHeight = VerticalScopeCanvas.ActualHeight > 0 ? VerticalScopeCanvas.ActualHeight : 300;
+            double aWidth = AzimuthScopeCanvas.ActualWidth > 0 ? AzimuthScopeCanvas.ActualWidth : 400;
+            double aHeight = AzimuthScopeCanvas.ActualHeight > 0 ? AzimuthScopeCanvas.ActualHeight : 300;
+            double pWidth = PlanViewCanvas.ActualWidth > 0 ? PlanViewCanvas.ActualWidth : 400;
+            double pHeight = PlanViewCanvas.ActualHeight > 0 ? PlanViewCanvas.ActualHeight : 520;
+            
+            // Draw each sweep's dots (oldest to newest for proper layering)
+            for (int sweepIdx = 0; sweepIdx < displaySweeps.Length; sweepIdx++)
+            {
+                var sweep = displaySweeps[sweepIdx];
+                double sweepAgeSeconds = (now - sweep.SweepTime).TotalSeconds;
+                
+                // Calculate fade: older sweeps are more transparent
+                // Map sweep index to alpha: oldest (index 0) = 0.15, newest (last) = 0.45
+                float baseAlpha = 0.15f + ((float)sweepIdx / Math.Max(1, displaySweeps.Length - 1)) * 0.30f;
+                
+                foreach (var dot in sweep.Dots)
+                {
+                    // Vertical scope
+                    if (dot.SeenVertical)
+                    {
+                        double vx, vy;
+                        if (TryProjectToVertical(dot.Lat, dot.Lon, dot.AltFt, vWidth, vHeight, out vx, out vy))
+                        {
+                            var vDot = new Ellipse { Width = 5, Height = 5, Fill = new SolidColorBrush(Color.FromScRgb(baseAlpha, 1f, 1f, 1f)) };
+                            vDot.Margin = new Thickness(vx - 2.5, vy - 2.5, 0, 0);
+                            VerticalScopeCanvas.Children.Add(vDot);
+                            Canvas.SetZIndex(vDot, 999);
+                        }
+                    }
+                    
+                    // Azimuth scope
+                    if (dot.SeenAzimuth)
+                    {
+                        double ax, ay;
+                        if (TryProjectToAzimuth(dot.Lat, dot.Lon, dot.AltFt, aWidth, aHeight, out ax, out ay))
+                        {
+                            var aDot = new Ellipse { Width = 5, Height = 5, Fill = new SolidColorBrush(Color.FromScRgb(baseAlpha, 1f, 1f, 1f)) };
+                            aDot.Margin = new Thickness(ax - 2.5, ay - 2.5, 0, 0);
+                            AzimuthScopeCanvas.Children.Add(aDot);
+                            Canvas.SetZIndex(aDot, 999);
+                        }
+                    }
+                    
+                    // Plan scope
+                    if (dot.SeenPlan)
+                    {
+                        double px, py;
+                        if (TryProjectToPlan(dot.Lat, dot.Lon, dot.AltFt, pWidth, pHeight, out px, out py))
+                        {
+                            var pDot = new Ellipse { Width = 4, Height = 4, Fill = new SolidColorBrush(Color.FromScRgb(baseAlpha, 1f, 1f, 1f)) };
+                            pDot.Margin = new Thickness(px - 2, py - 2, 0, 0);
+                            PlanViewCanvas.Children.Add(pDot);
+                            Canvas.SetZIndex(pDot, 999);
+                        }
+                    }
+                }
             }
         }
 
@@ -1144,9 +1347,6 @@ namespace PARScopeDisplay
             bool azFiltered = _enableAzimuthWedgeFilter ? inAzimuthScope : true;
             bool vertFiltered = _enableVerticalWedgeFilter ? inVerticalScope : true;
 
-            // History bucket
-            var hist = _histories.ContainsKey(callsign) ? _histories[callsign] : null;
-
             // Compute a ground check for Plan view (reuse threshold ENU computed above)
             bool isGroundPlan = false;
             try
@@ -1159,208 +1359,76 @@ namespace PARScopeDisplay
             }
             catch { isGroundPlan = false; }
 
-            // Enqueue history using change-detection (matching Plan behavior) and respecting ground-hide
-            if (hist != null)
-            {
-                bool localIsGround = false;
-                try
-                {
-                    double distFromThrM = Math.Sqrt(east_t * east_t + north_t * north_t);
-                    double distanceFromThresholdFt = distFromThrM * 3.28084;
-                    double halfDegGlideAlt = fieldElevFt + Math.Tan(DegToRad(0.5)) * distanceFromThresholdFt;
-                    double groundThreshold = Math.Max(fieldElevFt + 20, halfDegGlideAlt);
-                    localIsGround = (alt < groundThreshold);
-                }
-                catch { localIsGround = false; }
-
-                if (!_hideGroundTraffic || !localIsGround)
-                {
-                    var now = DateTime.UtcNow;
-                    // Vertical history stored as (alongTrackFromThresholdNm, alt_ft)
-                    var curV = new System.Windows.Point(alongTrackFromThresholdNm, alt);
-                    bool vChanged = double.IsNaN(hist.LastVertical.X) || Math.Abs(curV.X - hist.LastVertical.X) > 0.01 || Math.Abs(curV.Y - hist.LastVertical.Y) > 50.0;
-                    if (vChanged)
-                    {
-                        // capture whether this sample was within the wedges at the time of sampling
-                        bool seenAz = inAzimuthScope;
-                        bool seenVert = inVerticalScope;
-                        hist.Vertical.Enqueue(new TargetHistory.HistoryEntry(curV, now, seenAz: seenAz, seenVert: seenVert, seenPlan: true));
-                        while (hist.Vertical.Count > 40) hist.Vertical.Dequeue();
-                        hist.LastVertical = curV;
-                    }
-
-                    // Azimuth history stored as (alongTrackFromThresholdNm, crossTrackFromThresholdNm)
-                    var curA = new System.Windows.Point(alongTrackFromThresholdNm, crossTrackFromThresholdNm);
-                    bool aChanged = double.IsNaN(hist.LastAzimuth.X) || Math.Abs(curA.X - hist.LastAzimuth.X) > 0.01 || Math.Abs(curA.Y - hist.LastAzimuth.Y) > 0.01;
-                    if (aChanged)
-                    {
-                        bool seenAz = inAzimuthScope;
-                        bool seenVert = inVerticalScope;
-                        hist.Azimuth.Enqueue(new TargetHistory.HistoryEntry(curA, now, seenAz: seenAz, seenVert: seenVert, seenPlan: true));
-                        while (hist.Azimuth.Count > 40) hist.Azimuth.Dequeue();
-                        hist.LastAzimuth = curA;
-                    }
-
-                    // Plan history stored as (eastNm, northNm)
-                    double eastNm = east_t / 1852.0;
-                    double northNm = north_t / 1852.0;
-                    if (!(_planAltTopHundreds > 0 && alt > _planAltTopHundreds * 100))
-                    {
-                        var curP = new System.Windows.Point(eastNm, northNm);
-                        bool pChanged = double.IsNaN(hist.LastPlan.X) || Math.Abs(curP.X - hist.LastPlan.X) > 0.01 || Math.Abs(curP.Y - hist.LastPlan.Y) > 0.01;
-                        if (pChanged)
-                        {
-                            // For plan view mark SeenPlan only when it passed the ground/alt checks at sample time
-                            bool seenPlan = (!_hideGroundTraffic || !localIsGround);
-                            hist.Plan.Enqueue(new TargetHistory.HistoryEntry(curP, now, seenAz: true, seenVert: true, seenPlan: seenPlan));
-                            while (hist.Plan.Count > 40) hist.Plan.Dequeue();
-                            hist.LastPlan = curP;
-                        }
-                    }
-
-                    hist.LastSampleUtc = DateTime.UtcNow;
-                }
-            }
-
             // --- DRAW VERTICAL SCOPE ---
             try
-                {
+            {
                 // Use centralized projection helper so current-target vertical placement matches history-dots
                 double vx = 0, vy = 0; bool seenVert = false, seenAzi = false;
                 TryProjectVerticalPoint(_runway, lat, lon, alt, vWidth, vHeight, out vx, out vy, out seenVert, out seenAzi);
 
-                // Recompute vertical display scale variables (used by history drawing below)
+                // Recompute vertical display scale variables
                 double totalRangeNmV = rangeNm + sensorOffsetNm;
                 double bottomMargin = 30.0;
                 double workH = Math.Max(0.0, vHeight - bottomMargin);
-                double altAt6DegAtFullRange = fieldElevFt + Math.Tan(DegToRad(6.0)) * (totalRangeNmV * 6076.12);
-                double altRangeFt = Math.Max(1.0, altAt6DegAtFullRange - fieldElevFt);
 
-                // Draw vertical history only when azimuth filtering allows it
-
-                // Draw history dots based on stored snapshot flags so dots persist even if the current
-                // target moves outside the wedge. We still respect the user's wedge-filter toggles by
-                // requiring the stored flags if the toggle is enabled.
-                if (hist != null)
+                // Draw current vertical marker (only when vertical filtering allows it)
+                if (vertFiltered && vx >= 0 && vx <= vWidth && vy >= 0 && vy <= vHeight)
                 {
-                    var historyDots = hist.Vertical.ToList();
-                    int take = Math.Max(1, Math.Min(historyDots.Count, _historyDotsCount));
-                    var subset = historyDots.Skip(Math.Max(0, historyDots.Count - take)).ToList();
-                    // draw each sample only if it was seen in the appropriate scopes when captured
-                    for (int i = 0; i < subset.Count; i++)
-                    {
-                        var entry = subset[i];
-                        var p = entry.P; // X=alongNm, Y=alt_ft
-                        bool showDot = (!_enableVerticalWedgeFilter || entry.SeenVertical) && (!_enableAzimuthWedgeFilter || entry.SeenAzimuth);
-                        if (!showDot) continue;
-                        double normXp = ((p.X + sensorOffsetNm) / totalRangeNmV);
-                        double normAltp = (p.Y - fieldElevFt) / altRangeFt;
-                        normXp = Math.Max(0, Math.Min(1, normXp));
-                        normAltp = Math.Max(0, Math.Min(1, normAltp));
-                        double hx = normXp * vWidth;
-                        double hy = workH - (normAltp * workH);
-                        float alpha = 0.15f + ((float)i / Math.Max(1, subset.Count - 1)) * 0.30f;
-                        var dot = new Ellipse { Width = 5, Height = 5, Fill = new SolidColorBrush(Color.FromScRgb(alpha, 1f, 1f, 1f)) };
-                        dot.Margin = new Thickness(hx - 2.5, hy - 2.5, 0, 0);
-                        VerticalScopeCanvas.Children.Add(dot);
-                        Canvas.SetZIndex(dot, 1000);
-                    }
+                    double rectW = 14.0, rectH = 4.0;
+                    double sensorPxX = 0, sensorPxY = workH;
+                    double vxp = vx - sensorPxX, vyp = vy - sensorPxY;
+                    double rotDeg = (Math.Atan2(vyp, vxp) * 180.0 / Math.PI) + 90.0;
+                    var rect = new System.Windows.Shapes.Rectangle { Width = rectW, Height = rectH, Fill = Brushes.White, RadiusX = 1, RadiusY = 1 };
+                    rect.RenderTransformOrigin = new System.Windows.Point(0.5, 0.5);
+                    rect.RenderTransform = new RotateTransform(rotDeg);
+                    rect.Margin = new Thickness(vx - rectW / 2.0, vy - rectH / 2.0, 0, 0);
+                    VerticalScopeCanvas.Children.Add(rect); Canvas.SetZIndex(rect, 1000);
 
-                    // Draw datablock near the most recent *visible* history sample (if any)
-                    var lastVisible = subset.LastOrDefault(s => (!_enableVerticalWedgeFilter || s.SeenVertical) && (!_enableAzimuthWedgeFilter || s.SeenAzimuth));
-                    // Only show the vertical datablock when the current target is in the vertical wedge
-                    if (lastVisible.Time != default(DateTime) && vertFiltered)
-                    {
-                        var last = lastVisible.P;
-                        int altHundreds = (int)Math.Round(last.Y / 100.0);
-                        int gs = (int)Math.Round(GetGroundSpeedKts(ac));
-                        int gsTwoDigit = (int)Math.Round(gs / 10.0);
-                        double normXlast = ((last.X + sensorOffsetNm) / totalRangeNmV);
-                        double normYlast = (last.Y - fieldElevFt) / altRangeFt;
-                        normXlast = Math.Max(0, Math.Min(1, normXlast));
-                        normYlast = Math.Max(0, Math.Min(1, normYlast));
-                        double tagX = normXlast * vWidth;
-                        double tagY = workH - (normYlast * workH);
-                        double labelX = Math.Min(Math.Max(4, tagX + 8), vWidth - 80);
-                        double labelY = Math.Min(Math.Max(4, tagY + 6), workH - 8);
-                        var t1 = new TextBlock { Text = callsign, Foreground = Brushes.White, FontSize = 12, FontWeight = FontWeights.SemiBold };
-                        t1.Margin = new Thickness(labelX, labelY, 0, 0); VerticalScopeCanvas.Children.Add(t1); Canvas.SetZIndex(t1, 1000);
-                        var t2 = new TextBlock { Text = altHundreds.ToString("D3") + " " + gsTwoDigit.ToString("D2"), Foreground = Brushes.LightGray, FontSize = 11 };
-                        t2.Margin = new Thickness(labelX, labelY + 16, 0, 0); VerticalScopeCanvas.Children.Add(t2); Canvas.SetZIndex(t2, 1000);
-                    }
+                    // Draw vertical datablock
+                    int altHundreds = (int)Math.Round(alt / 100.0);
+                    int gs = (int)Math.Round(GetGroundSpeedKts(ac));
+                    int gsTwoDigit = (int)Math.Round(gs / 10.0);
+                    double labelX = Math.Min(Math.Max(4, vx + 8), vWidth - 80);
+                    double labelY = Math.Min(Math.Max(4, vy + 6), workH - 8);
+                    var t1 = new TextBlock { Text = callsign, Foreground = Brushes.White, FontSize = 12, FontWeight = FontWeights.SemiBold };
+                    t1.Margin = new Thickness(labelX, labelY, 0, 0); VerticalScopeCanvas.Children.Add(t1); Canvas.SetZIndex(t1, 1000);
+                    var t2 = new TextBlock { Text = altHundreds.ToString("D3") + " " + gsTwoDigit.ToString("D2"), Foreground = Brushes.LightGray, FontSize = 11 };
+                    t2.Margin = new Thickness(labelX, labelY + 16, 0, 0); VerticalScopeCanvas.Children.Add(t2); Canvas.SetZIndex(t2, 1000);
                 }
-
-                    // Draw current vertical marker (only when vertical filtering allows it)
-                    if (vertFiltered && vx >= 0 && vx <= vWidth && vy >= 0 && vy <= vHeight)
-                    {
-                        double rectW = 14.0, rectH = 4.0;
-                        double sensorPxX = 0, sensorPxY = workH;
-                        double vxp = vx - sensorPxX, vyp = vy - sensorPxY;
-                        double rotDeg = (Math.Atan2(vyp, vxp) * 180.0 / Math.PI) + 90.0;
-                        var rect = new System.Windows.Shapes.Rectangle { Width = rectW, Height = rectH, Fill = Brushes.White, RadiusX = 1, RadiusY = 1 };
-                        rect.RenderTransformOrigin = new System.Windows.Point(0.5, 0.5);
-                        rect.RenderTransform = new RotateTransform(rotDeg);
-                        rect.Margin = new Thickness(vx - rectW / 2.0, vy - rectH / 2.0, 0, 0);
-                        VerticalScopeCanvas.Children.Add(rect); Canvas.SetZIndex(rect, 1000);
-                    }
-                }
+            }
             catch { }
 
             // --- DRAW AZIMUTH SCOPE ---
             try
             {
-                    double totalRangeNmA = rangeNm + sensorOffsetNm;
-                    double maxCrossTrackNm = Math.Tan(DegToRad(maxAzDeg)) * rangeNm;
-                    double normAx = ((alongTrackFromThresholdNm + sensorOffsetNm) / totalRangeNmA);
-                    double normAy = 0.5 + (crossTrackFromThresholdNm / (2 * maxCrossTrackNm));
-                    normAx = Math.Max(0, Math.Min(1, normAx)); normAy = Math.Max(0, Math.Min(1, normAy));
-                    double curAx = normAx * aWidth, curAy = normAy * aHeight;
+                double totalRangeNmA = rangeNm + sensorOffsetNm;
+                double maxCrossTrackNm = Math.Tan(DegToRad(maxAzDeg)) * rangeNm;
+                double normAx = ((alongTrackFromThresholdNm + sensorOffsetNm) / totalRangeNmA);
+                double normAy = 0.5 + (crossTrackFromThresholdNm / (2 * maxCrossTrackNm));
+                normAx = Math.Max(0, Math.Min(1, normAx)); normAy = Math.Max(0, Math.Min(1, normAy));
+                double curAx = normAx * aWidth, curAy = normAy * aHeight;
 
-                    // Draw azimuth history based on stored snapshot flags (decoupled from current-target filter)
-                    if (hist != null)
-                    {
-                        var historyDots = hist.Azimuth.ToList();
-                        int take = Math.Max(1, Math.Min(historyDots.Count, _historyDotsCount));
-                        var subset = historyDots.Skip(Math.Max(0, historyDots.Count - take)).ToList();
-                        for (int i = 0; i < subset.Count; i++)
-                        {
-                            var entry = subset[i];
-                            var p = entry.P; // X=along, Y=cross
-                            bool showDot = (!_enableAzimuthWedgeFilter || entry.SeenAzimuth) && (!_enableVerticalWedgeFilter || entry.SeenVertical);
-                            if (!showDot) continue;
-                            double normAxp = (p.X + sensorOffsetNm) / totalRangeNmA;
-                            double normAyp = 0.5 + (p.Y / (2 * maxCrossTrackNm));
-                            normAxp = Math.Max(0, Math.Min(1, normAxp)); normAyp = Math.Max(0, Math.Min(1, normAyp));
-                            double hx = normAxp * aWidth, hy = normAyp * aHeight;
-                            float alpha = 0.15f + ((float)i / Math.Max(1, subset.Count - 1)) * 0.30f;
-                            var dot = new Ellipse { Width = 5, Height = 5, Fill = new SolidColorBrush(Color.FromScRgb(alpha, 1f, 1f, 1f)) };
-                            dot.Margin = new Thickness(hx - 2.5, hy - 2.5, 0, 0);
-                            AzimuthScopeCanvas.Children.Add(dot);
-                            Canvas.SetZIndex(dot, 1000);
-                        }
-                    }
+                // Draw current azimuth marker (only if vertical filtering allows it)
+                if (curAx >= 0 && curAx <= aWidth && curAy >= 0 && curAy <= aHeight && vertFiltered)
+                {
+                    double rectW = 14.0, rectH = 4.0;
+                    double sensorPxX = 0, sensorPxY = aHeight / 2.0;
+                    double vxp = curAx - sensorPxX, vyp = curAy - sensorPxY;
+                    double rotDeg = (Math.Atan2(vyp, vxp) * 180.0 / Math.PI) + 90.0;
+                    var abar = new System.Windows.Shapes.Rectangle { Width = rectW, Height = rectH, Fill = Brushes.White, RadiusX = 1, RadiusY = 1 };
+                    abar.RenderTransformOrigin = new System.Windows.Point(0.5, 0.5); abar.RenderTransform = new RotateTransform(rotDeg);
+                    abar.Margin = new Thickness(curAx - rectW / 2.0, curAy - rectH / 2.0, 0, 0); AzimuthScopeCanvas.Children.Add(abar); Canvas.SetZIndex(abar, 1000);
 
-                    // Draw current azimuth marker (only if vertical filtering allows it)
-                    if (curAx >= 0 && curAx <= aWidth && curAy >= 0 && curAy <= aHeight && vertFiltered)
-                    {
-                        double rectW = 14.0, rectH = 4.0;
-                        double sensorPxX = 0, sensorPxY = aHeight / 2.0;
-                        double vxp = curAx - sensorPxX, vyp = curAy - sensorPxY;
-                        double rotDeg = (Math.Atan2(vyp, vxp) * 180.0 / Math.PI) + 90.0;
-                        var abar = new System.Windows.Shapes.Rectangle { Width = rectW, Height = rectH, Fill = Brushes.White, RadiusX = 1, RadiusY = 1 };
-                        abar.RenderTransformOrigin = new System.Windows.Point(0.5, 0.5); abar.RenderTransform = new RotateTransform(rotDeg);
-                        abar.Margin = new Thickness(curAx - rectW / 2.0, curAy - rectH / 2.0, 0, 0); AzimuthScopeCanvas.Children.Add(abar); Canvas.SetZIndex(abar, 1000);
-
-                        // datablock bottom-right of azimuth point
-                        int altHundreds = (int)Math.Round(alt / 100.0);
-                        int gs = (int)Math.Round(GetGroundSpeedKts(ac)); int gsTwoDigit = (int)Math.Round(gs / 10.0);
-                        double aLabelX = Math.Min(Math.Max(4, curAx + 8), aWidth - 80);
-                        double aLabelY = Math.Min(Math.Max(4, curAy + 6), aHeight - 8);
-                        var at1 = new TextBlock { Text = callsign, Foreground = Brushes.White, FontSize = 12, FontWeight = FontWeights.SemiBold };
-                        at1.Margin = new Thickness(aLabelX, aLabelY, 0, 0); AzimuthScopeCanvas.Children.Add(at1); Canvas.SetZIndex(at1, 1000);
-                        var at2 = new TextBlock { Text = altHundreds.ToString("D3") + " " + gsTwoDigit.ToString("D2"), Foreground = Brushes.LightGray, FontSize = 11 };
-                        at2.Margin = new Thickness(aLabelX, aLabelY + 16, 0, 0); AzimuthScopeCanvas.Children.Add(at2); Canvas.SetZIndex(at2, 1000);
-                    }
+                    // datablock bottom-right of azimuth point
+                    int altHundreds = (int)Math.Round(alt / 100.0);
+                    int gs = (int)Math.Round(GetGroundSpeedKts(ac)); int gsTwoDigit = (int)Math.Round(gs / 10.0);
+                    double aLabelX = Math.Min(Math.Max(4, curAx + 8), aWidth - 80);
+                    double aLabelY = Math.Min(Math.Max(4, curAy + 6), aHeight - 8);
+                    var at1 = new TextBlock { Text = callsign, Foreground = Brushes.White, FontSize = 12, FontWeight = FontWeights.SemiBold };
+                    at1.Margin = new Thickness(aLabelX, aLabelY, 0, 0); AzimuthScopeCanvas.Children.Add(at1); Canvas.SetZIndex(at1, 1000);
+                    var at2 = new TextBlock { Text = altHundreds.ToString("D3") + " " + gsTwoDigit.ToString("D2"), Foreground = Brushes.LightGray, FontSize = 11 };
+                    at2.Margin = new Thickness(aLabelX, aLabelY + 16, 0, 0); AzimuthScopeCanvas.Children.Add(at2); Canvas.SetZIndex(at2, 1000);
+                }
             }
             catch { }
 
@@ -1373,29 +1441,6 @@ namespace PARScopeDisplay
                 double eastFromThreshold = east_t, northFromThreshold = north_t;
                 double eastNmP = eastFromThreshold / 1852.0, northNmP = northFromThreshold / 1852.0;
                 double px = pcx + (eastNmP) / nmPerPx, py = pcy - (northNmP) / nmPerPx;
-
-                // Draw plan history (respecting plan altitude filter and hide-ground setting)
-                if (hist != null && (!_hideGroundTraffic || !isGroundPlan))
-                {
-                    if (!(_planAltTopHundreds > 0 && alt > _planAltTopHundreds * 100))
-                    {
-                        var historyDots = hist.Plan.ToList();
-                        int take = Math.Max(1, Math.Min(historyDots.Count, _historyDotsCount));
-                        var subset = historyDots.Skip(Math.Max(0, historyDots.Count - take)).ToList();
-                        for (int i = 0; i < subset.Count; i++)
-                        {
-                            var p = subset[i].P; // eastNm, northNm
-                            double hx = pcx + (p.X) / nmPerPx;
-                            double hy = pcy - (p.Y) / nmPerPx;
-                            float alpha = 0.15f + ((float)i / Math.Max(1, subset.Count - 1)) * 0.30f;
-                            if (hx >= 0 && hx <= pWidth && hy >= 0 && hy <= pHeight)
-                            {
-                                var dot = new Ellipse { Width = 4, Height = 4, Fill = new SolidColorBrush(Color.FromScRgb(alpha, 1f, 1f, 1f)) };
-                                dot.Margin = new Thickness(hx - 2, hy - 2, 0, 0); PlanViewCanvas.Children.Add(dot); Canvas.SetZIndex(dot, 1000);
-                            }
-                        }
-                    }
-                }
 
                 // Draw current plan marker and datablock
                 if (px >= 0 && px <= pWidth && py >= 0 && py <= pHeight && (!_hideGroundTraffic || !isGroundPlan) && !(_planAltTopHundreds > 0 && alt > _planAltTopHundreds * 100))
@@ -1494,118 +1539,6 @@ namespace PARScopeDisplay
             win.Show();
         }
 
-        // Draw history dots for a TargetHistory when the aircraft is not currently present.
-        // This draws only the faded dots (no datablocks) and respects stored Seen flags and
-        // the user's wedge-filter toggles.
-        private void DrawHistoryOnly(TargetHistory hist, string callsign)
-        {
-            if (_runway == null || hist == null) return;
-
-            // Canvas sizes
-            double vWidth = VerticalScopeCanvas.ActualWidth > 0 ? VerticalScopeCanvas.ActualWidth : 400;
-            double vHeight = VerticalScopeCanvas.ActualHeight > 0 ? VerticalScopeCanvas.ActualHeight : 300;
-            double aWidth = AzimuthScopeCanvas.ActualWidth > 0 ? AzimuthScopeCanvas.ActualWidth : 400;
-            double aHeight = AzimuthScopeCanvas.ActualHeight > 0 ? AzimuthScopeCanvas.ActualHeight : 300;
-            double pWidth = PlanViewCanvas.ActualWidth > 0 ? PlanViewCanvas.ActualWidth : 400;
-            double pHeight = PlanViewCanvas.ActualHeight > 0 ? PlanViewCanvas.ActualHeight : 520;
-
-            double rangeNm = _runway.RangeNm > 0 ? _runway.RangeNm : 10.0;
-            double sensorOffsetNm = _runway.SensorOffsetNm > 0 ? _runway.SensorOffsetNm : 0.5;
-            double maxAzDeg = _runway.MaxAzimuthDeg > 0 ? _runway.MaxAzimuthDeg : 10.0;
-            double fieldElevFt = _runway.FieldElevFt;
-
-            // --- Vertical history only (dots) ---
-            try
-            {
-                double totalRangeNmV = rangeNm + sensorOffsetNm;
-                double bottomMargin = 30.0;
-                double workH = Math.Max(0.0, vHeight - bottomMargin);
-                double altAt6DegAtFullRange = fieldElevFt + Math.Tan(DegToRad(6.0)) * (totalRangeNmV * 6076.12);
-                double altRangeFt = Math.Max(1.0, altAt6DegAtFullRange - fieldElevFt);
-
-                var historyDotsV = hist.Vertical.ToList();
-                int takeV = Math.Max(1, Math.Min(historyDotsV.Count, _historyDotsCount));
-                var subsetV = historyDotsV.Skip(Math.Max(0, historyDotsV.Count - takeV)).ToList();
-                for (int i = 0; i < subsetV.Count; i++)
-                {
-                    var entry = subsetV[i];
-                    var p = entry.P; // X=alongNm, Y=alt_ft
-                    bool showDot = (!_enableVerticalWedgeFilter || entry.SeenVertical) && (!_enableAzimuthWedgeFilter || entry.SeenAzimuth);
-                    if (!showDot) continue;
-                    double normXp = ((p.X + sensorOffsetNm) / totalRangeNmV);
-                    double normAltp = (p.Y - fieldElevFt) / altRangeFt;
-                    normXp = Math.Max(0, Math.Min(1, normXp));
-                    normAltp = Math.Max(0, Math.Min(1, normAltp));
-                    double hx = normXp * vWidth;
-                    double hy = workH - (normAltp * workH);
-                    float alpha = 0.15f + ((float)i / Math.Max(1, subsetV.Count - 1)) * 0.30f;
-                    var dot = new Ellipse { Width = 5, Height = 5, Fill = new SolidColorBrush(Color.FromScRgb(alpha, 1f, 1f, 1f)) };
-                    dot.Margin = new Thickness(hx - 2.5, hy - 2.5, 0, 0);
-                    VerticalScopeCanvas.Children.Add(dot);
-                    Canvas.SetZIndex(dot, 1000);
-                }
-            }
-            catch { }
-
-            // --- Azimuth history ---
-            try
-            {
-                double totalRangeNmA = rangeNm + sensorOffsetNm;
-                double maxCrossTrackNm = Math.Tan(DegToRad(maxAzDeg)) * rangeNm;
-
-                var historyDotsA = hist.Azimuth.ToList();
-                int takeA = Math.Max(1, Math.Min(historyDotsA.Count, _historyDotsCount));
-                var subsetA = historyDotsA.Skip(Math.Max(0, historyDotsA.Count - takeA)).ToList();
-                for (int i = 0; i < subsetA.Count; i++)
-                {
-                    var entry = subsetA[i];
-                    var p = entry.P; // X=along, Y=cross
-                    bool showDot = (!_enableAzimuthWedgeFilter || entry.SeenAzimuth) && (!_enableVerticalWedgeFilter || entry.SeenVertical);
-                    if (!showDot) continue;
-                    double normAxp = (p.X + sensorOffsetNm) / totalRangeNmA;
-                    double normAyp = 0.5 + (p.Y / (2 * maxCrossTrackNm));
-                    normAxp = Math.Max(0, Math.Min(1, normAxp)); normAyp = Math.Max(0, Math.Min(1, normAyp));
-                    double hx = normAxp * aWidth, hy = normAyp * aHeight;
-                    float alpha = 0.15f + ((float)i / Math.Max(1, subsetA.Count - 1)) * 0.30f;
-                    var dot = new Ellipse { Width = 5, Height = 5, Fill = new SolidColorBrush(Color.FromScRgb(alpha, 1f, 1f, 1f)) };
-                    dot.Margin = new Thickness(hx - 2.5, hy - 2.5, 0, 0);
-                    AzimuthScopeCanvas.Children.Add(dot);
-                    Canvas.SetZIndex(dot, 1000);
-                }
-            }
-            catch { }
-
-            // --- Plan history ---
-            try
-            {
-                double pcx = pWidth / 2.0, pcy = pHeight / 2.0;
-                double maxRangeNm = rangeNm + 5;
-                double nmPerPx = maxRangeNm / Math.Min(pWidth / 2.0, pHeight / 2.0);
-
-                var historyDotsP = hist.Plan.ToList();
-                int takeP = Math.Max(1, Math.Min(historyDotsP.Count, _historyDotsCount));
-                var subsetP = historyDotsP.Skip(Math.Max(0, historyDotsP.Count - takeP)).ToList();
-                for (int i = 0; i < subsetP.Count; i++)
-                {
-                    var entry = subsetP[i];
-                    if (!_enableVerticalWedgeFilter && !_enableAzimuthWedgeFilter && !entry.SeenPlan) continue; // if both filters off still respect seenPlan
-                    if (!entry.SeenPlan) continue;
-                    var p = entry.P; // eastNm, northNm
-                    double hx = pcx + (p.X) / nmPerPx;
-                    double hy = pcy - (p.Y) / nmPerPx;
-                    float alpha = 0.15f + ((float)i / Math.Max(1, subsetP.Count - 1)) * 0.30f;
-                    if (hx >= 0 && hx <= pWidth && hy >= 0 && hy <= pHeight)
-                    {
-                        var dot = new Ellipse { Width = 4, Height = 4, Fill = new SolidColorBrush(Color.FromScRgb(alpha, 1f, 1f, 1f)) };
-                        dot.Margin = new Thickness(hx - 2, hy - 2, 0, 0);
-                        PlanViewCanvas.Children.Add(dot);
-                        Canvas.SetZIndex(dot, 1000);
-                    }
-                }
-            }
-            catch { }
-        }
-
         private static double DegToRad(double deg)
         {
             return deg * Math.PI / 180.0;
@@ -1622,14 +1555,112 @@ namespace PARScopeDisplay
             north = dlat * R;
         }
 
+        /// <summary>
+        /// Project geographic coordinates to Vertical scope canvas position.
+        /// Returns false if outside valid display range.
+        /// </summary>
+        private bool TryProjectToVertical(double lat, double lon, double alt, double canvasWidth, double canvasHeight, out double vx, out double vy)
+        {
+            vx = vy = 0;
+            if (_runway == null) return false;
+            
+            double sensorOffsetNm = _runway.SensorOffsetNm > 0 ? _runway.SensorOffsetNm : 0.5;
+            double rangeNm = _runway.RangeNm > 0 ? _runway.RangeNm : 10.0;
+            double totalRangeNm = rangeNm + sensorOffsetNm;
+            double bottomMargin = 30.0;
+            double workH = Math.Max(0.0, canvasHeight - bottomMargin);
+            
+            double sensorLat, sensorLon;
+            try { GetSensorLatLon(_runway, sensorOffsetNm, out sensorLat, out sensorLon); }
+            catch { return false; }
+            
+            double east_t = 0, north_t = 0;
+            GeoToEnu(_runway.ThresholdLat, _runway.ThresholdLon, lat, lon, out east_t, out north_t);
+            
+            double hdgRad = DegToRad(_runway.HeadingTrueDeg);
+            double approachRad = hdgRad + Math.PI;
+            double cosA = Math.Cos(approachRad), sinA = Math.Sin(approachRad);
+            double alongFromThresholdNm = (north_t * cosA + east_t * sinA) / 1852.0;
+            
+            double altAt6DegAtFullRange = _runway.FieldElevFt + Math.Tan(DegToRad(6.0)) * (totalRangeNm * 6076.12);
+            double altRangeFt = Math.Max(1.0, altAt6DegAtFullRange - _runway.FieldElevFt);
+            
+            double normX = ((alongFromThresholdNm + sensorOffsetNm) / totalRangeNm);
+            double normAlt = (alt - _runway.FieldElevFt) / altRangeFt;
+            
+            normX = Math.Max(0, Math.Min(1, normX));
+            normAlt = Math.Max(0, Math.Min(1, normAlt));
+            
+            vx = normX * canvasWidth;
+            vy = workH - (normAlt * workH);
+            
+            return (vx >= 0 && vx <= canvasWidth && vy >= 0 && vy <= canvasHeight);
+        }
+
+        /// <summary>
+        /// Project geographic coordinates to Azimuth scope canvas position.
+        /// </summary>
+        private bool TryProjectToAzimuth(double lat, double lon, double alt, double canvasWidth, double canvasHeight, out double ax, out double ay)
+        {
+            ax = ay = 0;
+            if (_runway == null) return false;
+            
+            double sensorOffsetNm = _runway.SensorOffsetNm > 0 ? _runway.SensorOffsetNm : 0.5;
+            double rangeNm = _runway.RangeNm > 0 ? _runway.RangeNm : 10.0;
+            double totalRangeNmA = rangeNm + sensorOffsetNm;
+            double maxAzDeg = _runway.MaxAzimuthDeg > 0 ? _runway.MaxAzimuthDeg : 10.0;
+            double maxCrossTrackNm = Math.Tan(DegToRad(maxAzDeg)) * rangeNm;
+            
+            double east_t = 0, north_t = 0;
+            GeoToEnu(_runway.ThresholdLat, _runway.ThresholdLon, lat, lon, out east_t, out north_t);
+            
+            double hdgRad = DegToRad(_runway.HeadingTrueDeg);
+            double approachRad = hdgRad + Math.PI;
+            double cosA = Math.Cos(approachRad), sinA = Math.Sin(approachRad);
+            double alongFromThresholdNm = (north_t * cosA + east_t * sinA) / 1852.0;
+            double crossFromThresholdNm = (-north_t * sinA + east_t * cosA) / 1852.0;
+            
+            double normAx = ((alongFromThresholdNm + sensorOffsetNm) / totalRangeNmA);
+            double normAy = 0.5 + (crossFromThresholdNm / (2 * maxCrossTrackNm));
+            
+            normAx = Math.Max(0, Math.Min(1, normAx));
+            normAy = Math.Max(0, Math.Min(1, normAy));
+            
+            ax = normAx * canvasWidth;
+            ay = normAy * canvasHeight;
+            
+            return (ax >= 0 && ax <= canvasWidth && ay >= 0 && ay <= canvasHeight);
+        }
+
+        /// <summary>
+        /// Project geographic coordinates to Plan view canvas position.
+        /// </summary>
+        private bool TryProjectToPlan(double lat, double lon, double alt, double canvasWidth, double canvasHeight, out double px, out double py)
+        {
+            px = py = 0;
+            if (_runway == null) return false;
+            
+            double rangeNm = _runway.RangeNm > 0 ? _runway.RangeNm : 10.0;
+            double maxRangeNm = rangeNm + 5;
+            double pcx = canvasWidth / 2.0, pcy = canvasHeight / 2.0;
+            double nmPerPx = maxRangeNm / Math.Min(canvasWidth / 2.0, canvasHeight / 2.0);
+            
+            double eastFromThreshold = 0, northFromThreshold = 0;
+            GeoToEnu(_runway.ThresholdLat, _runway.ThresholdLon, lat, lon, out eastFromThreshold, out northFromThreshold);
+            
+            double eastNm = eastFromThreshold / 1852.0, northNm = northFromThreshold / 1852.0;
+            
+            px = pcx + (eastNm) / nmPerPx;
+            py = pcy - (northNm) / nmPerPx;
+            
+            return (px >= 0 && px <= canvasWidth && py >= 0 && py <= canvasHeight);
+        }
+
         // Compatibility shim: allow external callers (simulator/plugin) to clear per-callsign history
         public void ClearHistoryForCallsign(string callsign)
         {
-            if (string.IsNullOrEmpty(callsign)) return;
-            lock (_histories)
-            {
-                if (_histories.ContainsKey(callsign)) _histories.Remove(callsign);
-            }
+            // No-op: history is now sweep-based, not per-callsign
+            // Keep method for backward compatibility
         }
 
         /// <summary>
@@ -2091,7 +2122,7 @@ namespace PARScopeDisplay
             }
         }
 
-        private class WindowPosition
+        public class WindowPosition
         {
             public double Left { get; set; }
             public double Top { get; set; }

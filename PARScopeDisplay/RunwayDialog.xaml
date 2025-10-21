@@ -32,9 +32,12 @@
     <ComboBox x:Name="IcaoBox" Grid.Row="0" Grid.Column="1" Margin="6,2" IsEditable="True" StaysOpenOnEdit="True" IsTextSearchEnabled="False"/>
 
         <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,2" VerticalAlignment="Center" Text="Runway:"/>
-        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
-            <ComboBox x:Name="RunwayBox" Width="160" Margin="6,2" IsEditable="True" StaysOpenOnEdit="True" IsTextSearchEnabled="True"/>
-            <Button x:Name="LookupButton" Content="Lookup from NASR" Margin="6,2" Click="OnLookupClick"/>
+        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Vertical">
+            <StackPanel Orientation="Horizontal">
+                <ComboBox x:Name="RunwayBox" Width="160" Margin="6,2" IsEditable="True" StaysOpenOnEdit="True" IsTextSearchEnabled="True"/>
+                <Button x:Name="LookupButton" Content="Lookup from NASR" Margin="6,2" Click="OnLookupClick"/>
+            </StackPanel>
+            <TextBlock x:Name="NasrInfoText" Margin="6,2,0,0" Foreground="LightGray" FontSize="11" Text="NASR: (not loaded)" />
         </StackPanel>
 
         <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,2" VerticalAlignment="Center" Text="Threshold Lat:"/>

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Diagnostics;
 using System.IO.Compression;
 using System.Linq;
 using System.Net;
@@ -19,7 +20,8 @@ namespace PARScopeDisplay
         private Dictionary<string, Tuple<double, string>> _aptBaseMag;
         private const string NASR_BASE_URL = "https://nfdc.faa.gov/webContent/28DaySub/extra/";
         private Dictionary<string, List<RunwayEndData>> _runwayData;
-        public string LastLoadedSource { get; private set; }
+    public string LastLoadedSource { get; private set; }
+    public DateTime? LastLoadedUtc { get; private set; }
 
         public class RunwayEndData
         {
@@ -45,6 +47,32 @@ namespace PARScopeDisplay
             LastLoadedSource = null;
             // Try to load cached data from AppData
             try { LoadCache(); } catch { }
+        }
+
+        /// <summary>
+        /// Read airport IDs directly from the cached nasr_cache.json file (best-effort).
+        /// Returns an empty list if file missing or parse fails.
+        /// </summary>
+        public System.Collections.Generic.List<string> ReadCachedAirportIds()
+        {
+            try
+            {
+                string path = GetCachePath();
+                if (!File.Exists(path)) return new System.Collections.Generic.List<string>();
+                string json = File.ReadAllText(path, Encoding.UTF8);
+                var ser = new JavaScriptSerializer();
+                var obj = ser.DeserializeObject(json) as Dictionary<string, object>;
+                if (obj == null) return new System.Collections.Generic.List<string>();
+                if (!obj.TryGetValue("runways", out var runObj) || !(runObj is Dictionary<string, object> runDict))
+                    return new System.Collections.Generic.List<string>();
+                var keys = runDict.Keys.ToList();
+                return keys;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("ReadCachedAirportIds failed: " + ex.Message);
+                return new System.Collections.Generic.List<string>();
+            }
         }
 
         /// <summary>
@@ -123,17 +151,71 @@ namespace PARScopeDisplay
         public RunwayEndData GetRunway(string airportId, string runwayId)
         {
             if (string.IsNullOrEmpty(airportId)) return null;
-            
-            List<RunwayEndData> runways;
-            if (!_runwayData.TryGetValue(airportId.ToUpperInvariant(), out runways))
-                return null;
+
+            string wantKey = airportId.ToUpperInvariant();
+            List<RunwayEndData> runways = null;
+
+            // Try exact key
+            if (!_runwayData.TryGetValue(wantKey, out runways))
+            {
+                // Try common US variation with leading 'K' or without
+                if (wantKey.Length == 3)
+                {
+                    var k = "K" + wantKey;
+                    if (_runwayData.TryGetValue(k, out runways))
+                    {
+                        Debug.WriteLine($"NASR: Resolved airport {airportId} -> {k}");
+                        wantKey = k;
+                    }
+                }
+                else if (wantKey.StartsWith("K") && wantKey.Length == 4)
+                {
+                    var s = wantKey.Substring(1);
+                    if (_runwayData.TryGetValue(s, out runways))
+                    {
+                        Debug.WriteLine($"NASR: Resolved airport {airportId} -> {s}");
+                        wantKey = s;
+                    }
+                }
+            }
+
+            // If still not found, try suffix/contains matches among loaded keys
+            if ((runways == null || runways.Count == 0) && _runwayData != null && _runwayData.Count > 0)
+            {
+                var match = _runwayData.Keys.FirstOrDefault(k => k.EndsWith(wantKey, StringComparison.OrdinalIgnoreCase));
+                if (match == null)
+                    match = _runwayData.Keys.FirstOrDefault(k => k.IndexOf(wantKey, StringComparison.OrdinalIgnoreCase) >= 0);
+                if (!string.IsNullOrEmpty(match))
+                {
+                    _runwayData.TryGetValue(match, out runways);
+                    Debug.WriteLine($"NASR: Resolved airport {airportId} -> {match} via suffix/contains");
+                    wantKey = match;
+                }
+            }
+
+            if (runways == null || runways.Count == 0) return null;
 
             if (string.IsNullOrEmpty(runwayId))
                 return runways.FirstOrDefault();
 
             string want = NormalizeRunwayId(runwayId);
-            return runways.FirstOrDefault(r =>
-                NormalizeRunwayId(r.RunwayId).Equals(want, StringComparison.OrdinalIgnoreCase));
+            var found = runways.FirstOrDefault(r => NormalizeRunwayId(r.RunwayId).Equals(want, StringComparison.OrdinalIgnoreCase));
+            if (found == null)
+            {
+                try
+                {
+                    var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                    var folder = System.IO.Path.Combine(appData, "VATSIM-PAR-Scope");
+                    System.IO.Directory.CreateDirectory(folder);
+                    var logPath = System.IO.Path.Combine(folder, "startup_log.txt");
+                    var avail = string.Join(",", runways.Select(r => r.RunwayId ?? "(null)"));
+                    var msg = $"NASR: Runway {runwayId} not found for airport {airportId} (resolved key {wantKey}). Available: {avail}";
+                    System.IO.File.AppendAllText(logPath, DateTime.UtcNow.ToString("o") + " " + msg + System.Environment.NewLine);
+                    Debug.WriteLine(msg);
+                }
+                catch { }
+            }
+            return found;
         }
 
         /// <summary>
@@ -156,7 +238,21 @@ namespace PARScopeDisplay
         public List<string> GetAirportIds()
         {
             // Return only all-letter ICAO-like identifiers to keep dropdown small
-            return _runwayData.Keys.Where(k => !string.IsNullOrEmpty(k) && k.All(ch => char.IsLetter(ch))).ToList();
+            var ids = _runwayData.Keys.Where(k => !string.IsNullOrEmpty(k) && k.All(ch => char.IsLetter(ch))).ToList();
+            // If in-memory map is empty (some machines may fail to populate in memory), try a best-effort read from the on-disk cache
+            if ((ids == null || ids.Count == 0))
+            {
+                try
+                {
+                    var cacheIds = ReadCachedAirportIds();
+                    if (cacheIds != null && cacheIds.Count > 0)
+                    {
+                        ids = cacheIds.Where(k => !string.IsNullOrEmpty(k) && k.All(ch => char.IsLetter(ch))).Select(k => k.ToUpperInvariant()).ToList();
+                    }
+                }
+                catch { }
+            }
+            return ids;
         }
 
         private string ConstructZipFilename(DateTime date)
@@ -563,6 +659,8 @@ namespace PARScopeDisplay
                 var ser = new JavaScriptSerializer();
                 var dump = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
                 dump["runways"] = _runwayData.ToDictionary(k => k.Key, v => v.Value);
+                // include metadata
+                dump["meta"] = new Dictionary<string, object> { { "source", LastLoadedSource }, { "utc", LastLoadedUtc?.ToString("o") } };
                 // include apt base magnetic map if present
                 if (_aptBaseMag != null && _aptBaseMag.Count > 0)
                 {
@@ -644,11 +742,35 @@ namespace PARScopeDisplay
                     }
                 }
                 System.Diagnostics.Debug.WriteLine($"NASR cache loaded: {_runwayData.Count} airports");
+                // restore metadata
+                try
+                {
+                    if (obj.TryGetValue("meta", out var metaObj) && metaObj is Dictionary<string, object> metaDict)
+                    {
+                        if (metaDict.TryGetValue("source", out var s)) LastLoadedSource = s as string;
+                        if (metaDict.TryGetValue("utc", out var u) && u is string us)
+                        {
+                            if (DateTime.TryParse(us, null, System.Globalization.DateTimeStyles.RoundtripKind, out var dt)) LastLoadedUtc = dt;
+                        }
+                    }
+                }
+                catch { }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error loading NASR cache: {ex.Message}");
             }
+        }
+
+        // Public wrapper to attempt loading the cache on demand. Returns true if data present after load.
+        public bool EnsureCacheLoaded()
+        {
+            try
+            {
+                LoadCache();
+            }
+            catch { }
+            return (_runwayData != null && _runwayData.Count > 0);
         }
 
         private static string NormalizeRunwayId(string rwy)

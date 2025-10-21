@@ -88,6 +88,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="NASRDataLoader.cs" />
+  <Compile Include="UserSettings.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
 
