@@ -68,8 +68,6 @@ namespace PARScopeDisplay
         private int _planAltTopHundreds = 999; // e.g. 100 -> 10000 ft top threshold
         private readonly SolidColorBrush _centerlineBrush = new SolidColorBrush(Color.FromArgb(160, 60, 120, 60)); // semi-transparent darker green
         // Debug/UI flags referenced by XAML event handlers
-        private bool _showHistoryAgeLabels = false;
-        private bool _debugShowTrafficData = false;
         // Radar scan interval (seconds) - exposed in UI via ScanIntervalBox (0.5 to 10.0 sec)
         private double _radarScanIntervalSec = 1.0;
         private DispatcherTimer _radarTimer;
@@ -304,13 +302,6 @@ namespace PARScopeDisplay
 
             // Draw all history dots from radar sweeps (independent of current targets)
             DrawHistoryDots();
-            
-            DebugText.Text = sb.ToString();
-        }
-
-        private void OnToggleDebugClick(object sender, RoutedEventArgs e)
-        {
-            DebugExpander.IsExpanded = !DebugExpander.IsExpanded;
         }
 
         private void OnHideGroundChanged(object sender, RoutedEventArgs e)
@@ -350,19 +341,6 @@ namespace PARScopeDisplay
         }
 
         // XAML event handlers (stubs) -------------------------------------------------
-        private void OnToggleShowAgeLabels(object sender, RoutedEventArgs e)
-        {
-            _showHistoryAgeLabels = !_showHistoryAgeLabels;
-            // Refresh UI (no-op if DebugExpander not present)
-            try { UpdateUi(); } catch { }
-        }
-
-        private void OnToggleDebugTraffic(object sender, RoutedEventArgs e)
-        {
-            _debugShowTrafficData = !_debugShowTrafficData;
-            try { UpdateUi(); } catch { }
-        }
-
         private void OnScanIntervalChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (ScanIntervalSlider == null) return;
@@ -1575,6 +1553,13 @@ namespace PARScopeDisplay
         private void OnOpenSimulatorClick(object sender, RoutedEventArgs e)
         {
             var win = new SimulatorWindow(_runway);
+            win.Owner = this;
+            win.Show();
+        }
+
+        private void OnShowAircraftListClick(object sender, RoutedEventArgs e)
+        {
+            var win = new AircraftListWindow(_aircraft);
             win.Owner = this;
             win.Show();
         }

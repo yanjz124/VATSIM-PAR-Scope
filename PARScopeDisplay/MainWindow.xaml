@@ -24,10 +24,8 @@
                             <Separator />
                             <MenuItem x:Name="Display_EnableAzimuthWedgeFilter" Header="Enable Azimuth Wedge Filter" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
                             <MenuItem x:Name="Display_EnableVerticalWedgeFilter" Header="Enable Vertical Wedge Filter" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
-                </MenuItem>
-                <MenuItem Header="Debug">
-                    <MenuItem x:Name="Debug_ShowAgeLabels" Header="Show History Age Labels" IsCheckable="True" IsChecked="False" Click="OnToggleShowAgeLabels" />
-                    <MenuItem x:Name="Debug_ShowTrafficData" Header="Debug Traffic Data" IsCheckable="True" IsChecked="False" Click="OnToggleDebugTraffic" />
+                            <Separator />
+                            <MenuItem Header="Show Aircraft List" Click="OnShowAircraftListClick" />
                 </MenuItem>
             </Menu>
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="10">
@@ -98,11 +96,6 @@
                     <TextBlock x:Name="ScanIntervalLabel" Text="1.0s" Foreground="LightGray" Margin="8,0,0,0" Width="35" FontSize="10"/>
                 </StackPanel>
             </StackPanel>
-            <Expander x:Name="DebugExpander" DockPanel.Dock="Top" Header="Debug Traffic Data" IsExpanded="False" Margin="10,0">
-                <ScrollViewer Height="150" VerticalScrollBarVisibility="Auto">
-                    <TextBlock x:Name="DebugText" FontFamily="Consolas" FontSize="10" Foreground="LightGray" Background="#222" Padding="5"/>
-                </ScrollViewer>
-            </Expander>
             <Grid Margin="10">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="2*"/>

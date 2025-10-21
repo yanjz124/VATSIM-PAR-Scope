@@ -1,0 +1,33 @@
+<Window x:Class="PARScopeDisplay.AircraftListWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Aircraft List" Height="600" Width="800" WindowStartupLocation="CenterOwner">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10" Background="White">
+            <TextBlock Text="Aircraft Count: " Foreground="Black" FontWeight="Bold"/>
+            <TextBlock x:Name="AircraftCountText" Text="0" Foreground="Black" Margin="5,0,20,0"/>
+            <TextBlock Text="Last Update: " Foreground="Black"/>
+            <TextBlock x:Name="LastUpdateText" Text="-" Foreground="Black"/>
+        </StackPanel>
+
+        <!-- Aircraft List -->
+        <DataGrid Grid.Row="1" x:Name="AircraftDataGrid" Margin="10" AutoGenerateColumns="False" IsReadOnly="True"
+                  Background="White" Foreground="Black" BorderBrush="Gray" BorderThickness="1">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Callsign" Binding="{Binding Callsign}" Width="100"/>
+                <DataGridTextColumn Header="Latitude" Binding="{Binding Latitude, StringFormat=F6}" Width="100"/>
+                <DataGridTextColumn Header="Longitude" Binding="{Binding Longitude, StringFormat=F6}" Width="100"/>
+                <DataGridTextColumn Header="Altitude (ft)" Binding="{Binding AltitudeFt, StringFormat=F0}" Width="100"/>
+                <DataGridTextColumn Header="Ground Speed (kt)" Binding="{Binding GroundSpeedKts, StringFormat=F0}" Width="120"/>
+                <DataGridTextColumn Header="Heading" Binding="{Binding Heading, StringFormat=F0}" Width="80"/>
+                <DataGridTextColumn Header="Squawk" Binding="{Binding Squawk}" Width="80"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</Window>
