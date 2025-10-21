@@ -18,6 +18,9 @@ namespace PARScopeDisplay
         private IPEndPoint _endpoint;
         private CancellationTokenSource _cts;
     private MainWindow.RunwaySettings _runway;
+        // Update interval in milliseconds. Default to 5000ms to match typical vPilot update cadence.
+        // If vPilot moves to faster updates, lower this value or expose it in the UI.
+        private int _updateIntervalMs = 5000;
 
         public SimulatorWindow()
         {
@@ -118,8 +121,15 @@ namespace PARScopeDisplay
             var token = _cts.Token;
             Task.Run(async () =>
             {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                long lastMs = sw.ElapsedMilliseconds;
                 while (!token.IsCancellationRequested)
                 {
+                    var nowMs = sw.ElapsedMilliseconds;
+                    var dt = (nowMs - lastMs) / 1000.0; // seconds since last update
+                    if (dt <= 0) dt = _updateIntervalMs / 1000.0;
+                    lastMs = nowMs;
+
                     lock (_aircraft)
                     {
                         foreach (var ac in _aircraft)
@@ -127,20 +137,22 @@ namespace PARScopeDisplay
                             // skip paused aircraft
                             if (ac.IsPaused) continue;
 
-                            // Simple motion: move along heading at speed_kts
-                            double nmPerSec = ac.SpeedKts / 3600.0;
-                            double meters = nmPerSec * 1852.0;
+                            // Motion: move along heading by speed * dt
+                            double nmPerSec = ac.SpeedKts / 3600.0; // NM per second at current speed
+                            double meters = nmPerSec * 1852.0 * dt; // meters moved during dt seconds
                             // Approximate lat/lon change (small-dist)
                             double dLat = (meters * Math.Cos(ac.HeadingDeg * Math.PI / 180.0)) / 111319.9;
                             double dLon = (meters * Math.Sin(ac.HeadingDeg * Math.PI / 180.0)) / (111319.9 * Math.Cos(ac.Lat * Math.PI / 180.0));
                             ac.Lat += dLat;
                             ac.Lon += dLon;
-                            ac.AltFt += ac.VsFpm / 60.0; // fpm to ft/sec integrated per second
+                            // vertical speed: VsFpm is ft per minute -> ft per second = VsFpm/60
+                            ac.AltFt += (ac.VsFpm / 60.0) * dt;
                             // send update
                             SendNdjson(BuildUpdateJson(ac));
                         }
                     }
-                    await Task.Delay(1000);
+
+                    await Task.Delay(_updateIntervalMs, token);
                 }
             }, token);
             StatusText.Text = "Auto-moving";
@@ -267,9 +279,12 @@ namespace PARScopeDisplay
         private void OnPropertyLostFocus(object sender, RoutedEventArgs e)
         {
             var selected = AircraftList.SelectedItem as FakeAircraft;
-            if (selected != null)
+            if (selected == null) return;
+
+            // Only apply the specific field that lost focus so other properties aren't overwritten by stale UI values
+            if (sender is System.Windows.Controls.TextBox tb)
             {
-                var changed = ApplyFields(selected);
+                var changed = ApplySingleField(selected, tb);
                 if (changed)
                 {
                     RefreshList();
@@ -344,18 +359,76 @@ namespace PARScopeDisplay
             {
                 if (AircraftList.SelectedItem is FakeAircraft ac)
                 {
-                    var changed = ApplyFields(ac);
-                    if (changed)
+                    // Commit only the field where Enter was pressed to avoid overwriting other properties
+                    if (sender is System.Windows.Controls.TextBox tb)
                     {
-                        RefreshList();
-                        SendNdjson(BuildUpdateJson(ac));
-                        AircraftList.SelectedItem = ac;
-                        StatusText.Text = "Auto-updated " + ac.Callsign;
+                        var changed = ApplySingleField(ac, tb);
+                        if (changed)
+                        {
+                            RefreshList();
+                            SendNdjson(BuildUpdateJson(ac));
+                            AircraftList.SelectedItem = ac;
+                            StatusText.Text = "Auto-updated " + ac.Callsign;
+                        }
                     }
                     Keyboard.ClearFocus();
                 }
                 e.Handled = true;
             }
+        }
+
+        // Apply a single property from the corresponding textbox to the aircraft. Returns true if a change occurred.
+        private bool ApplySingleField(FakeAircraft ac, System.Windows.Controls.TextBox tb)
+        {
+            if (ac == null || tb == null) return false;
+            bool changed = false;
+            double tmp;
+            switch (tb.Name)
+            {
+                case "CallsignBox":
+                    var newCall = CallsignBox.Text.Trim();
+                    var oldCall = ac.Callsign;
+                    if (!string.Equals(oldCall, newCall, StringComparison.Ordinal))
+                    {
+                        if (!string.IsNullOrEmpty(oldCall)) SendNdjson("{\"type\":\"delete\",\"t\":" + UnixMs() + ",\"callsign\":\"" + Escape(oldCall) + "\"}\n");
+                        ac.Callsign = newCall;
+                        changed = true;
+                    }
+                    break;
+                case "AltBox":
+                    if (double.TryParse(AltBox.Text.Trim(), out tmp))
+                    {
+                        if (!DoubleEquals(ac.AltFt, tmp)) { ac.AltFt = tmp; changed = true; }
+                    }
+                    break;
+                case "HeadingBox":
+                    if (double.TryParse(HeadingBox.Text.Trim(), out tmp))
+                    {
+                        if (!DoubleEquals(ac.HeadingDeg, tmp)) { ac.HeadingDeg = tmp; changed = true; }
+                    }
+                    break;
+                case "SpeedBox":
+                    if (double.TryParse(SpeedBox.Text.Trim(), out tmp))
+                    {
+                        if (!DoubleEquals(ac.SpeedKts, tmp)) { ac.SpeedKts = tmp; changed = true; }
+                    }
+                    break;
+                case "VsBox":
+                    if (double.TryParse(VsBox.Text.Trim(), out tmp))
+                    {
+                        if (!DoubleEquals(ac.VsFpm, tmp)) { ac.VsFpm = tmp; changed = true; }
+                    }
+                    break;
+                case "TypeCodeBox":
+                    var newType = TypeCodeBox.Text.Trim();
+                    if (!string.Equals(ac.TypeCode, newType, StringComparison.Ordinal))
+                    {
+                        ac.TypeCode = newType;
+                        changed = true;
+                    }
+                    break;
+            }
+            return changed;
         }
 
         // Toggle pause/unpause for the aircraft bound to the clicked item
