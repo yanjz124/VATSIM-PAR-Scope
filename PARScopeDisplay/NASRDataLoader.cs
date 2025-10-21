@@ -750,11 +750,35 @@ namespace PARScopeDisplay
 
         private void SaveCache()
         {
+            string logPath = null;
             try
             {
+                // Create log file for troubleshooting
+                string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                string folder = Path.Combine(appData, "VATSIM-PAR-Scope");
+                logPath = Path.Combine(folder, "nasr_save_log.txt");
+                
+                void Log(string msg)
+                {
+                    try 
+                    { 
+                        File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {msg}\r\n"); 
+                        System.Diagnostics.Debug.WriteLine(msg);
+                    } 
+                    catch { }
+                }
+                
+                Log($"NASR SaveCache: Starting...");
+                
                 var ser = new JavaScriptSerializer();
+                // Increase max JSON length to handle large NASR datasets (default is 2MB)
+                ser.MaxJsonLength = int.MaxValue;
+                Log($"NASR SaveCache: Serializer created, MaxJsonLength set to unlimited");
+                
                 var dump = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
                 dump["runways"] = _runwayData.ToDictionary(k => k.Key, v => v.Value);
+                Log($"NASR SaveCache: Runways dictionary created ({_runwayData.Count} entries)");
+                
                 // include metadata
                 dump["meta"] = new Dictionary<string, object> { { "source", LastLoadedSource }, { "utc", LastLoadedUtc?.ToString("o") } };
                 // include apt base magnetic map if present
@@ -762,37 +786,84 @@ namespace PARScopeDisplay
                 {
                     var magmap = _aptBaseMag.ToDictionary(k => k.Key, v => new { mag = v.Value.Mag, hem = v.Value.Hem, state = v.Value.StateCode });
                     dump["aptMag"] = magmap;
+                    Log($"NASR SaveCache: Magnetic variation data added ({_aptBaseMag.Count} entries)");
                 }
+                
+                Log($"NASR SaveCache: Serializing to JSON...");
                 string json = ser.Serialize(dump);
+                Log($"NASR SaveCache: JSON serialized successfully ({json.Length} bytes)");
+                
                 string cachePath = GetCachePath();
+                Log($"NASR SaveCache: Writing cache to: {cachePath}");
                 File.WriteAllText(cachePath, json, Encoding.UTF8);
-                System.Diagnostics.Debug.WriteLine($"NASR cache saved to: {cachePath} ({json.Length} bytes)");
+                Log($"NASR SaveCache: File.WriteAllText completed");
+                
+                // Verify file was written
+                if (File.Exists(cachePath))
+                {
+                    var fileInfo = new FileInfo(cachePath);
+                    Log($"NASR SaveCache: SUCCESS! Cache file verified ({fileInfo.Length} bytes)");
+                }
+                else
+                {
+                    Log($"NASR SaveCache: ERROR - Cache file was not created!");
+                }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error saving NASR cache: {ex.Message}");
+                string msg = $"NASR SaveCache: EXCEPTION - {ex.GetType().Name}: {ex.Message}\r\nStack: {ex.StackTrace}";
+                try { if (logPath != null) File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {msg}\r\n"); } catch { }
+                System.Diagnostics.Debug.WriteLine(msg);
             }
         }
 
         private void LoadCache()
         {
+            string logPath = null;
             try
             {
+                // Prepare load log (helps in Release builds without debugger)
+                string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                string folder = Path.Combine(appData, "VATSIM-PAR-Scope");
+                logPath = Path.Combine(folder, "nasr_load_log.txt");
+                void Log(string msg)
+                {
+                    try { File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {msg}\r\n"); } catch { }
+                    System.Diagnostics.Debug.WriteLine(msg);
+                }
+
                 string path = GetCachePath();
                 if (!File.Exists(path))
                 {
-                    System.Diagnostics.Debug.WriteLine($"NASR cache not found at: {path}");
+                    Log($"LoadCache: NASR cache not found at: {path}");
                     return;
                 }
                 string json = File.ReadAllText(path, Encoding.UTF8);
-                System.Diagnostics.Debug.WriteLine($"NASR cache loaded from: {path} ({json.Length} bytes)");
-                var ser = new JavaScriptSerializer();
+                Log($"LoadCache: Read cache from {path} ({json.Length} bytes)");
+                var ser = new JavaScriptSerializer { MaxJsonLength = int.MaxValue };
                 var obj = ser.DeserializeObject(json) as Dictionary<string, object>;
                 if (obj == null) return;
                 _runwayData.Clear();
                 // Expect cached structure: { runways: { ARPT: [ ... ] }, aptMag: { ARPT: { mag: number, hem: string } } }
                 object runwaysObj = null;
-                if (obj.TryGetValue("runways", out runwaysObj) && runwaysObj is Dictionary<string, object> runDict)
+                Dictionary<string, object> runDict = null;
+                // Primary: expect { runways: { ARPT: [ ... ] } }
+                if (obj.TryGetValue("runways", out runwaysObj) && runwaysObj is Dictionary<string, object> rd1)
+                {
+                    runDict = rd1;
+                }
+                else
+                {
+                    // Fallback: sometimes the cached JSON may already be the runways dictionary at top-level
+                    // Detect if most top-level values are arrays of runway objects and treat obj as the runDict
+                    bool looksLikeRunDict = obj.Count > 0 && obj.Values.All(v => v is object[]);
+                    if (looksLikeRunDict)
+                    {
+                        runDict = obj; // safe to treat top-level as runways map
+                    }
+                }
+
+                if (runDict != null)
                 {
                     foreach (var kv in runDict)
                     {
@@ -804,15 +875,15 @@ namespace PARScopeDisplay
                             var map = it as Dictionary<string, object>;
                             if (map == null) continue;
                             var r = new RunwayEndData();
-                            r.AirportId = map.ContainsKey("AirportId") ? (string)map["AirportId"] : kv.Key;
-                            r.RunwayId = map.ContainsKey("RunwayId") ? (string)map["RunwayId"] : null;
-                            r.Latitude = map.ContainsKey("Latitude") ? Convert.ToDouble(map["Latitude"]) : 0;
-                            r.Longitude = map.ContainsKey("Longitude") ? Convert.ToDouble(map["Longitude"]) : 0;
-                            r.TrueHeading = map.ContainsKey("TrueHeading") ? Convert.ToDouble(map["TrueHeading"]) : 0;
-                            r.FieldElevationFt = map.ContainsKey("FieldElevationFt") ? Convert.ToDouble(map["FieldElevationFt"]) : 0;
-                            r.ThrCrossingHgtFt = map.ContainsKey("ThrCrossingHgtFt") ? Convert.ToDouble(map["ThrCrossingHgtFt"]) : 0;
-                            r.RwyIdCsv = map.ContainsKey("RwyIdCsv") ? (string)map["RwyIdCsv"] : null;
-                            r.ApchLgtSystemCode = map.ContainsKey("ApchLgtSystemCode") ? (string)map["ApchLgtSystemCode"] : null;
+                            try { r.AirportId = map.ContainsKey("AirportId") ? (string)map["AirportId"] : kv.Key; } catch { r.AirportId = kv.Key; }
+                            try { r.RunwayId = map.ContainsKey("RunwayId") ? (string)map["RunwayId"] : null; } catch { r.RunwayId = null; }
+                            try { r.Latitude = map.ContainsKey("Latitude") ? Convert.ToDouble(map["Latitude"]) : 0; } catch { r.Latitude = 0; }
+                            try { r.Longitude = map.ContainsKey("Longitude") ? Convert.ToDouble(map["Longitude"]) : 0; } catch { r.Longitude = 0; }
+                            try { r.TrueHeading = map.ContainsKey("TrueHeading") ? Convert.ToDouble(map["TrueHeading"]) : 0; } catch { r.TrueHeading = 0; }
+                            try { r.FieldElevationFt = map.ContainsKey("FieldElevationFt") ? Convert.ToDouble(map["FieldElevationFt"]) : 0; } catch { r.FieldElevationFt = 0; }
+                            try { r.ThrCrossingHgtFt = map.ContainsKey("ThrCrossingHgtFt") ? Convert.ToDouble(map["ThrCrossingHgtFt"]) : 0; } catch { r.ThrCrossingHgtFt = 0; }
+                            try { r.RwyIdCsv = map.ContainsKey("RwyIdCsv") ? (string)map["RwyIdCsv"] : null; } catch { r.RwyIdCsv = null; }
+                            try { r.ApchLgtSystemCode = map.ContainsKey("ApchLgtSystemCode") ? (string)map["ApchLgtSystemCode"] : null; } catch { r.ApchLgtSystemCode = null; }
                             list.Add(r);
                         }
                         _runwayData[kv.Key] = list;
@@ -838,7 +909,13 @@ namespace PARScopeDisplay
                         catch { }
                     }
                 }
-                System.Diagnostics.Debug.WriteLine($"NASR cache loaded: {_runwayData.Count} airports");
+                Log($"LoadCache: Parsed {_runwayData.Count} airports from cache");
+                // If cache provided runway data but no meta/source was present, set a sensible fallback
+                if ((_runwayData != null && _runwayData.Count > 0) && string.IsNullOrEmpty(LastLoadedSource))
+                {
+                    LastLoadedSource = "(cached)";
+                    LastLoadedUtc = DateTime.UtcNow;
+                }
                 // restore metadata
                 try
                 {
@@ -852,10 +929,31 @@ namespace PARScopeDisplay
                     }
                 }
                 catch { }
+
+                // Populate magnetic variation and other airport-level data into each runway from _aptBaseMag
+                if (_aptBaseMag != null && _aptBaseMag.Count > 0)
+                {
+                    foreach (var kv in _runwayData)
+                    {
+                        string airportId = kv.Key;
+                        if (_aptBaseMag.TryGetValue(airportId, out var aptInfo))
+                        {
+                            foreach (var r in kv.Value)
+                            {
+                                r.MagneticVariationDeg = aptInfo.Mag;
+                                r.MagneticHemisphere = aptInfo.Hem;
+                                r.StateCode = aptInfo.StateCode;
+                            }
+                        }
+                    }
+                    Log($"LoadCache: Applied magnetic variation data to {_runwayData.Count} airports");
+                }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading NASR cache: {ex.Message}");
+                string msg = $"LoadCache: EXCEPTION - {ex.GetType().Name}: {ex.Message}\r\nStack: {ex.StackTrace}";
+                try { if (logPath != null) File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {msg}\r\n"); } catch { }
+                System.Diagnostics.Debug.WriteLine(msg);
             }
         }
 

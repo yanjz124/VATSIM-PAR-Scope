@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -13,6 +14,7 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using System.Windows.Controls;
 using System.Diagnostics;
+using System.Timers;
 
 namespace PARScopeDisplay
 {
@@ -43,9 +45,13 @@ namespace PARScopeDisplay
         private readonly ConcurrentDictionary<string, Dictionary<string, object>> _aircraft = new ConcurrentDictionary<string, Dictionary<string, object>>(StringComparer.OrdinalIgnoreCase);
         private DateTime _lastEvent = DateTime.MinValue;
         private DispatcherTimer _uiTimer;
-        private readonly JavaScriptSerializer _json = new JavaScriptSerializer();
+        private readonly JavaScriptSerializer _json = new JavaScriptSerializer() { MaxJsonLength = int.MaxValue };
         private RunwaySettings _runway = null;
         private NASRDataLoader _nasrLoader = null;
+            // Watcher to auto-reload NASR cache when nasr_cache.json changes on disk
+            private FileSystemWatcher _nasrWatcher = null;
+            // Debounce timer to coalesce rapid file-change events
+            private System.Timers.Timer _nasrReloadTimer = null;
         
         // Radar sweep history system: independent of per-callsign tracking
         // Each sweep is a snapshot of all targets at that moment (lat/lon/alt)
@@ -94,8 +100,41 @@ namespace PARScopeDisplay
 
             // Initialize NASR loader and try to load cached data (will read nasr_cache.json)
             _nasrLoader = new NASRDataLoader();
+            try
+            {
+                // Ensure loader picks up any existing on-disk cache produced by LoadAppState
+                _nasrLoader.EnsureCacheLoaded();
+            }
+            catch { }
+
+            // Set up NASR cache watcher to auto-reload when nasr_cache.json is updated externally
+            try
+            {
+                string appDataPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VATSIM-PAR-Scope");
+                string cachePath = System.IO.Path.Combine(appDataPath, "nasr_cache.json");
+                var dir = System.IO.Path.GetDirectoryName(cachePath);
+                if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
+                {
+                    _nasrWatcher = new FileSystemWatcher(dir, "nasr_cache.json");
+                    _nasrWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName;
+                    _nasrWatcher.Changed += NasrWatcher_Changed;
+                    _nasrWatcher.Created += NasrWatcher_Changed;
+                    _nasrWatcher.Renamed += NasrWatcher_Renamed;
+                    _nasrWatcher.EnableRaisingEvents = true;
+
+                    // debounce timer - 500ms default
+                    _nasrReloadTimer = new System.Timers.Timer(500) { AutoReset = false };
+                    _nasrReloadTimer.Elapsed += (s, e) => Dispatcher.BeginInvoke(new Action(() => {
+                        try { if (_nasrLoader != null) _nasrLoader.EnsureCacheLoaded(); } catch { }
+                        try { UpdateNasrStatus(); } catch { }
+                    }));
+                }
+            }
+            catch { }
             // Update NASR status text in the UI
             try { UpdateNasrStatus(); } catch { }
+            // Also refresh once the window is fully loaded to ensure UI is ready
+            try { this.Loaded += (s, e) => { try { UpdateNasrStatus(); } catch { } this.Activate(); }; } catch { }
 
             // Ensure UI config boxes reflect restored runway and settings
             UpdateConfigBoxes();
@@ -1859,7 +1898,22 @@ namespace PARScopeDisplay
             try
             {
                 if (NASRStatusText == null) return;
-                if (_nasrLoader == null || string.IsNullOrEmpty(_nasrLoader.LastLoadedSource))
+                // Ensure cache is loaded if available
+                try { if (_nasrLoader != null) _nasrLoader.EnsureCacheLoaded(); } catch { }
+
+                // Determine airport count from in-memory or on-disk cache
+                int airportCount = 0;
+                if (_nasrLoader != null)
+                {
+                    try { airportCount = _nasrLoader.GetAirportIds()?.Count ?? 0; } catch { airportCount = 0; }
+                    if (airportCount <= 0)
+                    {
+                        try { airportCount = _nasrLoader.ReadCachedAirportIds()?.Count ?? 0; } catch { airportCount = 0; }
+                    }
+                }
+
+                // If we have data despite missing LastLoadedSource, show a sensible cached status
+                if (_nasrLoader == null || (string.IsNullOrEmpty(_nasrLoader.LastLoadedSource) && airportCount <= 0))
                 {
                     NASRStatusText.Text = "(not loaded)";
                     return;
@@ -1897,19 +1951,19 @@ namespace PARScopeDisplay
 
                 // Airport count if available
                 string countStr = null;
-                try
-                {
-                    var ids = _nasrLoader.GetAirportIds();
-                    if (ids != null) countStr = ids.Count.ToString();
-                }
-                catch { }
+                if (airportCount > 0) countStr = airportCount.ToString();
 
                 var partsOut = new List<string>();
                 if (!string.IsNullOrEmpty(version)) partsOut.Add(version);
                 if (!string.IsNullOrEmpty(timeStr)) partsOut.Add(timeStr);
                 if (!string.IsNullOrEmpty(countStr)) partsOut.Add(countStr + " airports");
 
-                if (partsOut.Count == 0) NASRStatusText.Text = _nasrLoader.LastLoadedSource ?? "(loaded)";
+                if (partsOut.Count == 0)
+                {
+                    if (!string.IsNullOrEmpty(_nasrLoader.LastLoadedSource)) NASRStatusText.Text = _nasrLoader.LastLoadedSource;
+                    else if (airportCount > 0) NASRStatusText.Text = $"(cached) — {airportCount} airports";
+                    else NASRStatusText.Text = "(not loaded)";
+                }
                 else NASRStatusText.Text = string.Join(" — ", partsOut);
             }
             catch { }
@@ -1950,6 +2004,9 @@ namespace PARScopeDisplay
                         int airportCount = _nasrLoader.GetAirportIds().Count;
                         MessageBox.Show(this, string.Format("NASR data loaded successfully!\n\n{0} airports in database.\nSource: {1}", airportCount, _nasrLoader.LastLoadedSource ?? "(unknown)"), "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                         try { UpdateNasrStatus(); } catch { }
+                        
+                        // Immediately save app state to persist NASR cache
+                        try { SaveAppState(); } catch (Exception ex) { Debug.WriteLine("Error saving app state after NASR download: " + ex.Message); }
                     }
                     else
                     {
@@ -1959,6 +2016,33 @@ namespace PARScopeDisplay
                     }
                 });
             });
+        }
+
+        // FileSystemWatcher handlers - debounce any change and reload cache
+        private void NasrWatcher_Changed(object sender, FileSystemEventArgs e)
+        {
+            try
+            {
+                if (_nasrReloadTimer != null)
+                {
+                    _nasrReloadTimer.Stop();
+                    _nasrReloadTimer.Start();
+                }
+            }
+            catch { }
+        }
+
+        private void NasrWatcher_Renamed(object sender, RenamedEventArgs e)
+        {
+            try
+            {
+                if (_nasrReloadTimer != null)
+                {
+                    _nasrReloadTimer.Stop();
+                    _nasrReloadTimer.Start();
+                }
+            }
+            catch { }
         }
 
         private void OnLoadNASRFileClick(object sender, RoutedEventArgs e)
@@ -1985,6 +2069,9 @@ namespace PARScopeDisplay
             string.Format("NASR data loaded successfully!\n\n{0} airports in database.\nSource: {1}", airportCount, _nasrLoader.LastLoadedSource ?? "(unknown)"),
                     "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                 try { UpdateNasrStatus(); } catch { }
+                
+                // Immediately save app state to persist NASR cache
+                try { SaveAppState(); } catch (Exception ex) { Debug.WriteLine("Error saving app state after NASR file load: " + ex.Message); }
             }
             else
             {
@@ -2010,12 +2097,21 @@ namespace PARScopeDisplay
                 
                 if (pos != null)
                 {
+                    // Restore window position - for maximized windows on secondary monitors,
+                    // we need to set Left/Top BEFORE maximizing to anchor to correct screen
                     this.Left = pos.Left;
                     this.Top = pos.Top;
                     this.Width = pos.Width;
                     this.Height = pos.Height;
+                    
+                    // Apply maximized state AFTER setting position so WPF anchors to correct monitor
                     if (pos.IsMaximized)
+                    {
+                        // Force layout update before maximizing to ensure position is applied
+                        this.WindowState = WindowState.Normal;
+                        this.UpdateLayout();
                         this.WindowState = WindowState.Maximized;
+                    }
                 }
             }
             catch (Exception ex)
@@ -2034,13 +2130,20 @@ namespace PARScopeDisplay
                 
                 string settingsFile = System.IO.Path.Combine(appDataPath, "window_position.json");
                 
+                // Capture which screen the window is on by saving screen bounds
+                var screen = System.Windows.Forms.Screen.FromHandle(new System.Windows.Interop.WindowInteropHelper(this).Handle);
+                
                 var pos = new WindowPosition
                 {
                     Left = this.Left,
                     Top = this.Top,
                     Width = this.Width,
                     Height = this.Height,
-                    IsMaximized = this.WindowState == WindowState.Maximized
+                    IsMaximized = this.WindowState == WindowState.Maximized,
+                    ScreenLeft = screen.Bounds.Left,
+                    ScreenTop = screen.Bounds.Top,
+                    ScreenWidth = screen.Bounds.Width,
+                    ScreenHeight = screen.Bounds.Height
                 };
                 
                 string json = _json.Serialize(pos);
@@ -2195,12 +2298,30 @@ namespace PARScopeDisplay
         /// </summary>
         private void LoadAppState()
         {
+            string logPath = null;
             try
             {
                 string appDataPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VATSIM-PAR-Scope");
+                logPath = System.IO.Path.Combine(appDataPath, "app_state_log.txt");
+                
+                void Log(string msg)
+                {
+                    try 
+                    { 
+                        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {msg}\r\n"); 
+                        Debug.WriteLine(msg);
+                    } 
+                    catch { }
+                }
+                
+                Log("LoadAppState: Starting...");
+                
                 string stateFile = System.IO.Path.Combine(appDataPath, AppStateFileName);
+                Log($"LoadAppState: Checking for state file at: {stateFile}");
+                
                 if (!System.IO.File.Exists(stateFile))
                 {
+                    Log("LoadAppState: State file not found, using legacy loaders");
                     // Fallback to existing per-file loaders
                     _runway = LoadRunwaySettings();
                     LoadWindowPosition();
@@ -2210,10 +2331,14 @@ namespace PARScopeDisplay
                     return;
                 }
 
+                Log($"LoadAppState: State file found, reading...");
                 string json = System.IO.File.ReadAllText(stateFile, Encoding.UTF8);
+                Log($"LoadAppState: Read {json.Length} bytes");
+                
                 var obj = _json.DeserializeObject(json) as Dictionary<string, object>;
                 if (obj == null)
                 {
+                    Log("LoadAppState: Failed to deserialize, using legacy loaders");
                     // fallback
                     _runway = LoadRunwaySettings();
                     LoadWindowPosition();
@@ -2247,8 +2372,19 @@ namespace PARScopeDisplay
                         var pos = _json.Deserialize<WindowPosition>(winJson);
                         if (pos != null)
                         {
-                            this.Left = pos.Left; this.Top = pos.Top; this.Width = pos.Width; this.Height = pos.Height;
-                            if (pos.IsMaximized) this.WindowState = WindowState.Maximized;
+                            // Restore position first
+                            this.Left = pos.Left; 
+                            this.Top = pos.Top; 
+                            this.Width = pos.Width; 
+                            this.Height = pos.Height;
+                            
+                            // For maximized windows, set position BEFORE maximizing to anchor to correct monitor
+                            if (pos.IsMaximized) 
+                            {
+                                this.WindowState = WindowState.Normal;
+                                this.UpdateLayout();
+                                this.WindowState = WindowState.Maximized;
+                            }
                         }
                     }
                     catch { LoadWindowPosition(); }
@@ -2320,19 +2456,38 @@ namespace PARScopeDisplay
                 catch { }
 
                 // Restore NASR cache if embedded
+                Log("LoadAppState: Checking for embedded nasr_cache...");
                 if (obj.TryGetValue("nasr_cache", out var nasrobj) && nasrobj != null)
                 {
                     try
                     {
+                        Log("LoadAppState: NASR cache found in app_state, restoring...");
+                        // Ensure AppData folder exists before writing
+                        System.IO.Directory.CreateDirectory(appDataPath);
                         string nasrJson = _json.Serialize(nasrobj);
+                        Log($"LoadAppState: NASR serialized ({nasrJson.Length} bytes)");
                         string cachePath = System.IO.Path.Combine(appDataPath, "nasr_cache.json");
+                        Log($"LoadAppState: Writing to: {cachePath}");
                         System.IO.File.WriteAllText(cachePath, nasrJson, Encoding.UTF8);
+                        Log("LoadAppState: NASR cache restored successfully");
                     }
-                    catch { }
+                    catch (Exception ex) 
+                    { 
+                        Log($"LoadAppState: ERROR restoring NASR cache: {ex.Message}");
+                        Debug.WriteLine("Error restoring embedded NASR cache: " + ex.Message); 
+                    }
                 }
+                else
+                {
+                    Log("LoadAppState: No nasr_cache found in app_state");
+                }
+                
+                Log("LoadAppState: Completed successfully");
             }
             catch (Exception ex)
             {
+                string msg = $"LoadAppState: EXCEPTION - {ex.Message}";
+                try { if (logPath != null) System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {msg}\r\n"); } catch { }
                 Debug.WriteLine("Error loading app state: " + ex.Message);
                 // fallback to legacy loads
                 try { _runway = LoadRunwaySettings(); } catch { }
@@ -2349,20 +2504,49 @@ namespace PARScopeDisplay
         /// </summary>
         private void SaveAppState()
         {
+            string logPath = null;
             try
             {
                 string appDataPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VATSIM-PAR-Scope");
                 System.IO.Directory.CreateDirectory(appDataPath);
+                logPath = System.IO.Path.Combine(appDataPath, "save_state_log.txt");
+                
+                void Log(string msg)
+                {
+                    try 
+                    { 
+                        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {msg}\r\n"); 
+                        Debug.WriteLine(msg);
+                    } 
+                    catch { }
+                }
+                
+                Log("SaveAppState: Starting...");
+                
                 string stateFile = System.IO.Path.Combine(appDataPath, AppStateFileName);
+                Log($"SaveAppState: Will save to: {stateFile}");
 
                 var dump = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
 
                 // Runway
                 if (_runway != null) dump["runway"] = _runway;
 
-                // Window
-                var pos = new WindowPosition { Left = this.Left, Top = this.Top, Width = this.Width, Height = this.Height, IsMaximized = this.WindowState == WindowState.Maximized };
+                // Window - capture screen bounds for multi-monitor support
+                var screen = System.Windows.Forms.Screen.FromHandle(new System.Windows.Interop.WindowInteropHelper(this).Handle);
+                var pos = new WindowPosition 
+                { 
+                    Left = this.Left, 
+                    Top = this.Top, 
+                    Width = this.Width, 
+                    Height = this.Height, 
+                    IsMaximized = this.WindowState == WindowState.Maximized,
+                    ScreenLeft = screen.Bounds.Left,
+                    ScreenTop = screen.Bounds.Top,
+                    ScreenWidth = screen.Bounds.Width,
+                    ScreenHeight = screen.Bounds.Height
+                };
                 dump["window"] = pos;
+                Log("SaveAppState: Window position captured");
 
                 // UI settings
                 dump["show_ground"] = !_hideGroundTraffic; // store as 'show' semantics
@@ -2374,25 +2558,43 @@ namespace PARScopeDisplay
                 dump["show_approach_lights"] = _showApproachLights;
                 dump["enable_azimuth_wedge"] = _enableAzimuthWedgeFilter;
                 dump["enable_vertical_wedge"] = _enableVerticalWedgeFilter;
+                Log("SaveAppState: UI settings captured");
 
                 // Embed NASR cache if present on-disk
                 string cachePath = System.IO.Path.Combine(appDataPath, "nasr_cache.json");
+                Log($"SaveAppState: Checking for NASR cache at: {cachePath}");
                 if (System.IO.File.Exists(cachePath))
                 {
                     try
                     {
+                        Log($"SaveAppState: NASR cache file found, reading...");
                         string nasrJson = System.IO.File.ReadAllText(cachePath, Encoding.UTF8);
+                        Log($"SaveAppState: NASR cache read ({nasrJson.Length} bytes), deserializing...");
                         var nasrObj = _json.DeserializeObject(nasrJson);
                         dump["nasr_cache"] = nasrObj;
+                        Log($"SaveAppState: NASR cache embedded successfully");
                     }
-                    catch { }
+                    catch (Exception ex) 
+                    { 
+                        Log($"SaveAppState: ERROR embedding NASR cache: {ex.GetType().Name}: {ex.Message}");
+                        Debug.WriteLine($"SaveAppState: Error embedding NASR cache: {ex.Message}"); 
+                    }
+                }
+                else
+                {
+                    Log($"SaveAppState: NASR cache file does NOT exist - will not be embedded");
                 }
 
+                Log("SaveAppState: Serializing app state to JSON...");
                 string outJson = _json.Serialize(dump);
+                Log($"SaveAppState: Serialized ({outJson.Length} bytes), writing to file...");
                 System.IO.File.WriteAllText(stateFile, outJson, Encoding.UTF8);
+                Log("SaveAppState: File written successfully");
             }
             catch (Exception ex)
             {
+                string msg = $"SaveAppState: EXCEPTION - {ex.GetType().Name}: {ex.Message}";
+                try { if (logPath != null) System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {msg}\r\n"); } catch { }
                 Debug.WriteLine("Error saving app state: " + ex.Message);
             }
         }
@@ -2404,6 +2606,11 @@ namespace PARScopeDisplay
             public double Width { get; set; }
             public double Height { get; set; }
             public bool IsMaximized { get; set; }
+            // Screen bounds to restore window to correct monitor
+            public double ScreenLeft { get; set; }
+            public double ScreenTop { get; set; }
+            public double ScreenWidth { get; set; }
+            public double ScreenHeight { get; set; }
         }
 
         private void UpdateConfigBoxes()
