@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.ComponentModel;
+using System.Linq;
+using System.Windows.Threading;
 
 namespace PARScopeDisplay
 {
@@ -17,10 +19,14 @@ namespace PARScopeDisplay
         private UdpClient _udp;
         private IPEndPoint _endpoint;
         private CancellationTokenSource _cts;
+    private DispatcherTimer _uiTimer;
     private MainWindow.RunwaySettings _runway;
-        // Update interval in milliseconds. Default to 5000ms to match typical vPilot update cadence.
-        // If vPilot moves to faster updates, lower this value or expose it in the UI.
-        private int _updateIntervalMs = 5000;
+    // Update interval in milliseconds. Default to 500ms (0.5s) for a snappier simulator refresh.
+    // NOTE: motion is computed using the elapsed time between ticks (dt). That means shortening
+    // the update interval increases update frequency but does NOT change movement per second —
+    // the aircraft will not fly faster, only update more often. If desired this could be exposed
+    // in the UI later.
+    private int _updateIntervalMs = 500;
 
         public SimulatorWindow()
         {
@@ -28,6 +34,27 @@ namespace PARScopeDisplay
             _endpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 49090);
             _udp = new UdpClient();
             RefreshList();
+            this.Loaded += SimulatorWindow_Loaded;
+        }
+
+        private void SimulatorWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            // ensure any existing aircraft are unpaused and auto-move starts
+            UnpauseAll();
+        }
+
+        // Unpause every aircraft and ensure the auto-move background loop is running.
+        private void UnpauseAll()
+        {
+            lock (_aircraft)
+            {
+                foreach (var ac in _aircraft)
+                {
+                    ac.IsPaused = false;
+                }
+            }
+            RefreshList();
+            StartAuto();
         }
 
         public SimulatorWindow(MainWindow.RunwaySettings runway) : this()
@@ -113,6 +140,8 @@ namespace PARScopeDisplay
                 VsFpm = 0,
                 TypeCode = "B738"
             };
+            // ensure newly spawned aircraft are active and will move automatically
+            ac.IsPaused = false;
             _aircraft.Add(ac);
             RefreshList();
             AircraftList.SelectedItem = ac;
@@ -122,6 +151,8 @@ namespace PARScopeDisplay
             {
                 SendNdjson(BuildAddJson(ac));
                 StatusText.Text = "Spawned and sent add for " + ac.Callsign;
+                // make sure all targets are active
+                UnpauseAll();
             }
             catch { StatusText.Text = "Spawned but failed to send add"; }
         }
@@ -177,6 +208,12 @@ namespace PARScopeDisplay
 
         private void OnStartAutoClick(object sender, RoutedEventArgs e)
         {
+            StartAuto();
+        }
+
+        // Start the background auto-move loop if not already running
+        private void StartAuto()
+        {
             if (_cts != null) return;
             _cts = new CancellationTokenSource();
             var token = _cts.Token;
@@ -190,33 +227,60 @@ namespace PARScopeDisplay
                     var dt = (nowMs - lastMs) / 1000.0; // seconds since last update
                     if (dt <= 0) dt = _updateIntervalMs / 1000.0;
                     lastMs = nowMs;
-
-                    lock (_aircraft)
+                    try
                     {
-                        foreach (var ac in _aircraft)
+                        lock (_aircraft)
                         {
-                            // skip paused aircraft
-                            if (ac.IsPaused) continue;
+                            foreach (var ac in _aircraft)
+                            {
+                                // skip paused aircraft
+                                if (ac.IsPaused) continue;
 
-                            // Motion: move along heading by speed * dt
-                            double nmPerSec = ac.SpeedKts / 3600.0; // NM per second at current speed
-                            double meters = nmPerSec * 1852.0 * dt; // meters moved during dt seconds
-                            // Approximate lat/lon change (small-dist)
-                            double dLat = (meters * Math.Cos(ac.HeadingDeg * Math.PI / 180.0)) / 111319.9;
-                            double dLon = (meters * Math.Sin(ac.HeadingDeg * Math.PI / 180.0)) / (111319.9 * Math.Cos(ac.Lat * Math.PI / 180.0));
-                            ac.Lat += dLat;
-                            ac.Lon += dLon;
-                            // vertical speed: VsFpm is ft per minute -> ft per second = VsFpm/60
-                            ac.AltFt += (ac.VsFpm / 60.0) * dt;
-                            // send update
-                            SendNdjson(BuildUpdateJson(ac));
+                                // Motion: move along heading by speed * dt
+                                double nmPerSec = ac.SpeedKts / 3600.0; // NM per second at current speed
+                                double meters = nmPerSec * 1852.0 * dt; // meters moved during dt seconds
+                                // Approximate lat/lon change (small-dist)
+                                double dLat = (meters * Math.Cos(ac.HeadingDeg * Math.PI / 180.0)) / 111319.9;
+                                double dLon = (meters * Math.Sin(ac.HeadingDeg * Math.PI / 180.0)) / (111319.9 * Math.Cos(ac.Lat * Math.PI / 180.0));
+                                ac.Lat += dLat;
+                                ac.Lon += dLon;
+                                // vertical speed: VsFpm is ft per minute -> ft per second = VsFpm/60
+                                ac.AltFt += (ac.VsFpm / 60.0) * dt;
+                                // send update
+                                SendNdjson(BuildUpdateJson(ac));
+                            }
                         }
+
+                        // refresh UI on the dispatcher so the property pane reflects new values
+                        Dispatcher.Invoke(() => RefreshList());
+                    }
+                    catch (Exception ex)
+                    {
+                        Dispatcher.Invoke(() => StatusText.Text = "Auto-move error: " + ex.Message);
+                        // swallow and continue; task will keep running
                     }
 
                     await Task.Delay(_updateIntervalMs, token);
                 }
             }, token);
-            StatusText.Text = "Auto-moving";
+            Dispatcher.Invoke(() => StatusText.Text = "Auto-moving");
+
+            // Also set up a UI-thread timer that steps movement on the dispatcher to ensure
+            // visual updates occur even if the background task is delayed or blocked.
+            try
+            {
+                if (_uiTimer == null)
+                {
+                    _uiTimer = new DispatcherTimer();
+                    _uiTimer.Interval = TimeSpan.FromMilliseconds(_updateIntervalMs);
+                    _uiTimer.Tick += (s, e) =>
+                    {
+                        try { OnStepClick(this, null); } catch { }
+                    };
+                }
+                _uiTimer.Start();
+            }
+            catch { }
         }
 
         private void OnSpawnDebugGridClick(object sender, RoutedEventArgs e)
@@ -283,10 +347,10 @@ namespace PARScopeDisplay
                             Lon = lonP,
                             AltFt = fieldElevFt,
                             HeadingDeg = (_runway.HeadingTrueDeg + 180) % 360,
-                            SpeedKts = 0,
+                            SpeedKts = 0, // debug grid should be stationary
                             VsFpm = 0,
                             TypeCode = "B738",
-                            IsPaused = true // paused so they don't move
+                            IsPaused = false // unpaused so they will be included in auto-loop (speed 0 keeps them stationary)
                         };
                         _aircraft.Add(ac);
                         SendNdjson(BuildAddJson(ac));
@@ -297,6 +361,8 @@ namespace PARScopeDisplay
 
             RefreshList();
             StatusText.Text = $"Spawned {count} debug aircraft (wedge up to {maxRadiusNm} NM + buffer)";
+            // ensure debug-grid targets are unpaused (but speed 0 keeps them stationary)
+            UnpauseAll();
 
             // --- Vertical projection set along final from the sensor ---
             // Generate points along the approach centerline (aDeg = 0) out to 1.0 NM
@@ -315,27 +381,30 @@ namespace PARScopeDisplay
                     // distance in feet
                     double distFt = r2 * 6076.12;
                     double altProjected = fieldElevFt + Math.Tan(DegToRad(ang)) * distFt;
-
-                    var acv = new FakeAircraft
                     {
-                        Callsign = $"V{count:D4}",
-                        Lat = latV,
-                        Lon = lonV,
-                        AltFt = altProjected,
-                        HeadingDeg = (_runway.HeadingTrueDeg + 180) % 360,
-                        SpeedKts = 0,
-                        VsFpm = 0,
-                        TypeCode = "B738",
-                        IsPaused = true
-                    };
+                        var acv = new FakeAircraft
+                        {
+                            Callsign = $"V{count:D4}",
+                            Lat = latV,
+                            Lon = lonV,
+                            AltFt = altProjected,
+                            HeadingDeg = (_runway.HeadingTrueDeg + 180) % 360,
+                            SpeedKts = 0, // vertical projection stays stationary
+                            VsFpm = 0,
+                            TypeCode = "B738",
+                            IsPaused = false
+                        };
                     _aircraft.Add(acv);
                     SendNdjson(BuildAddJson(acv));
                     count++;
+                    }
                 }
             }
 
             RefreshList();
             StatusText.Text = $"Spawned {count} debug aircraft (wedge + vertical projections)";
+            UnpauseAll();
+
         }
 
         private void OnDeleteAllClick(object sender, RoutedEventArgs e)
@@ -348,6 +417,8 @@ namespace PARScopeDisplay
             _aircraft.Clear();
             RefreshList();
             StatusText.Text = "Deleted all aircraft";
+            // no active aircraft remain; stop auto loop
+            StopAuto();
         }
         private void OnPauseClick(object sender, RoutedEventArgs e)
         {
@@ -402,12 +473,48 @@ namespace PARScopeDisplay
 
         private void OnStopAutoClick(object sender, RoutedEventArgs e)
         {
+            StopAuto();
+        }
+
+        private void StopAuto()
+        {
             if (_cts != null)
             {
                 _cts.Cancel();
                 _cts = null;
-                StatusText.Text = "Stopped";
+                Dispatcher.Invoke(() => StatusText.Text = "Stopped");
             }
+            try
+            {
+                if (_uiTimer != null)
+                {
+                    _uiTimer.Stop();
+                }
+            }
+            catch { }
+        }
+
+        // Advance one movement tick for all unpaused aircraft and send updates.
+        private void OnStepClick(object sender, RoutedEventArgs e)
+        {
+            double dt = _updateIntervalMs / 1000.0; // seconds
+            lock (_aircraft)
+            {
+                foreach (var ac in _aircraft)
+                {
+                    if (ac.IsPaused) continue;
+                    double nmPerSec = ac.SpeedKts / 3600.0;
+                    double meters = nmPerSec * 1852.0 * dt;
+                    double dLat = (meters * Math.Cos(ac.HeadingDeg * Math.PI / 180.0)) / 111319.9;
+                    double dLon = (meters * Math.Sin(ac.HeadingDeg * Math.PI / 180.0)) / (111319.9 * Math.Cos(ac.Lat * Math.PI / 180.0));
+                    ac.Lat += dLat;
+                    ac.Lon += dLon;
+                    ac.AltFt += (ac.VsFpm / 60.0) * dt;
+                    SendNdjson(BuildUpdateJson(ac));
+                }
+            }
+            RefreshList();
+            StatusText.Text = "Stepped movement by " + dt + "s";
         }
 
         // Increment/decrement helpers: update selected aircraft and refresh/send update
@@ -599,6 +706,23 @@ namespace PARScopeDisplay
                 RefreshList();
                 AircraftList.SelectedItem = ac;
                 StatusText.Text = ac.IsPaused ? "Paused " + ac.Callsign : "Unpaused " + ac.Callsign;
+
+                // If any aircraft are unpaused, ensure the auto-move loop is running so they move.
+                // If all aircraft are paused, stop the auto-move loop to save CPU/network.
+                bool anyUnpaused = _aircraft.Any(a => !a.IsPaused);
+                if (anyUnpaused)
+                {
+                    // do a single step immediately so the UI shows movement right away
+                    try { OnStepClick(this, null); } catch { }
+                    StartAuto();
+                    // keep the toggle UI consistent if present
+                    try { if (AutoMoveToggle != null) AutoMoveToggle.IsChecked = true; } catch { }
+                }
+                else
+                {
+                    StopAuto();
+                    try { if (AutoMoveToggle != null) AutoMoveToggle.IsChecked = false; } catch { }
+                }
             }
         }
 
