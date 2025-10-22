@@ -76,14 +76,40 @@ namespace PARScopeDisplay
 
         private void OnAddClick(object sender, RoutedEventArgs e)
         {
+            // Read spawn parameters from UI
+            double bearing = 360, range = 5, alt = 3000, speed = 140, heading = 180;
+            try { double.TryParse(SpawnBearingBox.Text.Trim(), out bearing); } catch { }
+            try { double.TryParse(SpawnRangeBox.Text.Trim(), out range); } catch { }
+            try { double.TryParse(SpawnAltBox.Text.Trim(), out alt); } catch { }
+            try { double.TryParse(SpawnSpeedBox.Text.Trim(), out speed); } catch { }
+            try { double.TryParse(SpawnHeadingBox.Text.Trim(), out heading); } catch { }
+
+            double lat = 51.4700, lon = -0.4543; // fallback coords
+            // If a runway is selected, spawn relative to the runway's sensor position
+            if (_runway != null)
+            {
+                double approachRad = DegToRad(_runway.HeadingTrueDeg) + Math.PI;
+                // compute sensor lat/lon by moving from threshold toward runway end (negative along-approach)
+                double sensorLat = _runway.ThresholdLat, sensorLon = _runway.ThresholdLon;
+                if (_runway.SensorOffsetNm != 0)
+                {
+                    double sensorBearing = RadToDeg(approachRad);
+                    double tmpLat, tmpLon;
+                    DestinationFrom(_runway.ThresholdLat, _runway.ThresholdLon, sensorBearing, -_runway.SensorOffsetNm, out tmpLat, out tmpLon);
+                    sensorLat = tmpLat; sensorLon = tmpLon;
+                }
+                // Destination from sensor along requested bearing and range
+                DestinationFrom(sensorLat, sensorLon, bearing, range, out lat, out lon);
+            }
+
             var ac = new FakeAircraft
             {
                 Callsign = "FAKE" + (_aircraft.Count + 1),
-                Lat = 51.4700, // sample near London Heathrow by default
-                Lon = -0.4543,
-                AltFt = 3000,
-                HeadingDeg = 180,
-                SpeedKts = 140,
+                Lat = lat,
+                Lon = lon,
+                AltFt = alt,
+                HeadingDeg = heading,
+                SpeedKts = speed,
                 VsFpm = 0,
                 TypeCode = "B738"
             };
@@ -91,14 +117,24 @@ namespace PARScopeDisplay
             RefreshList();
             AircraftList.SelectedItem = ac;
             PopulateFields(ac);
+            // Send an 'add' message immediately so the scope receives the new target (manual send buttons were removed)
+            try
+            {
+                SendNdjson(BuildAddJson(ac));
+                StatusText.Text = "Spawned and sent add for " + ac.Callsign;
+            }
+            catch { StatusText.Text = "Spawned but failed to send add"; }
         }
 
         private void OnRemoveClick(object sender, RoutedEventArgs e)
         {
             if (AircraftList.SelectedItem is FakeAircraft ac)
             {
+                // send delete to ensure the scope removes this target, then remove locally
+                try { SendNdjson(BuildDeleteJson(ac)); } catch { }
                 _aircraft.Remove(ac);
                 RefreshList();
+                StatusText.Text = "Removed and sent delete for " + ac.Callsign;
             }
         }
 
