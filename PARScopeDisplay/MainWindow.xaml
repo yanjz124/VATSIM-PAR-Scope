@@ -25,6 +25,10 @@
                             <MenuItem x:Name="Display_EnableAzimuthWedgeFilter" Header="Enable Azimuth Wedge Filter" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
                             <MenuItem x:Name="Display_EnableVerticalWedgeFilter" Header="Enable Vertical Wedge Filter" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
                             <Separator />
+                            <MenuItem x:Name="Display_ShowVerticalData" Header="Show Vertical Datablocks" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
+                            <MenuItem x:Name="Display_ShowAzimuthData" Header="Show Azimuth Datablocks" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
+                            <MenuItem x:Name="Display_ShowPlanData" Header="Show Plan Datablocks" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
+                            <Separator />
                             <MenuItem Header="Show Aircraft List" Click="OnShowAircraftListClick" />
                 </MenuItem>
             </Menu>

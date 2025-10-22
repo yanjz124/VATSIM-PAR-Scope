@@ -62,6 +62,10 @@ namespace PARScopeDisplay
         private bool _showVerticalDevLines = true;
         private bool _showAzimuthDevLines = true;
         private bool _showApproachLights = true;
+    // Datablock display toggles for each scope (vertical/azimuth/plan)
+    private bool _showVerticalDatablocks = true;
+    private bool _showAzimuthDatablocks = true;
+    private bool _showPlanDatablocks = true;
         // Debug wedge filtering toggles: when false, scopes will not filter by wedge (show everything)
         private bool _enableVerticalWedgeFilter = true;
         private bool _enableAzimuthWedgeFilter = true;
@@ -334,6 +338,10 @@ namespace PARScopeDisplay
                 _showAzimuthDevLines = (Display_ShowAzimuthDev != null && Display_ShowAzimuthDev.IsChecked == true);
                 _enableAzimuthWedgeFilter = (Display_EnableAzimuthWedgeFilter != null && Display_EnableAzimuthWedgeFilter.IsChecked == true);
                 _enableVerticalWedgeFilter = (Display_EnableVerticalWedgeFilter != null && Display_EnableVerticalWedgeFilter.IsChecked == true);
+                // New datablock toggles (if menu items exist)
+                _showVerticalDatablocks = (Display_ShowVerticalData != null && Display_ShowVerticalData.IsChecked == true);
+                _showAzimuthDatablocks = (Display_ShowAzimuthData != null && Display_ShowAzimuthData.IsChecked == true);
+                _showPlanDatablocks = (Display_ShowPlanData != null && Display_ShowPlanData.IsChecked == true);
                 // Refresh UI to apply new toggles
                 UpdateUi();
             }
@@ -1436,10 +1444,13 @@ namespace PARScopeDisplay
                     int gsTwoDigit = (int)Math.Round(gs / 10.0);
                     double labelX = Math.Min(Math.Max(4, vx + 8), vWidth - 80);
                     double labelY = Math.Min(Math.Max(4, vy + 6), workH - 8);
-                    var t1 = new TextBlock { Text = callsign, Foreground = Brushes.White, FontSize = 12, FontWeight = FontWeights.SemiBold };
-                    t1.Margin = new Thickness(labelX, labelY, 0, 0); VerticalScopeCanvas.Children.Add(t1); Canvas.SetZIndex(t1, 1000);
-                    var t2 = new TextBlock { Text = altHundreds.ToString("D3") + " " + gsTwoDigit.ToString("D2"), Foreground = Brushes.LightGray, FontSize = 11 };
-                    t2.Margin = new Thickness(labelX, labelY + 16, 0, 0); VerticalScopeCanvas.Children.Add(t2); Canvas.SetZIndex(t2, 1000);
+                    if (_showVerticalDatablocks)
+                    {
+                        var t1 = new TextBlock { Text = callsign, Foreground = Brushes.White, FontSize = 12, FontWeight = FontWeights.SemiBold };
+                        t1.Margin = new Thickness(labelX, labelY, 0, 0); VerticalScopeCanvas.Children.Add(t1); Canvas.SetZIndex(t1, 1000);
+                        var t2 = new TextBlock { Text = altHundreds.ToString("D3") + " " + gsTwoDigit.ToString("D2"), Foreground = Brushes.LightGray, FontSize = 11 };
+                        t2.Margin = new Thickness(labelX, labelY + 16, 0, 0); VerticalScopeCanvas.Children.Add(t2); Canvas.SetZIndex(t2, 1000);
+                    }
                 }
             }
             catch { }
@@ -1470,10 +1481,13 @@ namespace PARScopeDisplay
                     int gs = (int)Math.Round(GetGroundSpeedKts(ac)); int gsTwoDigit = (int)Math.Round(gs / 10.0);
                     double aLabelX = Math.Min(Math.Max(4, curAx + 8), aWidth - 80);
                     double aLabelY = Math.Min(Math.Max(4, curAy + 6), aHeight - 8);
-                    var at1 = new TextBlock { Text = callsign, Foreground = Brushes.White, FontSize = 12, FontWeight = FontWeights.SemiBold };
-                    at1.Margin = new Thickness(aLabelX, aLabelY, 0, 0); AzimuthScopeCanvas.Children.Add(at1); Canvas.SetZIndex(at1, 1000);
-                    var at2 = new TextBlock { Text = altHundreds.ToString("D3") + " " + gsTwoDigit.ToString("D2"), Foreground = Brushes.LightGray, FontSize = 11 };
-                    at2.Margin = new Thickness(aLabelX, aLabelY + 16, 0, 0); AzimuthScopeCanvas.Children.Add(at2); Canvas.SetZIndex(at2, 1000);
+                    if (_showAzimuthDatablocks)
+                    {
+                        var at1 = new TextBlock { Text = callsign, Foreground = Brushes.White, FontSize = 12, FontWeight = FontWeights.SemiBold };
+                        at1.Margin = new Thickness(aLabelX, aLabelY, 0, 0); AzimuthScopeCanvas.Children.Add(at1); Canvas.SetZIndex(at1, 1000);
+                        var at2 = new TextBlock { Text = altHundreds.ToString("D3") + " " + gsTwoDigit.ToString("D2"), Foreground = Brushes.LightGray, FontSize = 11 };
+                        at2.Margin = new Thickness(aLabelX, aLabelY + 16, 0, 0); AzimuthScopeCanvas.Children.Add(at2); Canvas.SetZIndex(at2, 1000);
+                    }
                 }
             }
             catch { }
@@ -1505,10 +1519,13 @@ namespace PARScopeDisplay
                     int gs = (int)Math.Round(GetGroundSpeedKts(ac)); int gsTwoDigit = (int)Math.Round(gs / 10.0);
                     double pLabelX = Math.Min(Math.Max(4, px + 6), pWidth - 80);
                     double pLabelY = Math.Min(Math.Max(4, py + 6), pHeight - 20);
-                    var p1 = new TextBlock { Text = callsign, Foreground = Brushes.LightGray, FontSize = 11 };
-                    p1.Margin = new Thickness(pLabelX, pLabelY, 0, 0); PlanViewCanvas.Children.Add(p1); Canvas.SetZIndex(p1, 1000);
-                    var p2 = new TextBlock { Text = altHundreds.ToString("D3") + " " + gsTwoDigit.ToString("D2"), Foreground = Brushes.LightGray, FontSize = 11 };
-                    p2.Margin = new Thickness(pLabelX, pLabelY + 16, 0, 0); PlanViewCanvas.Children.Add(p2); Canvas.SetZIndex(p2, 1000);
+                    if (_showPlanDatablocks)
+                    {
+                        var p1 = new TextBlock { Text = callsign, Foreground = Brushes.LightGray, FontSize = 11 };
+                        p1.Margin = new Thickness(pLabelX, pLabelY, 0, 0); PlanViewCanvas.Children.Add(p1); Canvas.SetZIndex(p1, 1000);
+                        var p2 = new TextBlock { Text = altHundreds.ToString("D3") + " " + gsTwoDigit.ToString("D2"), Foreground = Brushes.LightGray, FontSize = 11 };
+                        p2.Margin = new Thickness(pLabelX, pLabelY + 16, 0, 0); PlanViewCanvas.Children.Add(p2); Canvas.SetZIndex(p2, 1000);
+                    }
                 }
             }
             catch { }
