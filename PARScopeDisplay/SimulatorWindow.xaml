@@ -87,15 +87,16 @@
             <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,8">
                 <Button Content="Spawn Debug Grid" Click="OnSpawnDebugGridClick" Margin="0,0,10,0" />
                 <Button Content="Delete All" Click="OnDeleteAllClick" Margin="0,0,10,0" />
-                <!-- Auto-move toggle: starts/stops background movement updates -->
-                <ToggleButton x:Name="AutoMoveToggle" Content="Auto Move" Checked="OnStartAutoClick" Unchecked="OnStopAutoClick" Margin="0,0,10,0" />
-                <!-- Step button to advance one movement tick (useful for testing) -->
-                <Button Content="Step" Click="OnStepClick" />
             </StackPanel>
 
             <Border Grid.Row="3" BorderBrush="#DDD" BorderThickness="1" CornerRadius="4" Padding="6" Background="WhiteSmoke">
                 <!-- List with left-aligned callsign and right-aligned pause/delete buttons -->
                 <ListBox x:Name="AircraftList" SelectionChanged="AircraftList_SelectionChanged" MinHeight="220">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <EventSetter Event="PreviewMouseLeftButtonDown" Handler="ListBoxItem_PreviewMouseLeftButtonDown" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <Grid>

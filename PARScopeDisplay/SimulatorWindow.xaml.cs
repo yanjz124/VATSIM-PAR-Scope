@@ -15,12 +15,13 @@ namespace PARScopeDisplay
 {
     public partial class SimulatorWindow : Window
     {
-    private readonly List<FakeAircraft> _aircraft = new List<FakeAircraft>();
+    private readonly System.Collections.ObjectModel.ObservableCollection<FakeAircraft> _aircraft = new System.Collections.ObjectModel.ObservableCollection<FakeAircraft>();
         private UdpClient _udp;
         private IPEndPoint _endpoint;
         private CancellationTokenSource _cts;
     private DispatcherTimer _uiTimer;
     private MainWindow.RunwaySettings _runway;
+    private FakeAircraft _lastSelectedAircraft;
     // Update interval in milliseconds. Default to 500ms (0.5s) for a snappier simulator refresh.
     // NOTE: motion is computed using the elapsed time between ticks (dt). That means shortening
     // the update interval increases update frequency but does NOT change movement per second —
@@ -97,8 +98,16 @@ namespace PARScopeDisplay
 
         private void RefreshList()
         {
-            AircraftList.ItemsSource = null;
-            AircraftList.ItemsSource = _aircraft;
+            // Avoid resetting the ItemsSource repeatedly (which breaks selection).
+            // The ObservableCollection will notify the UI when items or properties change.
+            try
+            {
+                if (AircraftList.ItemsSource == null)
+                {
+                    AircraftList.ItemsSource = _aircraft;
+                }
+            }
+            catch { }
         }
 
         private void OnAddClick(object sender, RoutedEventArgs e)
@@ -219,14 +228,14 @@ namespace PARScopeDisplay
             var token = _cts.Token;
             Task.Run(async () =>
             {
-                var sw = System.Diagnostics.Stopwatch.StartNew();
-                long lastMs = sw.ElapsedMilliseconds;
+                // Use a fixed dt equal to the configured update interval. This guarantees
+                // that movement per tick is consistent (e.g. for 500ms updates, per-tick
+                // movement is speed_kts/7200 NM), and prevents large movement spikes if
+                // the background task experiences scheduling delays.
+                var fixedDt = _updateIntervalMs / 1000.0;
                 while (!token.IsCancellationRequested)
                 {
-                    var nowMs = sw.ElapsedMilliseconds;
-                    var dt = (nowMs - lastMs) / 1000.0; // seconds since last update
-                    if (dt <= 0) dt = _updateIntervalMs / 1000.0;
-                    lastMs = nowMs;
+                    var dt = fixedDt;
                     try
                     {
                         lock (_aircraft)
@@ -256,7 +265,9 @@ namespace PARScopeDisplay
                     }
                     catch (Exception ex)
                     {
-                        Dispatcher.Invoke(() => StatusText.Text = "Auto-move error: " + ex.Message);
+                        Dispatcher.Invoke(() => {
+                            try { StatusText.Text = "Auto-move error: " + ex.Message; } catch { }
+                        });
                         // swallow and continue; task will keep running
                     }
 
@@ -273,9 +284,13 @@ namespace PARScopeDisplay
                 {
                     _uiTimer = new DispatcherTimer();
                     _uiTimer.Interval = TimeSpan.FromMilliseconds(_updateIntervalMs);
+                    // Only refresh the UI on the dispatcher timer. Movement and updates
+                    // are handled by the background auto-loop (Task.Run). Calling
+                    // OnStepClick here would apply movement twice (once in background
+                    // loop and once on UI thread) which causes targets to move too fast.
                     _uiTimer.Tick += (s, e) =>
                     {
-                        try { OnStepClick(this, null); } catch { }
+                        try { RefreshList(); } catch { }
                     };
                 }
                 _uiTimer.Start();
@@ -553,10 +568,9 @@ namespace PARScopeDisplay
                 var changed = ApplySingleField(selected, tb);
                 if (changed)
                 {
-                    RefreshList();
+                    _lastSelectedAircraft = selected;
                     SendNdjson(BuildUpdateJson(selected));
                     StatusText.Text = "Auto-updated " + selected.Callsign;
-                    AircraftList.SelectedItem = selected;
                 }
             }
         }
@@ -631,9 +645,8 @@ namespace PARScopeDisplay
                         var changed = ApplySingleField(ac, tb);
                         if (changed)
                         {
-                            RefreshList();
+                            _lastSelectedAircraft = ac;
                             SendNdjson(BuildUpdateJson(ac));
-                            AircraftList.SelectedItem = ac;
                             StatusText.Text = "Auto-updated " + ac.Callsign;
                         }
                     }
@@ -703,7 +716,6 @@ namespace PARScopeDisplay
             if (sender is FrameworkElement fe && fe.DataContext is FakeAircraft ac)
             {
                 ac.IsPaused = !ac.IsPaused;
-                RefreshList();
                 AircraftList.SelectedItem = ac;
                 StatusText.Text = ac.IsPaused ? "Paused " + ac.Callsign : "Unpaused " + ac.Callsign;
 
@@ -715,13 +727,10 @@ namespace PARScopeDisplay
                     // do a single step immediately so the UI shows movement right away
                     try { OnStepClick(this, null); } catch { }
                     StartAuto();
-                    // keep the toggle UI consistent if present
-                    try { if (AutoMoveToggle != null) AutoMoveToggle.IsChecked = true; } catch { }
                 }
                 else
                 {
                     StopAuto();
-                    try { if (AutoMoveToggle != null) AutoMoveToggle.IsChecked = false; } catch { }
                 }
             }
         }
@@ -799,10 +808,27 @@ namespace PARScopeDisplay
 
         private void AircraftList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
-            if (AircraftList.SelectedItem is FakeAircraft ac)
+            if (AircraftList.SelectedItem is FakeAircraft ac && ac != _lastSelectedAircraft)
             {
+                _lastSelectedAircraft = ac;
                 PopulateFields(ac);
             }
+        }
+
+        // Ensure clicking anywhere in the item selects the row (including clicks on buttons)
+        private void ListBoxItem_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            try
+            {
+                var lbi = sender as System.Windows.Controls.ListBoxItem;
+                if (lbi != null && !lbi.IsSelected)
+                {
+                    lbi.IsSelected = true;
+                    lbi.Focus();
+                    e.Handled = true;
+                }
+            }
+            catch { }
         }
 
         protected override void OnClosed(EventArgs e)
@@ -852,17 +878,79 @@ namespace PARScopeDisplay
             base.OnClosing(e);
         }
 
-        private class FakeAircraft
+        private class FakeAircraft : System.ComponentModel.INotifyPropertyChanged
         {
-            public string Callsign { get; set; }
-            public double Lat { get; set; }
-            public double Lon { get; set; }
-            public double AltFt { get; set; }
-            public double HeadingDeg { get; set; }
-            public double SpeedKts { get; set; }
-            public double VsFpm { get; set; }
-            public string TypeCode { get; set; }
-            public bool IsPaused { get; set; }
+            private string _callsign;
+            private double _lat;
+            private double _lon;
+            private double _altFt;
+            private double _headingDeg;
+            private double _speedKts;
+            private double _vsFpm;
+            private string _typeCode;
+            private bool _isPaused;
+
+            public string Callsign
+            {
+                get => _callsign;
+                set { _callsign = value; OnPropertyChanged(nameof(Callsign)); }
+            }
+
+            public double Lat
+            {
+                get => _lat;
+                set { _lat = value; OnPropertyChanged(nameof(Lat)); }
+            }
+
+            public double Lon
+            {
+                get => _lon;
+                set { _lon = value; OnPropertyChanged(nameof(Lon)); }
+            }
+
+            public double AltFt
+            {
+                get => _altFt;
+                set { _altFt = value; OnPropertyChanged(nameof(AltFt)); }
+            }
+
+            public double HeadingDeg
+            {
+                get => _headingDeg;
+                set { _headingDeg = value; OnPropertyChanged(nameof(HeadingDeg)); }
+            }
+
+            public double SpeedKts
+            {
+                get => _speedKts;
+                set { _speedKts = value; OnPropertyChanged(nameof(SpeedKts)); }
+            }
+
+            public double VsFpm
+            {
+                get => _vsFpm;
+                set { _vsFpm = value; OnPropertyChanged(nameof(VsFpm)); }
+            }
+
+            public string TypeCode
+            {
+                get => _typeCode;
+                set { _typeCode = value; OnPropertyChanged(nameof(TypeCode)); }
+            }
+
+            public bool IsPaused
+            {
+                get => _isPaused;
+                set { _isPaused = value; OnPropertyChanged(nameof(IsPaused)); }
+            }
+
+            public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
+
+            protected void OnPropertyChanged(string propertyName)
+            {
+                PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
+            }
+
             public override string ToString() => Callsign;
         }
     }
