@@ -30,22 +30,37 @@
                             <MenuItem x:Name="Display_ShowPlanData" Header="Show Plan Datablocks" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
                             <Separator />
                             <MenuItem Header="Show Aircraft List" Click="OnShowAircraftListClick" />
+                            <Separator />
+                            <MenuItem Header="METAR Source">
+                                <MenuItem x:Name="Display_MetarSource_NOAA" Header="NOAA (aviationweather.gov)" IsCheckable="True" IsChecked="True" Click="OnMetarSourceChanged" />
+                                <MenuItem x:Name="Display_MetarSource_VATSIM" Header="VATSIM" IsCheckable="True" IsChecked="False" Click="OnMetarSourceChanged" />
+                            </MenuItem>
                 </MenuItem>
             </Menu>
-            <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="10">
-                <TextBlock Text="Plugin Status: " FontWeight="Bold"/>
-                <TextBlock x:Name="StatusText" Text="Disconnected" Foreground="Red" Margin="5,0,0,0"/>
-                <TextBlock Text=" | Last Event: "/>
-                <TextBlock x:Name="LastEventText" Text="-"/>
-                <TextBlock Text=" | Runway: "/>
-                <TextBlock x:Name="RunwayText" Text="(not set)"/>
-                <!-- NASR status (moved here temporarily) -->
-                <StackPanel Orientation="Horizontal" Margin="20,0,0,0" VerticalAlignment="Center">
+            <Grid DockPanel.Dock="Top" Margin="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Left side: Status and METAR -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock Text="Plugin Status: " FontWeight="Bold"/>
+                    <TextBlock x:Name="StatusText" Text="Disconnected" Foreground="Red" Margin="5,0,0,0"/>
+                    <TextBlock Text=" | Last Event: "/>
+                    <TextBlock x:Name="LastEventText" Text="-"/>
+                    <TextBlock Text=" | Runway: "/>
+                    <TextBlock x:Name="RunwayText" Text="(not set)"/>
+                    <TextBlock Text=" | METAR: " Margin="20,0,0,0"/>
+                    <TextBlock x:Name="MetarText" Text="(no data)" Foreground="Gray" Margin="5,0,0,0" Cursor="Hand" MouseLeftButtonDown="OnMetarClick" ToolTip="Click to toggle full/abbreviated METAR"/>
+                </StackPanel>
+                
+                <!-- Right side: NASR status -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
                     <TextBlock Text="NASR:" FontWeight="Bold" Foreground="Black" FontSize="10" />
                     <TextBlock x:Name="NASRStatusText" Text="(not loaded)" Foreground="Black" Margin="6,0,0,0" FontSize="10" />
                 </StackPanel>
-                <!-- Dev-line checkboxes removed from top bar - use Display menu -->
-            </StackPanel>
+            </Grid>
             <!-- (Display menu is defined in the top Menu) -->
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Background="#1a1a1a" Height="28">
                 <TextBlock Text="PAR Config:" Foreground="White" Margin="8,0,15,0" VerticalAlignment="Center" FontSize="11" FontWeight="Bold"/>

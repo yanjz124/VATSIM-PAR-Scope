@@ -39,8 +39,8 @@ namespace PARScopeDisplay
             public double MagneticVariationDeg { get; set; }
             // Raw hemisphere string from APT_BASE.csv (may be empty)
             public string MagneticHemisphere { get; set; }
-            // State code from APT_BASE.csv (two-letter US state or other jurisdiction code)
-            public string StateCode { get; set; }
+            // ICAO ID from APT_BASE.csv
+            public string IcaoId { get; set; }
         }
 
         // Small container for airport base fields we extract from APT_BASE.csv
@@ -48,7 +48,7 @@ namespace PARScopeDisplay
         {
             public double Mag { get; set; }
             public string Hem { get; set; }
-            public string StateCode { get; set; }
+            public string IcaoId { get; set; }
         }
 
         public NASRDataLoader()
@@ -386,8 +386,8 @@ namespace PARScopeDisplay
                     {
                         foreach (var kv in aptMag)
                         {
-                            // copy in the parsed AptBaseInfo (includes state if present)
-                            _aptBaseMag[kv.Key] = new AptBaseInfo { Mag = kv.Value.Mag, Hem = kv.Value.Hem, StateCode = kv.Value.StateCode };
+                            // copy in the parsed AptBaseInfo (includes ICAO ID if present)
+                            _aptBaseMag[kv.Key] = new AptBaseInfo { Mag = kv.Value.Mag, Hem = kv.Value.Hem, IcaoId = kv.Value.IcaoId };
                         }
                     }
                     using (Stream stream = entry.Open())
@@ -422,28 +422,28 @@ namespace PARScopeDisplay
 
             using (var w = new StreamWriter(aptPath, false, Encoding.UTF8))
             {
-                w.WriteLine("ARPT_ID,MAG_VARN,MAG_HEMIS,STATE_CODE");
+                w.WriteLine("ARPT_ID,MAG_VARN,MAG_HEMIS,ICAO_ID");
                 if (_aptBaseMag != null)
                 {
                     foreach (var kv in _aptBaseMag.OrderBy(k => k.Key))
                     {
                         var a = kv.Key;
                         var info = kv.Value;
-                        w.WriteLine($"{EscapeCsv(a)},{info.Mag.ToString(CultureInfo.InvariantCulture)},{EscapeCsv(info.Hem)},{EscapeCsv(info.StateCode)}");
+                        w.WriteLine($"{EscapeCsv(a)},{info.Mag.ToString(CultureInfo.InvariantCulture)},{EscapeCsv(info.Hem)},{EscapeCsv(info.IcaoId)}");
                     }
                 }
             }
 
             using (var w = new StreamWriter(runPath, false, Encoding.UTF8))
             {
-                w.WriteLine("AirportId,RunwayId,Latitude,Longitude,TrueHeading,FieldElevationFt,ThrCrossingHgtFt,RwyIdCsv,ApchLgtSystemCode,MagVar,MagHem,StateCode");
+                w.WriteLine("AirportId,RunwayId,Latitude,Longitude,TrueHeading,FieldElevationFt,ThrCrossingHgtFt,RwyIdCsv,ApchLgtSystemCode,MagVar,MagHem,IcaoId");
                 if (_runwayData != null)
                 {
                     foreach (var kv in _runwayData.OrderBy(k => k.Key))
                     {
                         foreach (var r in kv.Value)
                         {
-                            w.WriteLine($"{EscapeCsv(r.AirportId)},{EscapeCsv(r.RunwayId)},{r.Latitude.ToString(CultureInfo.InvariantCulture)},{r.Longitude.ToString(CultureInfo.InvariantCulture)},{r.TrueHeading.ToString(CultureInfo.InvariantCulture)},{r.FieldElevationFt.ToString(CultureInfo.InvariantCulture)},{r.ThrCrossingHgtFt.ToString(CultureInfo.InvariantCulture)},{EscapeCsv(r.RwyIdCsv)},{EscapeCsv(r.ApchLgtSystemCode)},{r.MagneticVariationDeg.ToString(CultureInfo.InvariantCulture)},{EscapeCsv(r.MagneticHemisphere)},{EscapeCsv(r.StateCode)}");
+                            w.WriteLine($"{EscapeCsv(r.AirportId)},{EscapeCsv(r.RunwayId)},{r.Latitude.ToString(CultureInfo.InvariantCulture)},{r.Longitude.ToString(CultureInfo.InvariantCulture)},{r.TrueHeading.ToString(CultureInfo.InvariantCulture)},{r.FieldElevationFt.ToString(CultureInfo.InvariantCulture)},{r.ThrCrossingHgtFt.ToString(CultureInfo.InvariantCulture)},{EscapeCsv(r.RwyIdCsv)},{EscapeCsv(r.ApchLgtSystemCode)},{r.MagneticVariationDeg.ToString(CultureInfo.InvariantCulture)},{EscapeCsv(r.MagneticHemisphere)},{EscapeCsv(r.IcaoId)}");
                         }
                     }
                 }
@@ -540,6 +540,10 @@ namespace PARScopeDisplay
                     try
                     {
                         string airportId = cols[colAirportId].Trim().Trim('"');
+                        
+                        // Filter out alphanumeric airport IDs (containing digits)
+                        if (airportId.Any(char.IsDigit)) continue;
+                        
                         // Determine runway end id
                         string runwayId = null;
                         if (colRunwayEndId >= 0 && colRunwayEndId < cols.Length)
@@ -605,7 +609,7 @@ namespace PARScopeDisplay
                             // Merge airport-level magnetic variation if available
                             ,MagneticVariationDeg = (_aptBaseMag != null && _aptBaseMag.TryGetValue(airportId, out var mv) ? mv.Mag : 0.0)
                             ,MagneticHemisphere = (_aptBaseMag != null && _aptBaseMag.TryGetValue(airportId, out var mh) ? mh.Hem : string.Empty)
-                            ,StateCode = (_aptBaseMag != null && _aptBaseMag.TryGetValue(airportId, out var ms) ? ms.StateCode : string.Empty)
+                            ,IcaoId = (_aptBaseMag != null && _aptBaseMag.TryGetValue(airportId, out var ms) ? ms.IcaoId : string.Empty)
                         };
 
                         List<RunwayEndData> list;
@@ -686,10 +690,21 @@ namespace PARScopeDisplay
                 if (string.IsNullOrEmpty(header)) return dict;
                 Func<string, string> norm = s => (s ?? string.Empty).Trim().Trim('"').Replace(" ", "_").ToUpperInvariant();
                 var cols = SplitCsvLine(header).Select(norm).ToArray();
+                
+                // Debug log to see what columns are available
+                try
+                {
+                    var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                    var folder = System.IO.Path.Combine(appData, "VATSIM-PAR-Scope");
+                    var logPath = System.IO.Path.Combine(folder, "apt_base_columns.txt");
+                    System.IO.File.WriteAllText(logPath, string.Join("\n", cols));
+                }
+                catch { }
+                
                 int colArpt = Array.FindIndex(cols, c => c == "ARPT_ID" || c == "ARPT_IDENT" || c == "APRT_ID" || c == "APT_ID");
                 int colMag = Array.FindIndex(cols, c => c == "MAG_VARN" || c == "MAG_VARN".ToUpperInvariant());
                 int colHem = Array.FindIndex(cols, c => c == "MAG_HEMIS" || c == "MAG_HEMIS".ToUpperInvariant() || c == "MAG_HEMISPHERE");
-                int colState = Array.FindIndex(cols, c => c == "STATE_CODE" || c == "STATE" || c == "STATE_PROV");
+                int colIcao = Array.FindIndex(cols, c => c == "ICAO_ID" || c == "ICAO_IDENT" || c == "ICAO");
 
                 string line;
                 while ((line = reader.ReadLine()) != null)
@@ -701,7 +716,7 @@ namespace PARScopeDisplay
                     if (string.IsNullOrEmpty(arpt)) continue;
                     double mag = 0.0;
                     string hem = string.Empty;
-                    string stateCode = string.Empty;
+                    string icaoId = string.Empty;
                     if (colMag >= 0 && colMag < parts.Length)
                     {
                         var s = parts[colMag].Trim().Trim('"');
@@ -714,9 +729,9 @@ namespace PARScopeDisplay
                     {
                         hem = parts[colHem].Trim().Trim('"');
                     }
-                    if (colState >= 0 && colState < parts.Length)
+                    if (colIcao >= 0 && colIcao < parts.Length)
                     {
-                        stateCode = parts[colState].Trim().Trim('"');
+                        icaoId = parts[colIcao].Trim().Trim('"');
                     }
 
                     // Normalize hemisphere into signed variation where WEST is positive and EAST is negative
@@ -733,7 +748,7 @@ namespace PARScopeDisplay
                     {
                         signedMag = mag;
                     }
-                    dict[arpt] = new AptBaseInfo { Mag = signedMag, Hem = hem, StateCode = stateCode };
+                    dict[arpt] = new AptBaseInfo { Mag = signedMag, Hem = hem, IcaoId = icaoId };
                 }
             }
             catch { }
@@ -784,7 +799,7 @@ namespace PARScopeDisplay
                 // include apt base magnetic map if present
                 if (_aptBaseMag != null && _aptBaseMag.Count > 0)
                 {
-                    var magmap = _aptBaseMag.ToDictionary(k => k.Key, v => new { mag = v.Value.Mag, hem = v.Value.Hem, state = v.Value.StateCode });
+                    var magmap = _aptBaseMag.ToDictionary(k => k.Key, v => new { mag = v.Value.Mag, hem = v.Value.Hem, icao = v.Value.IcaoId });
                     dump["aptMag"] = magmap;
                     Log($"NASR SaveCache: Magnetic variation data added ({_aptBaseMag.Count} entries)");
                 }
@@ -900,11 +915,11 @@ namespace PARScopeDisplay
                         {
                             var inner = kv.Value as Dictionary<string, object>;
                             if (inner == null) continue;
-                            double mag = 0.0; string hem = string.Empty; string state = string.Empty;
+                            double mag = 0.0; string hem = string.Empty; string icao = string.Empty;
                             if (inner.ContainsKey("mag")) mag = Convert.ToDouble(inner["mag"]);
                             if (inner.ContainsKey("hem")) hem = inner["hem"] as string ?? string.Empty;
-                            if (inner.ContainsKey("state")) state = inner["state"] as string ?? string.Empty;
-                            _aptBaseMag[kv.Key] = new AptBaseInfo { Mag = mag, Hem = hem, StateCode = state };
+                            if (inner.ContainsKey("icao")) icao = inner["icao"] as string ?? string.Empty;
+                            _aptBaseMag[kv.Key] = new AptBaseInfo { Mag = mag, Hem = hem, IcaoId = icao };
                         }
                         catch { }
                     }
@@ -942,7 +957,7 @@ namespace PARScopeDisplay
                             {
                                 r.MagneticVariationDeg = aptInfo.Mag;
                                 r.MagneticHemisphere = aptInfo.Hem;
-                                r.StateCode = aptInfo.StateCode;
+                                r.IcaoId = aptInfo.IcaoId;
                             }
                         }
                     }

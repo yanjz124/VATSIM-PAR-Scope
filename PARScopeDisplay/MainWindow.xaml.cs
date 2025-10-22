@@ -18,6 +18,13 @@ using System.Timers;
 
 namespace PARScopeDisplay
 {
+    // METAR data source
+    public enum MetarSource
+    {
+        NOAA,    // aviationweather.gov
+        VATSIM   // metar.vatsim.net
+    }
+
     // Radar sweep snapshot: captures all targets at a specific moment in time
     public class RadarSweep
     {
@@ -76,6 +83,13 @@ namespace PARScopeDisplay
         private double _radarScanIntervalSec = 1.0;
         private DispatcherTimer _radarTimer;
 
+        // METAR functionality
+        private MetarSource _metarSource = MetarSource.NOAA;
+        private bool _metarShowFull = true; // true = full METAR, false = abbreviated
+        private string _currentMetar = string.Empty;
+        private System.Timers.Timer _metarRefreshTimer;
+        private const double MetarRefreshIntervalMs = 5 * 60 * 1000; // 5 minutes
+
     // Snapshot used for display: populated at each radar sweep so the on-screen
     // "current" targets move only when a sweep occurs (simulating radar scan).
     // This decouples visual update rate from incoming NDJSON update frequency.
@@ -115,6 +129,8 @@ namespace PARScopeDisplay
                 _nasrLoader.EnsureCacheLoaded();
             }
             catch { }
+            // Backfill any loaded runway settings with NASR data if available
+            try { BackfillRunwayFromNasr(); } catch { }
 
             // Set up NASR cache watcher to auto-reload when nasr_cache.json is updated externally
             try
@@ -164,13 +180,70 @@ namespace PARScopeDisplay
             _radarTimer.Tick += (s, e) => SampleRadar();
             _radarTimer.Start();
             
+            // Initialize METAR auto-refresh timer (will be started when runway is selected)
+            _metarRefreshTimer = new System.Timers.Timer(MetarRefreshIntervalMs);
+            _metarRefreshTimer.Elapsed += (s, e) => Dispatcher.Invoke(() => LoadMetar());
+            _metarRefreshTimer.AutoReset = true;
+            
             // Ensure we capture an initial sweep/snapshot when the UI is ready and a runway is selected
-            this.Loaded += (s, e) => { try { if (_runway != null) SampleRadar(); } catch { } };
+            this.Loaded += (s, e) => { 
+                try { 
+                    if (_runway != null) 
+                    {
+                        SampleRadar();
+                        // Load METAR on startup if runway is already selected
+                        LoadMetar();
+                        StartMetarRefreshTimer();
+                    }
+                } catch { } 
+            };
 
             this.Closed += (s, e) =>
             {
                 try { SaveAppState(); } catch { }
             };
+        }
+
+        // If a runway was restored from saved settings but missing geolocation
+        // information, try to backfill it from the NASR loader so the plan view
+        // can render correctly. This uses the stored FaaLid or Icao to find data.
+        private void BackfillRunwayFromNasr()
+        {
+            try
+            {
+                if (_runway == null || _nasrLoader == null) return;
+                // Prefer the stored FaaLid for NASR lookup since keys are FAA LIDs, otherwise fallback to ICAO
+                string key = !string.IsNullOrEmpty(_runway.FaaLid) ? _runway.FaaLid : _runway.Icao;
+                if (string.IsNullOrEmpty(key)) return;
+                var r = _nasrLoader.GetRunway(key, _runway.Runway);
+                if (r == null) return;
+                // Only overwrite if values look empty/zero
+                if (_runway.ThresholdLat == 0) _runway.ThresholdLat = r.Latitude;
+                if (_runway.ThresholdLon == 0) _runway.ThresholdLon = r.Longitude;
+                if (_runway.HeadingTrueDeg == 0) _runway.HeadingTrueDeg = r.TrueHeading;
+                if (_runway.ThrCrossingHgtFt == 0) _runway.ThrCrossingHgtFt = r.ThrCrossingHgtFt;
+                if (_runway.FieldElevFt == 0) _runway.FieldElevFt = r.FieldElevationFt;
+                // If NASR provided an ICAO ID (e.g., KXXX) use it for future lookups and display
+                try
+                {
+                    if (!string.IsNullOrEmpty(r.IcaoId) && !r.IcaoId.Equals(_runway.Icao, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _runway.Icao = r.IcaoId.ToUpperInvariant();
+                    }
+                    // Ensure FaaLid is set for display (strip leading 'K' for US ICAO codes)
+                    if (string.IsNullOrEmpty(_runway.FaaLid) && !string.IsNullOrEmpty(r.AirportId))
+                    {
+                        var aid = r.AirportId.ToUpperInvariant();
+                        if (aid.Length == 4 && aid.StartsWith("K")) _runway.FaaLid = aid.Substring(1);
+                        else _runway.FaaLid = aid;
+                    }
+                }
+                catch { }
+
+                // Persist any corrections so subsequent startups will have concrete geometry/ids
+                try { SaveRunwaySettings(_runway); } catch { }
+            }
+            catch { }
         }
 
         // Allow external callers (simulator or UI) to trigger a radar sweep immediately.
@@ -271,7 +344,9 @@ namespace PARScopeDisplay
             // Update runway display
             if (_runway != null)
             {
-                RunwayText.Text = _runway.Icao + " " + _runway.Runway;
+                // Display FAA LID for user, but ICAO_ID is used for METAR only
+                string displayCode = !string.IsNullOrEmpty(_runway.FaaLid) ? _runway.FaaLid : _runway.Icao;
+                RunwayText.Text = displayCode + " " + _runway.Runway;
             }
             else
             {
@@ -382,6 +457,43 @@ namespace PARScopeDisplay
                 _showPlanDatablocks = (Display_ShowPlanData != null && Display_ShowPlanData.IsChecked == true);
                 // Refresh UI to apply new toggles
                 UpdateUi();
+            }
+            catch { }
+        }
+
+        private void OnMetarSourceChanged(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var menuItem = sender as MenuItem;
+                if (menuItem == null) return;
+
+                if (menuItem == Display_MetarSource_NOAA)
+                {
+                    _metarSource = MetarSource.NOAA;
+                    Display_MetarSource_NOAA.IsChecked = true;
+                    Display_MetarSource_VATSIM.IsChecked = false;
+                }
+                else if (menuItem == Display_MetarSource_VATSIM)
+                {
+                    _metarSource = MetarSource.VATSIM;
+                    Display_MetarSource_NOAA.IsChecked = false;
+                    Display_MetarSource_VATSIM.IsChecked = true;
+                }
+
+                // Reload METAR with new source
+                LoadMetar();
+            }
+            catch { }
+        }
+
+        private void OnMetarClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            try
+            {
+                // Toggle between full and abbreviated METAR
+                _metarShowFull = !_metarShowFull;
+                UpdateMetarDisplay();
             }
             catch { }
         }
@@ -792,9 +904,10 @@ namespace PARScopeDisplay
                 {
                 // Query NASR for approach lighting code for this runway (if loader present)
                 string apchCode = null;
-                if (_nasrLoader != null && rs != null && !string.IsNullOrEmpty(rs.Icao))
+                if (_nasrLoader != null && rs != null && !string.IsNullOrEmpty(rs.FaaLid ?? rs.Icao))
                 {
-                    var rwd = _nasrLoader.GetRunway(rs.Icao, rs.Runway);
+                    var lookupKey = !string.IsNullOrEmpty(rs.FaaLid) ? rs.FaaLid : rs.Icao;
+                    var rwd = _nasrLoader.GetRunway(lookupKey, rs.Runway);
                     if (rwd != null) apchCode = rwd.ApchLgtSystemCode;
                 }
                 // Prefer explicit runway override if user set a custom length
@@ -1038,9 +1151,10 @@ namespace PARScopeDisplay
             try
             {
                 string apchCode = null;
-                if (_nasrLoader != null && rs != null && !string.IsNullOrEmpty(rs.Icao))
+                if (_nasrLoader != null && rs != null && !string.IsNullOrEmpty(rs.FaaLid ?? rs.Icao))
                 {
-                    var rwd = _nasrLoader.GetRunway(rs.Icao, rs.Runway);
+                    var lookupKey = !string.IsNullOrEmpty(rs.FaaLid) ? rs.FaaLid : rs.Icao;
+                    var rwd = _nasrLoader.GetRunway(lookupKey, rs.Runway);
                     if (rwd != null) apchCode = rwd.ApchLgtSystemCode;
                 }
                 double apchLenFt = 0.0;
@@ -1249,7 +1363,9 @@ namespace PARScopeDisplay
             {
                 if (_nasrLoader != null && _runway != null && !string.IsNullOrEmpty(_runway.Icao))
                 {
-                    var ends = _nasrLoader.GetAirportRunways(_runway.Icao);
+                    // Use FaaLid for NASR lookup since keys are FAA LIDs, not ICAO codes
+                    var lookupKey = !string.IsNullOrEmpty(_runway.FaaLid) ? _runway.FaaLid : _runway.Icao;
+                    var ends = _nasrLoader.GetAirportRunways(lookupKey);
 
                     // local helper: normalize runway id like NASR normalization (number + optional L/R/C)
                     string NormalizeRwy(string r)
@@ -1651,6 +1767,7 @@ namespace PARScopeDisplay
         {
             _listening = false;
             try { if (_udpClient != null) _udpClient.Close(); } catch { }
+            try { StopMetarRefreshTimer(); } catch { }
             base.OnClosed(e);
         }
 
@@ -1665,7 +1782,13 @@ namespace PARScopeDisplay
             {
                 _runway = dlg.GetSettings();
                 SaveRunwaySettings(_runway);
-                RunwayText.Text = _runway.Icao + " " + _runway.Runway;
+                // Display FAA LID for user, but use ICAO_ID for METAR
+                string displayCode = !string.IsNullOrEmpty(_runway.FaaLid) ? _runway.FaaLid : _runway.Icao;
+                RunwayText.Text = displayCode + " " + _runway.Runway;
+                
+                // Load METAR for newly selected runway and start auto-refresh
+                LoadMetar();
+                StartMetarRefreshTimer();
             }
         }
 
@@ -1933,7 +2056,8 @@ namespace PARScopeDisplay
 
         public class RunwaySettings
         {
-            public string Icao;
+            public string Icao;  // ICAO_ID for METAR lookups ONLY (e.g., KORD, PHNL, PHOG)
+            public string FaaLid; // FAA airport code for display (e.g., ORD, HNL, OGG)
             public string Runway;
             public double ThresholdLat;
             public double ThresholdLon;
@@ -2073,6 +2197,395 @@ namespace PARScopeDisplay
                 else NASRStatusText.Text = string.Join(" — ", partsOut);
             }
             catch { }
+        }
+
+        // ========================================================================
+        // METAR Functionality (Phase 2 - Network Calls)
+        // ========================================================================
+
+        private void LoadMetar()
+        {
+            try
+            {
+                // Get ICAO code from current runway
+                string icao = _runway?.Icao ?? string.Empty;
+                
+                if (string.IsNullOrEmpty(icao))
+                {
+                    _currentMetar = "(no runway selected)";
+                    UpdateMetarDisplay();
+                    return;
+                }
+
+                // Show loading status
+                _currentMetar = $"(loading METAR for {icao}...)";
+                UpdateMetarDisplay();
+
+                // Fetch METAR asynchronously based on selected source
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        string metar = string.Empty;
+                        if (_metarSource == MetarSource.NOAA)
+                        {
+                            metar = FetchMetarFromNOAA(icao);
+                        }
+                        else // VATSIM
+                        {
+                            metar = FetchMetarFromVATSIM(icao);
+                        }
+
+                        // Update UI on dispatcher thread
+                        Dispatcher.Invoke(() =>
+                        {
+                            if (string.IsNullOrEmpty(metar))
+                            {
+                                _currentMetar = $"(no METAR for {icao})";
+                            }
+                            else
+                            {
+                                _currentMetar = CleanMetarString(metar);
+                            }
+                            UpdateMetarDisplay();
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"LoadMetar async error: {ex.Message}");
+                        Dispatcher.Invoke(() =>
+                        {
+                            _currentMetar = $"(error loading {icao})";
+                            UpdateMetarDisplay();
+                        });
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"LoadMetar error: {ex.Message}");
+                _currentMetar = "(error)";
+                UpdateMetarDisplay();
+            }
+        }
+
+        private string FetchMetarFromNOAA(string icao)
+        {
+            try
+            {
+                string url = $"https://aviationweather.gov/api/data/metar?ids={icao}&format=json";
+                using (var client = new WebClient())
+                {
+                    client.Headers.Add("User-Agent", "VATSIM-PAR-Scope/1.0");
+                    string response = client.DownloadString(url);
+                    
+                    // Parse JSON response - it's an array with one object containing "rawOb" field
+                    var serializer = new JavaScriptSerializer();
+                    var data = serializer.Deserialize<List<Dictionary<string, object>>>(response);
+                    
+                    if (data != null && data.Count > 0 && data[0].ContainsKey("rawOb"))
+                    {
+                        return data[0]["rawOb"].ToString();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"FetchMetarFromNOAA error: {ex.Message}");
+            }
+            return string.Empty;
+        }
+
+        private string FetchMetarFromVATSIM(string icao)
+        {
+            try
+            {
+                string url = $"https://metar.vatsim.net/{icao}";
+                using (var client = new WebClient())
+                {
+                    client.Headers.Add("User-Agent", "VATSIM-PAR-Scope/1.0");
+                    string response = client.DownloadString(url);
+                    
+                    // VATSIM returns plain text METAR
+                    return response?.Trim() ?? string.Empty;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"FetchMetarFromVATSIM error: {ex.Message}");
+            }
+            return string.Empty;
+        }
+
+        private void UpdateMetarDisplay()
+        {
+            try
+            {
+                if (MetarText == null) return;
+
+                if (string.IsNullOrEmpty(_currentMetar))
+                {
+                    MetarText.Text = "(no data)";
+                    MetarText.Foreground = Brushes.Gray;
+                    return;
+                }
+
+                string displayText = _metarShowFull ? _currentMetar : AbbreviateMetar(_currentMetar);
+                MetarText.Text = displayText;
+                
+                // Color code based on flight category
+                MetarText.Foreground = GetFlightCategoryColor(_currentMetar);
+            }
+            catch { }
+        }
+
+        private string CleanMetarString(string metar)
+        {
+            if (string.IsNullOrEmpty(metar)) return metar;
+            
+            // Remove "METAR" prefix if present
+            if (metar.StartsWith("METAR ", StringComparison.OrdinalIgnoreCase))
+            {
+                return metar.Substring(6).TrimStart();
+            }
+            
+            return metar;
+        }
+
+        private Brush GetFlightCategoryColor(string metar)
+        {
+            if (string.IsNullOrEmpty(metar)) return Brushes.Gray;
+            
+            try
+            {
+                // CAVOK = VFR automatically
+                if (metar.Contains("CAVOK")) return Brushes.Green;
+                
+                // Parse ceiling and visibility
+                double? ceilingAgl = ParseCeiling(metar);
+                double? visibilitySm = ParseVisibility(metar);
+                
+                // LIFR: Ceiling < 500 AGL and/or visibility < 1 SM
+                if ((ceilingAgl.HasValue && ceilingAgl.Value < 500) || 
+                    (visibilitySm.HasValue && visibilitySm.Value < 1))
+                {
+                    return Brushes.Magenta;
+                }
+                
+                // IFR: Ceiling 500-999 AGL and/or visibility 1-3 SM
+                if ((ceilingAgl.HasValue && ceilingAgl.Value >= 500 && ceilingAgl.Value < 1000) ||
+                    (visibilitySm.HasValue && visibilitySm.Value >= 1 && visibilitySm.Value < 3))
+                {
+                    return Brushes.Red;
+                }
+                
+                // MVFR: Ceiling 1000-3000 AGL and/or visibility 3-5 SM
+                if ((ceilingAgl.HasValue && ceilingAgl.Value >= 1000 && ceilingAgl.Value <= 3000) ||
+                    (visibilitySm.HasValue && visibilitySm.Value >= 3 && visibilitySm.Value <= 5))
+                {
+                    return Brushes.Blue;
+                }
+                
+                // VFR: Ceiling > 3000 AGL AND visibility > 5 SM (both must qualify)
+                if ((ceilingAgl.HasValue && ceilingAgl.Value > 3000 || !ceilingAgl.HasValue) &&
+                    (visibilitySm.HasValue && visibilitySm.Value > 5))
+                {
+                    return Brushes.Green;
+                }
+                
+                // Default if we can't determine
+                return Brushes.Black;
+            }
+            catch
+            {
+                return Brushes.Black;
+            }
+        }
+
+        private double? ParseCeiling(string metar)
+        {
+            try
+            {
+                var parts = metar.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                
+                foreach (var part in parts)
+                {
+                    // Check for BKN, OVC, or VV (vertical visibility)
+                    if (part.StartsWith("BKN") || part.StartsWith("OVC") || part.StartsWith("VV"))
+                    {
+                        // Extract the numeric part (next 3 digits after BKN/OVC/VV)
+                        string code = part.Substring(0, Math.Min(3, part.Length));
+                        string heightStr = part.Substring(code.Length);
+                        
+                        // Take first 3 digits
+                        if (heightStr.Length >= 3)
+                        {
+                            heightStr = heightStr.Substring(0, 3);
+                            if (int.TryParse(heightStr, out int heightHundreds))
+                            {
+                                // Convert hundreds of feet to feet AGL
+                                return heightHundreds * 100.0;
+                            }
+                        }
+                    }
+                }
+                
+                // No ceiling found (CLR/SKC/FEW/SCT only)
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private double? ParseVisibility(string metar)
+        {
+            try
+            {
+                var parts = metar.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                
+                // Visibility typically comes after the time (which ends in Z)
+                bool foundTime = false;
+                foreach (var part in parts)
+                {
+                    if (part.EndsWith("Z"))
+                    {
+                        foundTime = true;
+                        continue;
+                    }
+                    
+                    if (!foundTime) continue;
+                    
+                    // US format: ends with SM (statute miles)
+                    if (part.EndsWith("SM"))
+                    {
+                        string visStr = part.Substring(0, part.Length - 2);
+                        
+                        // Handle fractions like "1/2SM" or "1 1/2SM"
+                        if (visStr.Contains("/"))
+                        {
+                            // Parse fraction
+                            var fractionParts = visStr.Split(new[] { ' ', '/' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (fractionParts.Length == 2)
+                            {
+                                // Simple fraction like "1/2"
+                                if (double.TryParse(fractionParts[0], out double num) &&
+                                    double.TryParse(fractionParts[1], out double denom) && denom != 0)
+                                {
+                                    return num / denom;
+                                }
+                            }
+                            else if (fractionParts.Length == 3)
+                            {
+                                // Mixed fraction like "1 1/2"
+                                if (double.TryParse(fractionParts[0], out double whole) &&
+                                    double.TryParse(fractionParts[1], out double num) &&
+                                    double.TryParse(fractionParts[2], out double denom) && denom != 0)
+                                {
+                                    return whole + (num / denom);
+                                }
+                            }
+                        }
+                        else if (double.TryParse(visStr, out double vis))
+                        {
+                            return vis;
+                        }
+                    }
+                    // Metric format: 4 digits (meters), convert to statute miles
+                    else if (part.Length == 4 && int.TryParse(part, out int visMeters))
+                    {
+                        // Convert meters to statute miles (1 SM = 1609.34 meters)
+                        return visMeters / 1609.34;
+                    }
+                    
+                    // Stop at first weather phenomenon or cloud layer
+                    if (part.StartsWith("FEW") || part.StartsWith("SCT") || 
+                        part.StartsWith("BKN") || part.StartsWith("OVC") ||
+                        part.StartsWith("+") || part.StartsWith("-") || part == "VC")
+                    {
+                        break;
+                    }
+                }
+                
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private string AbbreviateMetar(string fullMetar)
+        {
+            if (string.IsNullOrEmpty(fullMetar)) return string.Empty;
+
+            try
+            {
+                // Abbreviated METAR: Time (ends in Z) + Wind (includes KT or MPS) + Altimeter (begins with A or Q)
+                var parts = fullMetar.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                var abbreviated = new List<string>();
+
+                foreach (var part in parts)
+                {
+                    // Time: ends with Z
+                    if (part.EndsWith("Z"))
+                    {
+                        abbreviated.Add(part);
+                    }
+                    // Wind: contains KT or MPS
+                    else if (part.Contains("KT") || part.Contains("MPS"))
+                    {
+                        abbreviated.Add(part);
+                    }
+                    // Altimeter: starts with A or Q
+                    else if (part.StartsWith("A") || part.StartsWith("Q"))
+                    {
+                        // Check if it looks like an altimeter setting (A#### or Q####)
+                        if (part.Length >= 5 && char.IsDigit(part[1]))
+                        {
+                            abbreviated.Add(part);
+                        }
+                    }
+                }
+
+                return abbreviated.Count > 0 ? string.Join(" ", abbreviated) : "(abbreviated unavailable)";
+            }
+            catch
+            {
+                return fullMetar; // fallback to full if abbreviation fails
+            }
+        }
+
+        private void StartMetarRefreshTimer()
+        {
+            try
+            {
+                if (_metarRefreshTimer != null)
+                {
+                    _metarRefreshTimer.Stop();
+                    _metarRefreshTimer.Start();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"StartMetarRefreshTimer error: {ex.Message}");
+            }
+        }
+
+        private void StopMetarRefreshTimer()
+        {
+            try
+            {
+                if (_metarRefreshTimer != null)
+                {
+                    _metarRefreshTimer.Stop();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"StopMetarRefreshTimer error: {ex.Message}");
+            }
         }
 
         private void OnDownloadNASRClick(object sender, RoutedEventArgs e)

@@ -204,7 +204,9 @@ namespace PARScopeDisplay
         {
             _init = set;
             if (set == null) return;
-            IcaoBox.Text = set.Icao;
+            // Display FAA LID in the IcaoBox, not the ICAO_ID
+            string displayCode = !string.IsNullOrEmpty(set.FaaLid) ? set.FaaLid : set.Icao;
+            IcaoBox.Text = displayCode;
             ClearComboSelection(IcaoBox);
             RefreshRunwayList();
             RunwayBox.Text = set.Runway;
@@ -248,7 +250,9 @@ namespace PARScopeDisplay
         public MainWindow.RunwaySettings GetSettings()
         {
             var s = new MainWindow.RunwaySettings();
-            s.Icao = (IcaoBox.Text ?? "").Trim().ToUpperInvariant();
+            string faaAirportCode = (IcaoBox.Text ?? "").Trim().ToUpperInvariant();
+            s.FaaLid = faaAirportCode; // Store FAA LID for display
+            s.Icao = faaAirportCode; // Default to FAA code, will replace with ICAO_ID if available from NASR
             s.Runway = (RunwayBox.Text ?? "").Trim().ToUpperInvariant();
             s.ThresholdLat = ParseDouble(LatBox.Text, _init != null ? _init.ThresholdLat : 0);
             s.ThresholdLon = ParseDouble(LonBox.Text, _init != null ? _init.ThresholdLon : 0);
@@ -261,17 +265,24 @@ namespace PARScopeDisplay
             s.MaxAzimuthDeg = ParseDouble(MaxAzBox.Text, _init != null ? _init.MaxAzimuthDeg : 10);
             s.SensorOffsetNm = ParseDouble(SensorOffsetBox.Text, _init != null ? _init.SensorOffsetNm : 0.5);
             s.ApproachLightLengthFt = ParseDouble(ApproachLightsBox.Text, _init != null ? _init.ApproachLightLengthFt : 0.0);
-            // If NASR loader available, pull airport-level magnetic variation for this airport/runway
+            // If NASR loader available, pull airport-level magnetic variation and ICAO_ID for this airport/runway
             try
             {
-                if (_nasrLoader != null && !string.IsNullOrEmpty(s.Icao))
+                if (_nasrLoader != null && !string.IsNullOrEmpty(faaAirportCode))
                 {
-                    string key = ResolveIcaoKey(s.Icao);
+                    string key = ResolveIcaoKey(faaAirportCode);
                     var r = _nasrLoader.GetRunway(key, s.Runway);
                     try
                     {
                         if (r != null)
                         {
+                            // Use ICAO_ID from NASR data for METAR lookups ONLY
+                            // If ICAO_ID is available, use it. Otherwise fall back to FAA LID.
+                            if (!string.IsNullOrEmpty(r.IcaoId))
+                            {
+                                s.Icao = r.IcaoId;
+                            }
+                            
                             s.MagVariationDeg = r.MagneticVariationDeg;
                             // If user manually entered a MagVar, prefer that value
                             if (!string.IsNullOrEmpty(MagVarBox.Text))
@@ -279,13 +290,29 @@ namespace PARScopeDisplay
                                 if (double.TryParse(MagVarBox.Text.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double userMv))
                                     s.MagVariationDeg = userMv;
                             }
+                            // If the user did not supply lat/lon/heading/etc in the dialog,
+                            // pull sensible defaults from the NASR runway data so the
+                            // plan view can render runways correctly.
+                            try
+                            {
+                                if (string.IsNullOrWhiteSpace(LatBox.Text)) s.ThresholdLat = r.Latitude;
+                                if (string.IsNullOrWhiteSpace(LonBox.Text)) s.ThresholdLon = r.Longitude;
+                                if (string.IsNullOrWhiteSpace(HdgBox.Text)) s.HeadingTrueDeg = r.TrueHeading;
+                                if (string.IsNullOrWhiteSpace(TchBox.Text)) s.ThrCrossingHgtFt = r.ThrCrossingHgtFt;
+                                if (string.IsNullOrWhiteSpace(ElevBox.Text)) s.FieldElevFt = r.FieldElevationFt;
+                                if (string.IsNullOrWhiteSpace(ApproachLightsBox.Text))
+                                {
+                                    try { s.ApproachLightLengthFt = MainWindow.GetApproachLightLengthFt(r.ApchLgtSystemCode); } catch { }
+                                }
+                            }
+                            catch { }
                             // Log resolved key when different
-                            if (!string.Equals(key, s.Icao, StringComparison.OrdinalIgnoreCase))
-                                TryLog($"Resolved ICAO {s.Icao} -> {key} for magvar lookup");
+                            if (!string.Equals(key, faaAirportCode, StringComparison.OrdinalIgnoreCase))
+                                TryLog($"Resolved ICAO {faaAirportCode} -> {key} for magvar lookup");
                         }
                         else
                         {
-                            TryLog($"MagVar lookup failed for {s.Icao}/{s.Runway} (resolved {key})");
+                            TryLog($"MagVar lookup failed for {faaAirportCode}/{s.Runway} (resolved {key})");
                         }
                     }
                     catch { }
