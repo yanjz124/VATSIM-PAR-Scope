@@ -76,6 +76,13 @@ namespace PARScopeDisplay
         private double _radarScanIntervalSec = 1.0;
         private DispatcherTimer _radarTimer;
 
+    // Snapshot used for display: populated at each radar sweep so the on-screen
+    // "current" targets move only when a sweep occurs (simulating radar scan).
+    // This decouples visual update rate from incoming NDJSON update frequency.
+    private readonly object _snapshotLock = new object();
+    private Dictionary<string, Dictionary<string, object>> _displaySnapshot = new Dictionary<string, Dictionary<string, object>>(StringComparer.OrdinalIgnoreCase);
+    private DateTime _lastSweepTime = DateTime.MinValue;
+
     // Single-file application state filename
     private const string AppStateFileName = "app_state.json";
 
@@ -157,10 +164,20 @@ namespace PARScopeDisplay
             _radarTimer.Tick += (s, e) => SampleRadar();
             _radarTimer.Start();
             
+            // Ensure we capture an initial sweep/snapshot when the UI is ready and a runway is selected
+            this.Loaded += (s, e) => { try { if (_runway != null) SampleRadar(); } catch { } };
+
             this.Closed += (s, e) =>
             {
                 try { SaveAppState(); } catch { }
             };
+        }
+
+        // Allow external callers (simulator or UI) to trigger a radar sweep immediately.
+        // This will capture history dots and update the display snapshot used for rendering.
+        public void TriggerSweepNow()
+        {
+            try { SampleRadar(); } catch { }
         }
 
         private void StartUdpListener()
@@ -285,23 +302,44 @@ namespace PARScopeDisplay
             sb.AppendLine("Callsign  Latitude    Longitude    Altitude   Speed");
             sb.AppendLine("--------  ----------  -----------  ---------  -----");
             
-            foreach (var kvp in _aircraft)
+            // Use the last radar sweep snapshot for display so the on-screen targets move at
+            // the configured radar scan interval. Fall back to live data if snapshot is empty.
+            Dictionary<string, Dictionary<string, object>> displaySnapLocal = null;
+            lock (_snapshotLock) { displaySnapLocal = _displaySnapshot != null && _displaySnapshot.Count > 0 ? new Dictionary<string, Dictionary<string, object>>(_displaySnapshot, StringComparer.OrdinalIgnoreCase) : null; }
+
+            if (displaySnapLocal != null)
             {
-                var ac = kvp.Value;
-                var callsign = ac.ContainsKey("callsign") && ac["callsign"] != null ? ac["callsign"].ToString() : "";
-                
-                double lat = GetDouble(ac, "lat", 0);
-                double lon = GetDouble(ac, "lon", 0);
-                double alt = GetDouble(ac, "alt_ft", 0);
-                double gs = GetGroundSpeedKts(ac);
-                
-                // Format as fixed-width table row
-                string row = string.Format("{0,-9} {1,10:F4}  {2,11:F4}  {3,8:F0}ft  {4,4:F0}kt",
-                    callsign, lat, lon, alt, gs);
-                sb.AppendLine(row);
-                
-                // Draw current targets (live radar returns)
-                DrawAircraft(ac);
+                sb.AppendLine("Using radar sweep snapshot for display");
+                sb.AppendLine($"Last sweep: {_lastSweepTime:HH:mm:ss}Z");
+                foreach (var kvp in displaySnapLocal)
+                {
+                    var ac = kvp.Value;
+                    var callsign = ac.ContainsKey("callsign") && ac["callsign"] != null ? ac["callsign"].ToString() : "";
+                    double lat = GetDouble(ac, "lat", 0);
+                    double lon = GetDouble(ac, "lon", 0);
+                    double alt = GetDouble(ac, "alt_ft", 0);
+                    double gs = GetGroundSpeedKts(ac);
+                    string row = string.Format("{0,-9} {1,10:F4}  {2,11:F4}  {3,8:F0}ft  {4,4:F0}kt",
+                        callsign, lat, lon, alt, gs);
+                    sb.AppendLine(row);
+                    DrawAircraft(ac);
+                }
+            }
+            else
+            {
+                foreach (var kvp in _aircraft)
+                {
+                    var ac = kvp.Value;
+                    var callsign = ac.ContainsKey("callsign") && ac["callsign"] != null ? ac["callsign"].ToString() : "";
+                    double lat = GetDouble(ac, "lat", 0);
+                    double lon = GetDouble(ac, "lon", 0);
+                    double alt = GetDouble(ac, "alt_ft", 0);
+                    double gs = GetGroundSpeedKts(ac);
+                    string row = string.Format("{0,-9} {1,10:F4}  {2,11:F4}  {3,8:F0}ft  {4,4:F0}kt",
+                        callsign, lat, lon, alt, gs);
+                    sb.AppendLine(row);
+                    DrawAircraft(ac);
+                }
             }
 
             // Draw all history dots from radar sweeps (independent of current targets)
@@ -471,6 +509,42 @@ namespace PARScopeDisplay
                 var now = DateTime.UtcNow;
                 _radarSweeps.RemoveAll(s => (now - s.SweepTime).TotalSeconds > HistoryLifetimeSec);
             }
+
+            // Also capture a display snapshot (callsign -> attribute map) representing the
+            // exact state of targets at sweep time. This snapshot will be used by UpdateUi
+            // to render the "current" targets so their motion is tied to the radar scan.
+            try
+            {
+                var snap = new Dictionary<string, Dictionary<string, object>>(StringComparer.OrdinalIgnoreCase);
+                foreach (var d in sweep.Dots)
+                {
+                    if (string.IsNullOrEmpty(d.Callsign)) continue;
+                    // Try to copy the live aircraft dictionary if present, otherwise create a minimal map
+                    Dictionary<string, object> live;
+                    if (_aircraft.TryGetValue(d.Callsign, out live))
+                    {
+                        // shallow copy to freeze values at sweep time
+                        var copy = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                        foreach (var kv in live) copy[kv.Key] = kv.Value;
+                        snap[d.Callsign] = copy;
+                    }
+                    else
+                    {
+                        var minimal = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+                        minimal["callsign"] = d.Callsign;
+                        minimal["lat"] = d.Lat;
+                        minimal["lon"] = d.Lon;
+                        minimal["alt_ft"] = d.AltFt;
+                        snap[d.Callsign] = minimal;
+                    }
+                }
+                lock (_snapshotLock)
+                {
+                    _displaySnapshot = snap;
+                    _lastSweepTime = sweep.SweepTime;
+                }
+            }
+            catch { }
         }
 
         /// <summary>
