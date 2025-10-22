@@ -981,18 +981,16 @@ namespace PARScopeDisplay
             DrawAzimuthWedge(canvas, w, h, rs);
 
             // Azimuth deviation guideline set: originate from TD (tdPixel)
-            // Draw lines every 5° from centerline out to the configured half-angle
+            // Draw the requested angles: 0, ±0.5°, ±1°, ±2° (but only include angles up to halfAz)
             double halfAz = GetHalfAzimuthDeg(rs);
-            double stepDeg = 5.0;
-            var angleList = new List<double>();
-            for (double a = 0.0; a <= halfAz + 1e-9; a += stepDeg)
-            {
-                angleList.Add(a);
-            }
+            var baseAngles = new List<double> { 0.0, 0.5, 1.0, 2.0 };
+            var angleList = baseAngles.Where(x => x <= halfAz + 1e-9).ToList();
 
             // Draw positive and negative sides (only if enabled)
             if (_showAzimuthDevLines)
             {
+                // Precompute denominator safely (avoid div by zero)
+                double tanHalfAz = Math.Tan(DegToRad(halfAz));
                 for (int idx = 0; idx < angleList.Count; idx++)
                 {
                     double ang = angleList[idx];
@@ -1004,12 +1002,29 @@ namespace PARScopeDisplay
                         var line = new Line();
                         if (ang == 0.0) { line.Stroke = _centerlineBrush; line.StrokeThickness = 2; }
                         else { line.Stroke = new SolidColorBrush(Color.FromRgb(160, 140, 40)); line.StrokeThickness = 1; var dash = new DoubleCollection(); dash.Add(4); dash.Add(6); line.StrokeDashArray = dash; }
+
                         // Start at TD on centerline
                         line.X1 = tdPixel; line.Y1 = h / 2.0;
                         line.X2 = w; // extend to right edge
-                        double yNm = Math.Tan(DegToRad(a)) * totalRangeNm; // lateral offset at full totalRange
-                        double yOffset = yNm * pxPerNmY;
-                        line.Y2 = Math.Max(0, Math.Min(h, h / 2.0 - yOffset)); // clamp
+
+                        // Compute Y using same normalization as TryProjectToAzimuth:
+                        // normAy = 0.5 + (cross / (2 * maxCrossTrackNm)) where maxCrossTrackNm = tan(halfAz) * rangeNm
+                        // For a guideline at angle 'a', cross_at_full_range = tan(a) * rangeNm
+                        // => normalized position = 0.5 - (tan(a) / (2 * tan(halfAz)))  (sign handled by 'a')
+                        double y2;
+                        if (Math.Abs(tanHalfAz) < 1e-9)
+                        {
+                            y2 = h / 2.0; // degenerate: no spread
+                        }
+                        else
+                        {
+                            double ratio = Math.Tan(DegToRad(a)) / (2.0 * tanHalfAz);
+                            // normAy = 0.5 - ratio (because positive 'a' moves upward negative in screen coords)
+                            double normAy = 0.5 - ratio;
+                            y2 = Math.Max(0.0, Math.Min(h, normAy * h));
+                        }
+
+                        line.Y2 = y2;
                         canvas.Children.Add(line);
                     }
                 }
@@ -1068,18 +1083,15 @@ namespace PARScopeDisplay
             double thresholdX = sensorOffsetNm * pxPerNm;
 
             // Build wedge from sensor (behind threshold)
+            // Use the same normalization as TryProjectToAzimuth so that max cross-track at full range
+            // maps to the canvas top and bottom (normAy = 0.0 and 1.0 respectively).
             var poly = new Polygon(); poly.Stroke = Brushes.DeepSkyBlue; poly.StrokeThickness = 2; poly.Fill = null;
             var pts = new PointCollection();
             pts.Add(new Point(0, midY)); // sensor apex
-            double yNm = Math.Tan(DegToRad(halfAz)) * totalRangeNm;
-            double halfWidthNm = 1.0;
-            double pxPerNmY = (h / 2.0) / halfWidthNm;
-            double yOffset = yNm * pxPerNmY;
-            // clamp to canvas height
-            double topY = Math.Max(0, midY - yOffset);
-            double bottomY = Math.Min(h, midY + yOffset);
-            pts.Add(new Point(w, topY));
-            pts.Add(new Point(w, bottomY));
+            // At full range (along = rangeNm) the max cross-track used for normalization is based on rangeNm
+            // which maps to normAy = 0.0 and 1.0 for the two edges. So use full canvas top/bottom.
+            pts.Add(new Point(w, 0));
+            pts.Add(new Point(w, h));
             poly.Points = pts;
             canvas.Children.Add(poly);
 
