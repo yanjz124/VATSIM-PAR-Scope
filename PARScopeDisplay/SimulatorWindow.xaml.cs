@@ -183,38 +183,135 @@ namespace PARScopeDisplay
             StatusText.Text = "Auto-moving";
         }
 
-        private void OnSpawnClick(object sender, RoutedEventArgs e)
+        private void OnSpawnDebugGridClick(object sender, RoutedEventArgs e)
         {
-            double bearing = 0, rangeNm = 0, alt = 0, speed = 0, heading = 0;
-            double.TryParse(SpawnBearingBox.Text.Trim(), out bearing);
-            double.TryParse(SpawnRangeBox.Text.Trim(), out rangeNm);
-            double.TryParse(SpawnAltBox.Text.Trim(), out alt);
-            double.TryParse(SpawnSpeedBox.Text.Trim(), out speed);
-            double.TryParse(SpawnHeadingBox.Text.Trim(), out heading);
-
-            double lat = 51.0, lon = 0.0; // fallback
-            if (_runway != null)
+            if (_runway == null)
             {
-                // compute destination from runway threshold lat/lon
-                DestinationFrom(_runway.ThresholdLat, _runway.ThresholdLon, bearing, rangeNm, out lat, out lon);
+                StatusText.Text = "No runway selected for debug grid";
+                return;
             }
 
-            var ac = new FakeAircraft { Callsign = "FAKE" + (_aircraft.Count + 1), Lat = lat, Lon = lon, AltFt = alt, SpeedKts = speed, HeadingDeg = heading, VsFpm = 0, TypeCode = "B738", IsPaused = false };
-            _aircraft.Add(ac);
+            double fieldElevFt = _runway.FieldElevFt;
+            double approachRad = DegToRad(_runway.HeadingTrueDeg) + Math.PI;
+            double crossRad = approachRad + Math.PI / 2;
+
+            // Create a polar wedge-shaped debug grid centered on the approach bearing.
+            // This fills the wedge out to 1.0 NM plus a small buffer to exercise the "outside" filter.
+            // Parameters: radial step, angular step, radial buffer and altitude slices.
+            double maxRadiusNm = 1.0;          // primary wedge radius
+            double radialBufferNm = 0.05;      // small buffer beyond 1.0 NM to test outside filtering
+            double radialStepNm = 0.05;        // radial spacing
+            double angleStepDeg = 5.0;         // angular spacing in degrees
+            double bufferDeg = 2.5;            // angular buffer outside max azimuth to test edge cases
+
+            // compute wedge center and half-angle based on runway settings (use MaxAzimuthDeg if available)
+            double wedgeHalfDeg = (_runway.MaxAzimuthDeg > 0) ? _runway.MaxAzimuthDeg : 10.0; // default 10deg
+            wedgeHalfDeg += bufferDeg; // add a small angular buffer
+
+            int count = 0;
+            // compute sensor lat/lon based on runway threshold and sensor offset (along runway heading)
+            double sensorLat = _runway.ThresholdLat;
+            double sensorLon = _runway.ThresholdLon;
+            if (_runway.SensorOffsetNm != 0)
+            {
+                // Sensor offset sign: move from threshold toward the runway end (opposite the approach bearing).
+                // Historically the offset was applied the other way; invert here so a positive SensorOffsetNm
+                // places the sensor toward the runway end (i.e. negative along-approach distance).
+                double sensorBearing = RadToDeg(approachRad); // along approach
+                double tmpLat, tmpLon;
+                DestinationFrom(_runway.ThresholdLat, _runway.ThresholdLon, sensorBearing, -_runway.SensorOffsetNm, out tmpLat, out tmpLon);
+                sensorLat = tmpLat;
+                sensorLon = tmpLon;
+            }
+
+            // alt slices from field elevation up to +800 ft every 100 ft
+            // iterate radially from just behind the sensor (negative small buffer) out to 1.0 DME so we cover
+            // the range "-0.05nm to 1.0nm from runway end to approach end" as requested.
+            for (double r = -radialBufferNm; r <= maxRadiusNm + 1e-9; r += radialStepNm)
+            {
+                // iterate angles from -wedgeHalfDeg..+wedgeHalfDeg around the approachRad
+                for (double aDeg = -wedgeHalfDeg; aDeg <= wedgeHalfDeg + 1e-9; aDeg += angleStepDeg)
+                {
+                    double bearingDeg = RadToDeg(approachRad) + aDeg;
+                    double latP, lonP;
+                    // origin is now the sensor position (not the runway threshold)
+                    DestinationFrom(sensorLat, sensorLon, bearingDeg, r, out latP, out lonP);
+
+                    // For lateral wedge points keep them at field elevation (vertical variation handled below)
+                    {
+                        var ac = new FakeAircraft
+                        {
+                            Callsign = $"D{count:D4}",
+                            Lat = latP,
+                            Lon = lonP,
+                            AltFt = fieldElevFt,
+                            HeadingDeg = (_runway.HeadingTrueDeg + 180) % 360,
+                            SpeedKts = 0,
+                            VsFpm = 0,
+                            TypeCode = "B738",
+                            IsPaused = true // paused so they don't move
+                        };
+                        _aircraft.Add(ac);
+                        SendNdjson(BuildAddJson(ac));
+                        count++;
+                    }
+                }
+            }
+
             RefreshList();
-            AircraftList.SelectedItem = ac;
-            PopulateFields(ac);
-            // automatically send add and start motion (if not already running)
-            SendNdjson(BuildAddJson(ac));
-            StatusText.Text = "Spawned " + ac.Callsign + " (sent add)";
-            if (_cts == null)
+            StatusText.Text = $"Spawned {count} debug aircraft (wedge up to {maxRadiusNm} NM + buffer)";
+
+            // --- Vertical projection set along final from the sensor ---
+            // Generate points along the approach centerline (aDeg = 0) out to 1.0 NM
+            // for projection angles from 0..10 degrees so we can test vertical filter edges.
+            double projMaxDeg = 10.0;
+            double projDegStep = 1.0;
+            double projRadialStep = radialStepNm; // keep same radial step
+            double bearingFinalDeg = RadToDeg(approachRad); // approach bearing
+
+            for (double ang = 0.0; ang <= projMaxDeg + 1e-9; ang += projDegStep)
             {
-                // start auto-moving automatically
-                Dispatcher.Invoke(() => OnStartAutoClick(this, null));
+                for (double r2 = projRadialStep; r2 <= maxRadiusNm + 1e-9; r2 += projRadialStep)
+                {
+                    double latV, lonV;
+                    DestinationFrom(sensorLat, sensorLon, bearingFinalDeg, r2, out latV, out lonV);
+                    // distance in feet
+                    double distFt = r2 * 6076.12;
+                    double altProjected = fieldElevFt + Math.Tan(DegToRad(ang)) * distFt;
+
+                    var acv = new FakeAircraft
+                    {
+                        Callsign = $"V{count:D4}",
+                        Lat = latV,
+                        Lon = lonV,
+                        AltFt = altProjected,
+                        HeadingDeg = (_runway.HeadingTrueDeg + 180) % 360,
+                        SpeedKts = 0,
+                        VsFpm = 0,
+                        TypeCode = "B738",
+                        IsPaused = true
+                    };
+                    _aircraft.Add(acv);
+                    SendNdjson(BuildAddJson(acv));
+                    count++;
+                }
             }
+
+            RefreshList();
+            StatusText.Text = $"Spawned {count} debug aircraft (wedge + vertical projections)";
         }
 
-        // Per-item pause/unpause/delete handlers wired from the list item template
+        private void OnDeleteAllClick(object sender, RoutedEventArgs e)
+        {
+            var snapshot = _aircraft.ToArray();
+            foreach (var ac in snapshot)
+            {
+                SendNdjson(BuildDeleteJson(ac));
+            }
+            _aircraft.Clear();
+            RefreshList();
+            StatusText.Text = "Deleted all aircraft";
+        }
         private void OnPauseClick(object sender, RoutedEventArgs e)
         {
             if (sender is FrameworkElement fe && fe.DataContext is FakeAircraft ac)

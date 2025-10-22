@@ -13,6 +13,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="1*" MinHeight="260" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
@@ -71,7 +72,7 @@
                             <TextBlock Grid.Row="2" Grid.Column="1" Text="Heading (deg):" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,6,0,0" />
                             <!-- Spawn button moved down to align with the secondary input row -->
                             <StackPanel Grid.Row="3" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="6,2,0,0">
-                                <Button x:Name="SpawnBtn" Content="Spawn" Width="86" Click="OnSpawnClick" />
+                                <Button x:Name="SpawnBtn" Content="Spawn" Width="86" Click="OnAddClick" />
                             </StackPanel>
 
                             <!-- secondary inputs row (speed/heading) placed below labels -->
@@ -82,7 +83,13 @@
                 </Border>
             </Grid>
 
-            <Border Grid.Row="2" BorderBrush="#DDD" BorderThickness="1" CornerRadius="4" Padding="6" Background="WhiteSmoke">
+            <!-- Debug grid spawn controls -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,8">
+                <Button Content="Spawn Debug Grid" Click="OnSpawnDebugGridClick" Margin="0,0,10,0" />
+                <Button Content="Delete All" Click="OnDeleteAllClick" />
+            </StackPanel>
+
+            <Border Grid.Row="3" BorderBrush="#DDD" BorderThickness="1" CornerRadius="4" Padding="6" Background="WhiteSmoke">
                 <!-- List with left-aligned callsign and right-aligned pause/delete buttons -->
                 <ListBox x:Name="AircraftList" SelectionChanged="AircraftList_SelectionChanged" MinHeight="220">
                     <ListBox.ItemTemplate>

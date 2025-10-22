@@ -408,7 +408,8 @@ namespace PARScopeDisplay
                     {
                         azimuthDeg = Math.Atan2(crossFromSensorNm, alongFromSensorNm) * 180.0 / Math.PI;
                         double distFt = Math.Abs(alongFromSensorNm) * 6076.12;
-                        elevationDeg = Math.Atan2(alt - (_runway.FieldElevFt + _runway.ThrCrossingHgtFt), distFt) * 180.0 / Math.PI;
+                        double altRef = _runway.FieldElevFt;
+                        elevationDeg = Math.Atan2(alt - altRef, distFt) * 180.0 / Math.PI;
                     }
                     
                     // Wedge membership tests
@@ -1274,8 +1275,9 @@ namespace PARScopeDisplay
             double lat0Rad = DegToRad(rs.ThresholdLat);
             double dLatM = sensorOffsetM * Math.Cos(approachRad);
             double dLonM = sensorOffsetM * Math.Sin(approachRad);
-            sensorLat = rs.ThresholdLat + (dLatM / 111319.9);
-            sensorLon = rs.ThresholdLon + (dLonM / (111319.9 * Math.Cos(lat0Rad)));
+            // Place sensor on the runway side (opposite the approach vector)
+            sensorLat = rs.ThresholdLat - (dLatM / 111319.9);
+            sensorLon = rs.ThresholdLon - (dLonM / (111319.9 * Math.Cos(lat0Rad)));
         }
 
         private void DrawAircraft(Dictionary<string, object> ac)
@@ -1352,7 +1354,8 @@ namespace PARScopeDisplay
                 // Use sensor-relative cross/along values so the angle originates at the sensor apex
                 azimuthDeg = Math.Atan2(crossTrackFromSensorNm, alongTrackFromSensorNm) * 180.0 / Math.PI;
                 double distFt = Math.Abs(alongTrackFromSensorNm) * 6076.12;
-                elevationDeg = Math.Atan2(alt - (fieldElevFt + tchFt), distFt) * 180.0 / Math.PI;
+                double altRef = fieldElevFt;
+                elevationDeg = Math.Atan2(alt - altRef, distFt) * 180.0 / Math.PI;
             }
 
             // Inclusion tests
@@ -1729,7 +1732,8 @@ namespace PARScopeDisplay
             {
                 azimuthDeg = Math.Atan2(crossFromSensorNm, alongFromSensorNm) * 180.0 / Math.PI;
                 double distFt = Math.Abs(alongFromSensorNm) * 6076.12;
-                elevationDeg = Math.Atan2(alt - (rs.FieldElevFt + rs.ThrCrossingHgtFt), distFt) * 180.0 / Math.PI;
+                double altRef = rs.FieldElevFt;
+                elevationDeg = Math.Atan2(alt - altRef, distFt) * 180.0 / Math.PI;
             }
 
             double includeNegBuffer = 0.3, includePosBuffer = 0.5;
