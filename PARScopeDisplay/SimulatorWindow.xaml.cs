@@ -325,6 +325,7 @@ namespace PARScopeDisplay
             wedgeHalfDeg += bufferDeg; // add a small angular buffer
 
             int count = 0;
+            var newDebugAircraft = new List<FakeAircraft>();
             // compute sensor lat/lon based on runway threshold and sensor offset (along runway heading)
             double sensorLat = _runway.ThresholdLat;
             double sensorLon = _runway.ThresholdLon;
@@ -367,8 +368,7 @@ namespace PARScopeDisplay
                             TypeCode = "B738",
                             IsPaused = false // unpaused so they will be included in auto-loop (speed 0 keeps them stationary)
                         };
-                        _aircraft.Add(ac);
-                        SendNdjson(BuildAddJson(ac));
+                        newDebugAircraft.Add(ac);
                         count++;
                     }
                 }
@@ -409,12 +409,30 @@ namespace PARScopeDisplay
                             TypeCode = "B738",
                             IsPaused = false
                         };
-                    _aircraft.Add(acv);
-                    SendNdjson(BuildAddJson(acv));
-                    count++;
+                        newDebugAircraft.Add(acv);
+                        count++;
                     }
                 }
             }
+
+            // Add all new debug aircraft to the shared collection under a lock, then send add messages
+            try
+            {
+                if (newDebugAircraft.Count > 0)
+                {
+                    lock (_aircraft)
+                    {
+                        foreach (var nac in newDebugAircraft) _aircraft.Add(nac);
+                    }
+
+                    // Send add messages outside the lock to avoid blocking the simulation loop on network I/O
+                    foreach (var nac in newDebugAircraft)
+                    {
+                        try { SendNdjson(BuildAddJson(nac)); } catch { }
+                    }
+                }
+            }
+            catch { }
 
             RefreshList();
             StatusText.Text = $"Spawned {count} debug aircraft (wedge + vertical projections)";
@@ -424,16 +442,25 @@ namespace PARScopeDisplay
 
         private void OnDeleteAllClick(object sender, RoutedEventArgs e)
         {
-            var snapshot = _aircraft.ToArray();
+            // Stop the auto-update loop first so it doesn't send updates that re-create targets on the scope.
+            StopAuto();
+
+            // Snapshot and clear under lock to avoid races with other threads.
+            FakeAircraft[] snapshot;
+            lock (_aircraft)
+            {
+                snapshot = _aircraft.ToArray();
+                _aircraft.Clear();
+            }
+
+            // Send delete messages for each removed aircraft (do network I/O outside the lock).
             foreach (var ac in snapshot)
             {
-                SendNdjson(BuildDeleteJson(ac));
+                try { SendNdjson(BuildDeleteJson(ac)); } catch { }
             }
-            _aircraft.Clear();
+
             RefreshList();
             StatusText.Text = "Deleted all aircraft";
-            // no active aircraft remain; stop auto loop
-            StopAuto();
         }
         private void OnPauseClick(object sender, RoutedEventArgs e)
         {
