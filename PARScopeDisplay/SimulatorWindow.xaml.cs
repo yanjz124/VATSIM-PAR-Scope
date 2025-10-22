@@ -204,8 +204,9 @@ namespace PARScopeDisplay
             double angleStepDeg = 5.0;         // angular spacing in degrees
             double bufferDeg = 2.5;            // angular buffer outside max azimuth to test edge cases
 
-            // compute wedge center and half-angle based on runway settings (use MaxAzimuthDeg if available)
-            double wedgeHalfDeg = (_runway.MaxAzimuthDeg > 0) ? _runway.MaxAzimuthDeg : 10.0; // default 10deg
+            // compute wedge center and half-angle based on runway settings (MaxAzimuthDeg is total cone)
+            double configuredTotalAz = (_runway.MaxAzimuthDeg > 0) ? _runway.MaxAzimuthDeg : 10.0;
+            double wedgeHalfDeg = configuredTotalAz / 2.0;
             wedgeHalfDeg += bufferDeg; // add a small angular buffer
 
             int count = 0;

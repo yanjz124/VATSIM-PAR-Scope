@@ -386,7 +386,7 @@ namespace PARScopeDisplay
                     // Compute wedge membership (same logic as DrawAircraft filtering)
                     double sensorOffsetNm = _runway.SensorOffsetNm > 0 ? _runway.SensorOffsetNm : 0.5;
                     double rangeNm = _runway.RangeNm > 0 ? _runway.RangeNm : 10.0;
-                    double maxAzDeg = _runway.MaxAzimuthDeg > 0 ? _runway.MaxAzimuthDeg : 10.0;
+                    double halfAzDeg = GetHalfAzimuthDeg(_runway);
                     
                     // Get sensor position
                     double sensorLat, sensorLon;
@@ -414,7 +414,7 @@ namespace PARScopeDisplay
                     
                     // Wedge membership tests
                     double includeNegBuffer = 0.3, includePosBuffer = 0.5;
-                    bool inAzimuthScope = Math.Abs(azimuthDeg) <= maxAzDeg && alongFromSensorNm >= -includeNegBuffer && alongFromSensorNm <= rangeNm + includePosBuffer;
+                    bool inAzimuthScope = Math.Abs(azimuthDeg) <= halfAzDeg && alongFromSensorNm >= -includeNegBuffer && alongFromSensorNm <= rangeNm + includePosBuffer;
                     bool inVerticalScope = inAzimuthScope && elevationDeg <= 6.0;
                     
                     // Apply filter toggles
@@ -981,9 +981,14 @@ namespace PARScopeDisplay
             DrawAzimuthWedge(canvas, w, h, rs);
 
             // Azimuth deviation guideline set: originate from TD (tdPixel)
-            // Only include 0.0, ±0.5°, ±1°, ±2° as requested
-            double maxAz = rs.MaxAzimuthDeg > 0 ? rs.MaxAzimuthDeg : 10.0;
-            var angleList = new List<double> { 0.5, 1.0, 2.0 };
+            // Draw lines every 5° from centerline out to the configured half-angle
+            double halfAz = GetHalfAzimuthDeg(rs);
+            double stepDeg = 5.0;
+            var angleList = new List<double>();
+            for (double a = 0.0; a <= halfAz + 1e-9; a += stepDeg)
+            {
+                angleList.Add(a);
+            }
 
             // Draw positive and negative sides (only if enabled)
             if (_showAzimuthDevLines)
@@ -1054,7 +1059,7 @@ namespace PARScopeDisplay
 
         private void DrawAzimuthWedge(System.Windows.Controls.Canvas canvas, double w, double h, RunwaySettings rs)
         {
-            double maxAz = rs.MaxAzimuthDeg > 0 ? rs.MaxAzimuthDeg : 10.0;
+            double halfAz = GetHalfAzimuthDeg(rs);
             double midY = h / 2.0;
             double rangeNm = rs.RangeNm > 0 ? rs.RangeNm : 10.0;
             double sensorOffsetNm = rs.SensorOffsetNm > 0 ? rs.SensorOffsetNm : 0.5;
@@ -1066,7 +1071,7 @@ namespace PARScopeDisplay
             var poly = new Polygon(); poly.Stroke = Brushes.DeepSkyBlue; poly.StrokeThickness = 2; poly.Fill = null;
             var pts = new PointCollection();
             pts.Add(new Point(0, midY)); // sensor apex
-            double yNm = Math.Tan(DegToRad(maxAz)) * totalRangeNm;
+            double yNm = Math.Tan(DegToRad(halfAz)) * totalRangeNm;
             double halfWidthNm = 1.0;
             double pxPerNmY = (h / 2.0) / halfWidthNm;
             double yOffset = yNm * pxPerNmY;
@@ -1114,8 +1119,8 @@ namespace PARScopeDisplay
             double hdgRad = DegToRad(rs.HeadingTrueDeg);
             double approachRad = hdgRad + Math.PI; // reciprocal heading (approach course)
             double sensorOffsetNm = rs.SensorOffsetNm > 0 ? rs.SensorOffsetNm : 0.5;
-            double maxAzDeg = rs.MaxAzimuthDeg > 0 ? rs.MaxAzimuthDeg : 10.0;
-            double maxAzRad = DegToRad(maxAzDeg);
+            double halfAzDeg = GetHalfAzimuthDeg(rs);
+            double maxAzRad = DegToRad(halfAzDeg);
 
             // Sensor position: from threshold, move along APPROACH direction by sensor offset
             // We want the sensor/apex on the runway side (i.e., opposite sign of the approach vector here)
@@ -1265,19 +1270,27 @@ namespace PARScopeDisplay
         }
 
         // Compute sensor lat/lon given runway threshold lat/lon and a sensor offset (nm)
-        // sensorOffsetNm positive means sensor is on runway side (to the left along runway heading when drawing)
+        // sensorOffsetNm positive means sensor is on runway side (toward the runway end when drawing)
         private void GetSensorLatLon(RunwaySettings rs, double sensorOffsetNm, out double sensorLat, out double sensorLon)
         {
             // Approach course is reciprocal of runway heading
             double hdgRad = DegToRad(rs.HeadingTrueDeg);
-            double approachRad = hdgRad + Math.PI; // reciprocal
+            double approachRad = hdgRad + Math.PI; // reciprocal (along final)
             double sensorOffsetM = sensorOffsetNm * 1852.0; // nm to meters
             double lat0Rad = DegToRad(rs.ThresholdLat);
             double dLatM = sensorOffsetM * Math.Cos(approachRad);
             double dLonM = sensorOffsetM * Math.Sin(approachRad);
-            // Place sensor on the runway side (opposite the approach vector)
+            // Place sensor on the runway side (opposite the approach vector here)
             sensorLat = rs.ThresholdLat - (dLatM / 111319.9);
             sensorLon = rs.ThresholdLon - (dLonM / (111319.9 * Math.Cos(lat0Rad)));
+        }
+
+        // Interpret MaxAzimuthDeg stored in RunwaySettings as the TOTAL azimuth cone (degrees).
+        // Return the half-angle (per-side) used by internal geometry and inclusion tests.
+        private double GetHalfAzimuthDeg(RunwaySettings rs)
+        {
+            double total = (rs != null && rs.MaxAzimuthDeg > 0) ? rs.MaxAzimuthDeg : 10.0;
+            return total / 2.0;
         }
 
         private void DrawAircraft(Dictionary<string, object> ac)
@@ -1308,7 +1321,7 @@ namespace PARScopeDisplay
             // Runway / sensor params
             double rangeNm = _runway.RangeNm > 0 ? _runway.RangeNm : 10.0;
             double sensorOffsetNm = _runway.SensorOffsetNm > 0 ? _runway.SensorOffsetNm : 0.5;
-            double maxAzDeg = _runway.MaxAzimuthDeg > 0 ? _runway.MaxAzimuthDeg : 10.0;
+            double halfAzDeg = GetHalfAzimuthDeg(_runway);
             double gsDeg = _runway.GlideSlopeDeg > 0 ? _runway.GlideSlopeDeg : 3.0;
             double tchFt = _runway.ThrCrossingHgtFt > 0 ? _runway.ThrCrossingHgtFt : 50.0;
             double fieldElevFt = _runway.FieldElevFt;
@@ -1361,7 +1374,7 @@ namespace PARScopeDisplay
             // Inclusion tests
             double includeNegBuffer = 0.3, includePosBuffer = 0.5;
             // Inclusion test should be referenced to the sensor apex: allow a small negative buffer behind sensor if necessary
-            bool inAzimuthScope = Math.Abs(azimuthDeg) <= maxAzDeg && alongTrackFromSensorNm >= -includeNegBuffer && alongTrackFromSensorNm <= rangeNm + includePosBuffer;
+            bool inAzimuthScope = Math.Abs(azimuthDeg) <= halfAzDeg && alongTrackFromSensorNm >= -includeNegBuffer && alongTrackFromSensorNm <= rangeNm + includePosBuffer;
             bool inVerticalScope = inAzimuthScope && elevationDeg <= 6.0;
 
             // Respect debug wedge-filter toggles: when a filter is disabled we treat the scope as allowing all targets
@@ -1423,7 +1436,7 @@ namespace PARScopeDisplay
             try
             {
                 double totalRangeNmA = rangeNm + sensorOffsetNm;
-                double maxCrossTrackNm = Math.Tan(DegToRad(maxAzDeg)) * rangeNm;
+                double maxCrossTrackNm = Math.Tan(DegToRad(halfAzDeg)) * rangeNm;
                 double normAx = ((alongTrackFromThresholdNm + sensorOffsetNm) / totalRangeNmA);
                 double normAy = 0.5 + (crossTrackFromThresholdNm / (2 * maxCrossTrackNm));
                 normAx = Math.Max(0, Math.Min(1, normAx)); normAy = Math.Max(0, Math.Min(1, normAy));
@@ -1636,8 +1649,8 @@ namespace PARScopeDisplay
             double sensorOffsetNm = _runway.SensorOffsetNm > 0 ? _runway.SensorOffsetNm : 0.5;
             double rangeNm = _runway.RangeNm > 0 ? _runway.RangeNm : 10.0;
             double totalRangeNmA = rangeNm + sensorOffsetNm;
-            double maxAzDeg = _runway.MaxAzimuthDeg > 0 ? _runway.MaxAzimuthDeg : 10.0;
-            double maxCrossTrackNm = Math.Tan(DegToRad(maxAzDeg)) * rangeNm;
+            double halfAzDeg = GetHalfAzimuthDeg(_runway);
+            double maxCrossTrackNm = Math.Tan(DegToRad(halfAzDeg)) * rangeNm;
             
             double east_t = 0, north_t = 0;
             GeoToEnu(_runway.ThresholdLat, _runway.ThresholdLon, lat, lon, out east_t, out north_t);
@@ -1737,7 +1750,8 @@ namespace PARScopeDisplay
             }
 
             double includeNegBuffer = 0.3, includePosBuffer = 0.5;
-            bool inAzimuthScope = Math.Abs(azimuthDeg) <= rs.MaxAzimuthDeg && alongFromSensorNm >= -includeNegBuffer && alongFromSensorNm <= rangeNm + includePosBuffer;
+            double halfAzDeg = GetHalfAzimuthDeg(rs);
+            bool inAzimuthScope = Math.Abs(azimuthDeg) <= halfAzDeg && alongFromSensorNm >= -includeNegBuffer && alongFromSensorNm <= rangeNm + includePosBuffer;
             bool inVerticalScope = inAzimuthScope && elevationDeg <= 6.0;
 
             seenAzimuth = inAzimuthScope;
