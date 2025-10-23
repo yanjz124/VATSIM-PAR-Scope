@@ -53,31 +53,35 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
-                                <!-- added row for the secondary inputs so labels align correctly -->
+                                <RowDefinition Height="Auto" />
+                                <!-- row for the centered spawn button -->
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
-                            <!-- labels row -->
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Bearing (deg):" VerticalAlignment="Center" HorizontalAlignment="Left" />
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="Range (NM):" VerticalAlignment="Center" HorizontalAlignment="Left" />
-                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Alt (ft):" VerticalAlignment="Center" HorizontalAlignment="Left" />
+                            <!-- labels row (first three) -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Callsign:" VerticalAlignment="Center" HorizontalAlignment="Left" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="Bearing (deg):" VerticalAlignment="Center" HorizontalAlignment="Left" />
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="Range (NM):" VerticalAlignment="Center" HorizontalAlignment="Left" />
 
                             <!-- inputs row (aligned) -->
-                            <TextBox Grid.Row="1" Grid.Column="0" x:Name="SpawnBearingBox" Width="140" Text="360" FontSize="12" Height="22" HorizontalAlignment="Left" Margin="0,4,8,4" TextAlignment="Center" />
-                            <TextBox Grid.Row="1" Grid.Column="1" x:Name="SpawnRangeBox" Width="140" Text="5" FontSize="12" Height="22" HorizontalAlignment="Left" Margin="0,4,8,4" TextAlignment="Center" />
-                            <TextBox Grid.Row="1" Grid.Column="2" x:Name="SpawnAltBox" Width="140" Text="3000" FontSize="12" Height="22" HorizontalAlignment="Left" Margin="0,4,0,4" TextAlignment="Center" />
+                            <TextBox Grid.Row="1" Grid.Column="0" x:Name="SpawnCallsignBox" Width="140" Text="FAKE1" FontSize="12" Height="22" HorizontalAlignment="Left" Margin="0,4,8,4" TextAlignment="Center" />
+                            <TextBox Grid.Row="1" Grid.Column="1" x:Name="SpawnBearingBox" Width="140" Text="360" FontSize="12" Height="22" HorizontalAlignment="Left" Margin="0,4,8,4" TextAlignment="Center" />
+                            <TextBox Grid.Row="1" Grid.Column="2" x:Name="SpawnRangeBox" Width="140" Text="5" FontSize="12" Height="22" HorizontalAlignment="Left" Margin="0,4,0,4" TextAlignment="Center" />
 
-                            <!-- secondary labels -->
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Speed (kts):" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,6,0,0" />
-                            <TextBlock Grid.Row="2" Grid.Column="1" Text="Heading (deg):" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="0,6,0,0" />
-                            <!-- Spawn button moved down to align with the secondary input row -->
-                            <StackPanel Grid.Row="3" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="6,2,0,0">
-                                <Button x:Name="SpawnBtn" Content="Spawn" Width="86" Click="OnAddClick" />
+                            <!-- labels row (secondary three) -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Alt (ft):" VerticalAlignment="Center" HorizontalAlignment="Left" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="Speed (kts):" VerticalAlignment="Center" HorizontalAlignment="Left" />
+                            <TextBlock Grid.Row="2" Grid.Column="2" Text="Heading (deg):" VerticalAlignment="Center" HorizontalAlignment="Left" />
+
+                            <!-- secondary inputs row (alt/speed/heading) -->
+                            <TextBox Grid.Row="3" Grid.Column="0" x:Name="SpawnAltBox" Width="140" Text="3000" FontSize="12" Height="22" HorizontalAlignment="Left" Margin="0,4,8,0" TextAlignment="Center" />
+                            <TextBox Grid.Row="3" Grid.Column="1" x:Name="SpawnSpeedBox" Width="140" Text="140" FontSize="12" Height="22" HorizontalAlignment="Left" Margin="0,4,8,0" TextAlignment="Center" />
+                            <TextBox Grid.Row="3" Grid.Column="2" x:Name="SpawnHeadingBox" Width="140" Text="180" FontSize="12" Height="22" HorizontalAlignment="Left" Margin="0,4,8,0" TextAlignment="Center" />
+
+                            <!-- Spawn button row: centered across all columns -->
+                            <StackPanel Grid.Row="4" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,6,0,0">
+                                <Button x:Name="SpawnBtn" Content="Spawn" Width="100" Click="OnAddClick" />
                             </StackPanel>
-
-                            <!-- secondary inputs row (speed/heading) placed below labels -->
-                            <TextBox Grid.Row="3" Grid.Column="0" x:Name="SpawnSpeedBox" Width="140" Text="140" FontSize="12" Height="22" HorizontalAlignment="Left" Margin="0,4,8,0" TextAlignment="Center" />
-                            <TextBox Grid.Row="3" Grid.Column="1" x:Name="SpawnHeadingBox" Width="140" Text="180" FontSize="12" Height="22" HorizontalAlignment="Left" Margin="0,4,8,0" TextAlignment="Center" />
                         </Grid>
                     </Grid>
                 </Border>

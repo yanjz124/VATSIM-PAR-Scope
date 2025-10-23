@@ -76,6 +76,10 @@ namespace PARScopeDisplay
         // Return a serializable snapshot of simulator configuration for persistence
         public SimulatorConfig GetCurrentConfig()
         {
+            // Note: UI semantics: Spawn bearing is TRUE (users enter true bearing).
+            // Spawn heading is MAGNETIC (users enter magnetic heading which we convert
+            // to true when creating/updating aircraft). Persist values exactly as
+            // presented in the UI so saved configs match user expectations.
             double bearing = 360, range = 5, alt = 3000, speed = 140, heading = 180;
             int interval = _updateIntervalMs;
             try { double.TryParse(SpawnBearingBox.Text.Trim(), out bearing); } catch { }
@@ -115,12 +119,14 @@ namespace PARScopeDisplay
         private void OnAddClick(object sender, RoutedEventArgs e)
         {
             // Read spawn parameters from UI
-            double bearing = 360, range = 5, alt = 3000, speed = 140, heading = 180;
-            try { double.TryParse(SpawnBearingBox.Text.Trim(), out bearing); } catch { }
+            // UI semantics: Spawn bearing is TRUE, Spawn heading is MAGNETIC.
+            // Read bearing as true directly; convert heading from magnetic->true below.
+            double bearingTrue = 360, range = 5, alt = 3000, speed = 140, headingMag = 180;
+            try { double.TryParse(SpawnBearingBox.Text.Trim(), out bearingTrue); } catch { }
             try { double.TryParse(SpawnRangeBox.Text.Trim(), out range); } catch { }
             try { double.TryParse(SpawnAltBox.Text.Trim(), out alt); } catch { }
             try { double.TryParse(SpawnSpeedBox.Text.Trim(), out speed); } catch { }
-            try { double.TryParse(SpawnHeadingBox.Text.Trim(), out heading); } catch { }
+            try { double.TryParse(SpawnHeadingBox.Text.Trim(), out headingMag); } catch { }
 
             double lat = 51.4700, lon = -0.4543; // fallback coords
             // If a runway is selected, spawn relative to the runway's sensor position
@@ -137,16 +143,18 @@ namespace PARScopeDisplay
                     sensorLat = tmpLat; sensorLon = tmpLon;
                 }
                 // Destination from sensor along requested bearing and range
-                DestinationFrom(sensorLat, sensorLon, bearing, range, out lat, out lon);
+                // User-entered bearing is TRUE already, so use it directly
+                DestinationFrom(sensorLat, sensorLon, bearingTrue, range, out lat, out lon);
             }
 
             var ac = new FakeAircraft
             {
-                Callsign = "FAKE" + (_aircraft.Count + 1),
+                Callsign = (TryGetSpawnCallsign(out var sc) && !string.IsNullOrWhiteSpace(sc)) ? sc : "FAKE" + (_aircraft.Count + 1),
                 Lat = lat,
                 Lon = lon,
                 AltFt = alt,
-                HeadingDeg = heading,
+                // Convert magnetic heading to true heading for internal representation
+                HeadingDeg = NormalizeAngle(((_runway != null) ? (headingMag - (_runway?.MagVariationDeg ?? 0.0)) : headingMag)),
                 SpeedKts = speed,
                 VsFpm = 0,
                 TypeCode = "B738"
@@ -529,6 +537,17 @@ namespace PARScopeDisplay
         private static double DegToRad(double deg) { return deg * Math.PI / 180.0; }
         private static double RadToDeg(double rad) { return rad * 180.0 / Math.PI; }
 
+        // Normalize angle into [0,360)
+        private static double NormalizeAngle(double deg)
+        {
+            double r = deg % 360.0;
+            if (double.IsNaN(r) || double.IsInfinity(r)) return 0.0;
+            if (r < 0) r += 360.0;
+            // handle rounding tiny negatives
+            if (r >= 360.0) r -= 360.0;
+            return r;
+        }
+
         private void OnStopAutoClick(object sender, RoutedEventArgs e)
         {
             StopAuto();
@@ -578,8 +597,29 @@ namespace PARScopeDisplay
         // Increment/decrement helpers: update selected aircraft and refresh/send update
         private void OnAltInc(object sender, RoutedEventArgs e) => ChangeSelectedAc(ac => ac.AltFt += 100);
         private void OnAltDec(object sender, RoutedEventArgs e) => ChangeSelectedAc(ac => ac.AltFt -= 100);
-        private void OnHeadingInc(object sender, RoutedEventArgs e) => ChangeSelectedAc(ac => ac.HeadingDeg = (ac.HeadingDeg + 5) % 360);
-        private void OnHeadingDec(object sender, RoutedEventArgs e) => ChangeSelectedAc(ac => ac.HeadingDeg = (ac.HeadingDeg - 5 + 360) % 360);
+        private void OnHeadingInc(object sender, RoutedEventArgs e)
+        {
+            ChangeSelectedAc(ac =>
+            {
+                double magVar = _runway?.MagVariationDeg ?? 0.0;
+                // convert stored true heading to magnetic for UI math
+                double headingMag = NormalizeAngle(ac.HeadingDeg + magVar);
+                headingMag = NormalizeAngle(headingMag + 5.0);
+                // convert back to true for storage
+                ac.HeadingDeg = NormalizeAngle(headingMag - magVar);
+            });
+        }
+
+        private void OnHeadingDec(object sender, RoutedEventArgs e)
+        {
+            ChangeSelectedAc(ac =>
+            {
+                double magVar = _runway?.MagVariationDeg ?? 0.0;
+                double headingMag = NormalizeAngle(ac.HeadingDeg + magVar);
+                headingMag = NormalizeAngle(headingMag - 5.0);
+                ac.HeadingDeg = NormalizeAngle(headingMag - magVar);
+            });
+        }
         private void OnSpeedInc(object sender, RoutedEventArgs e) => ChangeSelectedAc(ac => ac.SpeedKts += 5);
         private void OnSpeedDec(object sender, RoutedEventArgs e) => ChangeSelectedAc(ac => ac.SpeedKts = Math.Max(0, ac.SpeedKts - 5));
         private void OnVsInc(object sender, RoutedEventArgs e) => ChangeSelectedAc(ac => ac.VsFpm += 100);
@@ -622,7 +662,10 @@ namespace PARScopeDisplay
         {
             CallsignBox.Text = ac.Callsign;
             AltBox.Text = ac.AltFt.ToString("F0");
-            HeadingBox.Text = ac.HeadingDeg.ToString("F1");
+            // Show heading to the user in magnetic (UI is magnetic)
+            double magVar = _runway?.MagVariationDeg ?? 0.0;
+            double headingMag = NormalizeAngle(ac.HeadingDeg + magVar);
+            HeadingBox.Text = headingMag.ToString("F1");
             SpeedBox.Text = ac.SpeedKts.ToString("F1");
             VsBox.Text = ac.VsFpm.ToString("F0");
             TypeCodeBox.Text = ac.TypeCode;
@@ -649,7 +692,10 @@ namespace PARScopeDisplay
             }
             if (double.TryParse(HeadingBox.Text.Trim(), out tmp))
             {
-                if (!DoubleEquals(ac.HeadingDeg, tmp)) { ac.HeadingDeg = tmp; changed = true; }
+                // Interpret entered heading as magnetic; convert to true for storage
+                double magVar = _runway?.MagVariationDeg ?? 0.0;
+                double trueHeading = NormalizeAngle(tmp - magVar);
+                if (!DoubleEquals(ac.HeadingDeg, trueHeading)) { ac.HeadingDeg = trueHeading; changed = true; }
             }
             if (double.TryParse(SpeedBox.Text.Trim(), out tmp))
             {
@@ -726,7 +772,10 @@ namespace PARScopeDisplay
                 case "HeadingBox":
                     if (double.TryParse(HeadingBox.Text.Trim(), out tmp))
                     {
-                        if (!DoubleEquals(ac.HeadingDeg, tmp)) { ac.HeadingDeg = tmp; changed = true; }
+                        // Magnetic input -> convert to true
+                        double magVar = _runway?.MagVariationDeg ?? 0.0;
+                        double trueHeading = NormalizeAngle(tmp - magVar);
+                        if (!DoubleEquals(ac.HeadingDeg, trueHeading)) { ac.HeadingDeg = trueHeading; changed = true; }
                     }
                     break;
                 case "SpeedBox":
@@ -884,6 +933,21 @@ namespace PARScopeDisplay
         {
             if (string.IsNullOrEmpty(s)) return "";
             return s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+        }
+
+        // Safe helper to read the spawn callsign textbox if present in the XAML
+        private bool TryGetSpawnCallsign(out string callsign)
+        {
+            callsign = null;
+            try
+            {
+                if (this.Dispatcher == null) return false;
+                string txt = null;
+                this.Dispatcher.Invoke(() => { try { txt = (SpawnCallsignBox != null) ? SpawnCallsignBox.Text.Trim() : null; } catch { txt = null; } });
+                callsign = txt;
+                return true;
+            }
+            catch { callsign = null; return false; }
         }
 
         private static long UnixMs()
