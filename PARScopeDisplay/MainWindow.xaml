@@ -6,17 +6,17 @@
         <DockPanel>
             <Menu DockPanel.Dock="Top">
                 <MenuItem Header="File">
+                    <MenuItem Header="Download Latest NASR Data..." Click="OnDownloadNASRClick" />
+                    <MenuItem Header="Load NASR from File..." Click="OnLoadNASRFileClick" />
+                    <Separator />
+                    <MenuItem Header="Select Airport/Runway" Click="OnSelectRunwayClick" />
+                    <Separator />
                     <MenuItem Header="Exit" Click="OnExitClick" />
                 </MenuItem>
                 <MenuItem Header="Tools">
                     <MenuItem Header="Simulator..." Click="OnOpenSimulatorClick" />
                 </MenuItem>
-                <MenuItem Header="Airport/Runway">
-                    <MenuItem Header="Select..." Click="OnSelectRunwayClick" />
-                    <Separator />
-                    <MenuItem Header="Download Latest NASR Data..." Click="OnDownloadNASRClick" />
-                    <MenuItem Header="Load NASR from File..." Click="OnLoadNASRFileClick" />
-                </MenuItem>
+                <!-- Airport/Runway menu moved under File (Download/Load/Select) -->
                 <MenuItem Header="Display">
                     <MenuItem x:Name="Display_ShowApproachLights" Header="Approach Lights" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
                         <MenuItem x:Name="Display_ShowVerticalDev" Header="Vertical Dev Lines" IsCheckable="True" IsChecked="True" StaysOpenOnClick="True" Checked="OnViewToggleChanged" Unchecked="OnViewToggleChanged" />
