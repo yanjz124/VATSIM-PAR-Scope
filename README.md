@@ -49,6 +49,7 @@ Files included in releases
 - `PARScopeDisplay.exe` — the scope app (Windows WPF executable)
 - `RadarStreamerPlugin.dll` — vPilot plugin (copy to vPilot Plugins folder)
 - `RossCarlson.Vatsim.Vpilot.Plugins.xml` — vPilot plugin manifest (keep with the DLL)
+- `PARScopeDisplay.exe` - the barebone console-only traffic data receiver. You don't need it as it's built in the scope unless you would like to debug the vPilot plugin.
 
 License
 -------
