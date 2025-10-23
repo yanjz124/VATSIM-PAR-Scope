@@ -22,6 +22,8 @@ namespace PARScopeDisplay
     private DispatcherTimer _uiTimer;
     private MainWindow.RunwaySettings _runway;
     private FakeAircraft _lastSelectedAircraft;
+    // Track callsigns spawned by this simulator instance so we can ensure they are deleted on close
+    private readonly HashSet<string> _spawnedCallsigns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     // Update interval in milliseconds. Default to 500ms (0.5s) for a snappier simulator refresh.
     // NOTE: motion is computed using the elapsed time between ticks (dt). That means shortening
     // the update interval increases update frequency but does NOT change movement per second —
@@ -152,6 +154,7 @@ namespace PARScopeDisplay
             // ensure newly spawned aircraft are active and will move automatically
             ac.IsPaused = false;
             _aircraft.Add(ac);
+            try { _spawnedCallsigns.Add(ac.Callsign); } catch { }
             RefreshList();
             AircraftList.SelectedItem = ac;
             PopulateFields(ac);
@@ -422,7 +425,11 @@ namespace PARScopeDisplay
                 {
                     lock (_aircraft)
                     {
-                        foreach (var nac in newDebugAircraft) _aircraft.Add(nac);
+                        foreach (var nac in newDebugAircraft)
+                        {
+                            _aircraft.Add(nac);
+                            try { _spawnedCallsigns.Add(nac.Callsign); } catch { }
+                        }
                     }
 
                     // Send add messages outside the lock to avoid blocking the simulation loop on network I/O
@@ -444,7 +451,6 @@ namespace PARScopeDisplay
         {
             // Stop the auto-update loop first so it doesn't send updates that re-create targets on the scope.
             StopAuto();
-
             // Snapshot and clear under lock to avoid races with other threads.
             FakeAircraft[] snapshot;
             lock (_aircraft)
@@ -453,11 +459,20 @@ namespace PARScopeDisplay
                 _aircraft.Clear();
             }
 
-            // Send delete messages for each removed aircraft (do network I/O outside the lock).
-            foreach (var ac in snapshot)
+            // Collect callsigns and send batched delete messages to avoid oversized UDP payloads
+            try
             {
-                try { SendNdjson(BuildDeleteJson(ac)); } catch { }
+                var calls = snapshot.Select(a => a.Callsign).Where(s => !string.IsNullOrEmpty(s)).ToArray();
+                SendBatchedDeletes(calls);
             }
+            catch
+            {
+                // Fallback to per-aircraft deletes if batching fails
+                foreach (var ac in snapshot) { try { SendNdjson(BuildDeleteJson(ac)); } catch { } }
+            }
+
+            // Clear spawned callsigns tracking as we've deleted all
+            try { _spawnedCallsigns.Clear(); } catch { }
 
             RefreshList();
             StatusText.Text = "Deleted all aircraft";
@@ -489,6 +504,7 @@ namespace PARScopeDisplay
                 // send delete then remove
                 SendNdjson(BuildDeleteJson(ac));
                 _aircraft.Remove(ac);
+                try { _spawnedCallsigns.Remove(ac.Callsign); } catch { }
                 RefreshList();
                 StatusText.Text = "Deleted " + ac.Callsign;
             }
@@ -821,6 +837,49 @@ namespace PARScopeDisplay
             }
         }
 
+        // Send a batched delete message split into payloads that keep UDP packet sizes reasonable.
+        private void SendBatchedDeletes(string[] callsigns)
+        {
+            if (callsigns == null || callsigns.Length == 0) return;
+
+            // conservative payload cap to avoid fragmentation (bytes)
+            const int payloadCap = 1000;
+            var sb = new StringBuilder();
+            var batch = new List<string>();
+
+            Action flush = () =>
+            {
+                if (batch.Count == 0) return;
+                try
+                {
+                    var sbb = new StringBuilder();
+                    sbb.Append('{'); sbb.Append("\"type\":\"delete_simulator\""); sbb.Append(','); sbb.Append("\"t\":").Append(UnixMs()); sbb.Append(','); sbb.Append("\"callsigns\":[");
+                    for (int i = 0; i < batch.Count; i++) { if (i > 0) sbb.Append(','); sbb.Append('"').Append(Escape(batch[i])).Append('"'); }
+                    sbb.Append(']'); sbb.Append('}'); sbb.Append('\n');
+                    var payload = sbb.ToString();
+                    var bytes = Encoding.UTF8.GetBytes(payload);
+                    // send a few times
+                    for (int attempt = 0; attempt < 4; attempt++) { try { _udp.Send(bytes, bytes.Length, _endpoint); } catch { } try { Thread.Sleep(20); } catch { } }
+                }
+                catch { }
+                batch.Clear();
+            };
+
+            foreach (var cs in callsigns)
+            {
+                if (string.IsNullOrEmpty(cs)) continue;
+                // estimate size if we add this callsign
+                int estSize = sb.Length + cs.Length + 8; // rough
+                if (estSize > payloadCap && batch.Count > 0)
+                {
+                    flush(); sb.Clear();
+                }
+                batch.Add(cs);
+                sb.Append(cs);
+            }
+            flush();
+        }
+
         private static string Escape(string s)
         {
             if (string.IsNullOrEmpty(s)) return "";
@@ -891,13 +950,49 @@ namespace PARScopeDisplay
             OnStopAutoClick(this, null);
             try
             {
-                // make a snapshot to avoid modification during enumeration
+                // make a snapshot of callsigns to delete
                 var snapshot = _aircraft.ToArray();
+                var calls = snapshot.Select(a => a.Callsign).Where(s => !string.IsNullOrEmpty(s)).ToArray();
+
+                // If we have many callsigns, send a single aggregated delete message that MainWindow will specially handle.
+                if (calls.Length > 0)
+                {
+                    try
+                    {
+                        // build a compact JSON with type "delete_simulator" and the callsigns array
+                        var sb = new StringBuilder();
+                        sb.Append('{'); sb.Append("\"type\":\"delete_simulator\""); sb.Append(','); sb.Append("\"t\":").Append(UnixMs()); sb.Append(','); sb.Append("\"callsigns\":[");
+                        for (int i = 0; i < calls.Length; i++) { if (i > 0) sb.Append(','); sb.Append('"').Append(Escape(calls[i])).Append('"'); }
+                        sb.Append(']'); sb.Append('}'); sb.Append('\n');
+                        var payload = sb.ToString();
+
+                        // send multiple times to increase chance of delivery
+                        for (int attempt = 0; attempt < 6; attempt++)
+                        {
+                            try { SendNdjson(payload); } catch { }
+                            try { System.Threading.Thread.Sleep(40); } catch { }
+                        }
+                    }
+                    catch { }
+                }
+
+                // As a fallback, also send individual delete messages a few times
                 foreach (var ac in snapshot)
                 {
-                    try { SendNdjson(BuildDeleteJson(ac)); } catch { }
+                    for (int attempt = 0; attempt < 3; attempt++)
+                    {
+                        try { SendNdjson(BuildDeleteJson(ac)); } catch { }
+                        try { System.Threading.Thread.Sleep(20); } catch { }
+                    }
                 }
-                _aircraft.Clear();
+
+                // Clear local list and spawned tracking
+                lock (_aircraft)
+                {
+                    _aircraft.Clear();
+                }
+                try { _spawnedCallsigns.Clear(); } catch { }
+
                 RefreshList();
             }
             catch { }

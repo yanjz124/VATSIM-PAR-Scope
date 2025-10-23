@@ -319,6 +319,40 @@ namespace PARScopeDisplay
                     _aircraft.TryRemove(callsign, out removed);
                 }
             }
+            else if (type == "delete_simulator")
+            {
+                // Simulator can send a batched delete for many spawned callsigns.
+                try
+                {
+                    if (obj.ContainsKey("callsigns") && obj["callsigns"] is object[] arr)
+                    {
+                        int removedCount = 0;
+                        foreach (var o in arr)
+                        {
+                            if (o == null) continue;
+                            var cs = o.ToString();
+                            if (string.IsNullOrEmpty(cs)) continue;
+                            Dictionary<string, object> removed;
+                            if (_aircraft.TryRemove(cs, out removed)) removedCount++;
+                        }
+                        Dispatcher.Invoke(() => { StatusText.Text = $"Removed {removedCount} simulator aircraft"; });
+                    }
+                    else if (obj.ContainsKey("callsigns") && obj["callsigns"] is System.Collections.IEnumerable ie)
+                    {
+                        int removedCount = 0;
+                        foreach (var o in ie)
+                        {
+                            if (o == null) continue;
+                            var cs = o.ToString();
+                            if (string.IsNullOrEmpty(cs)) continue;
+                            Dictionary<string, object> removed;
+                            if (_aircraft.TryRemove(cs, out removed)) removedCount++;
+                        }
+                        Dispatcher.Invoke(() => { StatusText.Text = $"Removed {removedCount} simulator aircraft"; });
+                    }
+                }
+                catch { }
+            }
             else if (type == "network_disconnected" || type == "session_ended")
             {
                 _aircraft.Clear();
