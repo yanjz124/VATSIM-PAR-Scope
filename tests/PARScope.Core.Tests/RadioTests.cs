@@ -93,4 +93,15 @@ public class AircraftPerformanceTests
         Assert.Equal("C30J", ac.TypeCode);
         Assert.InRange(ac.SpeedKt, 128, 136);
     }
+
+    [Fact]
+    public void Tactical_callwords_fly_types_with_faa_approach_speeds()
+    {
+        Assert.True(MilitaryCallsigns.All.Count > 50);
+        Assert.All(MilitaryCallsigns.All, m => Assert.NotNull(AircraftPerformance.Find(m.TypeCode)?.ApproachSpeedKt));
+        Assert.Equal("Banshee two one", RadioSpeech.Callsign("BANSHEE21"));
+
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
+        Assert.Equal("C30J", sim.SpawnRandom(PilotMode.ControllerDirected, "BRADY31").TypeCode);
+    }
 }

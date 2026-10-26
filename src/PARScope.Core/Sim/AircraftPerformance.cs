@@ -39,7 +39,7 @@ public static class AircraftPerformance
         return dict;
     }
 
-    private static List<string> SplitCsv(string line)
+    internal static List<string> SplitCsv(string line)
     {
         var fields = new List<string>();
         var sb = new System.Text.StringBuilder();

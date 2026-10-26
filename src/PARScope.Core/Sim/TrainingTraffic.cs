@@ -35,11 +35,11 @@ public sealed record SpawnOptions
 public sealed class TrainingTraffic
 {
     /// <summary>
-    /// Callsign styles used by US military traffic at a GCA field. Service prefixes per FAA JO 7110.65
-    /// §2-4-20 (VV "Navy", VM "Marine", R "Army", AF "Air Force"); mission callsigns REACH (AMC airlift),
-    /// PAT (Army priority air transport), CONVOY (Navy fleet logistics); fighter flights numbered 11–14,
-    /// 21–24… Types are ICAO designators covered by the FAA Aircraft Characteristics Database, which
-    /// supplies their approach speeds (see <see cref="AircraftPerformance"/>).
+    /// Service-prefix and mission callsigns used by US military traffic at a GCA field. Service prefixes per
+    /// FAA JO 7110.65 §2-4-20 (VV "Navy", VM "Marine", R "Army", AF "Air Force"); mission callsigns REACH
+    /// (AMC airlift), PAT (Army priority air transport), CONVOY (Navy fleet logistics). Squadron tactical
+    /// callwords come from <see cref="MilitaryCallsigns"/>. Types are ICAO designators covered by the FAA
+    /// Aircraft Characteristics Database, which supplies their approach speeds (see <see cref="AircraftPerformance"/>).
     /// </summary>
     private sealed record CallsignStyle(string Prefix, int Digits, string[] Types, bool FlightNumbers = false);
 
@@ -52,10 +52,19 @@ public sealed class TrainingTraffic
         new("REACH", 3, ["C17", "K35R", "C30J"]),
         new("PAT", 3, ["BE20", "C560"]),
         new("CONVOY", 4, ["B737", "C30J"]),
-        new("VIPER", 2, ["F16"], FlightNumbers: true),
-        new("RAGE", 2, ["F18S"], FlightNumbers: true),
-        new("BOLT", 2, ["F18H"], FlightNumbers: true),
     ];
+
+    /// <summary>Half the random arrivals use a squadron tactical callword, half a service/mission callsign.</summary>
+    private CallsignStyle PickStyle()
+    {
+        var tactical = MilitaryCallsigns.All;
+        if (tactical.Count > 0 && _rng.NextDouble() < 0.5)
+        {
+            var t = tactical[_rng.Next(tactical.Count)];
+            return new CallsignStyle(t.Callword, 2, [t.TypeCode], t.FlightNumbers);
+        }
+        return Styles[_rng.Next(Styles.Length)];
+    }
 
     /// <summary>Approach speed for a type from the FAA database, with a little pilot variation; 130 kt if unknown.</summary>
     private double ApproachSpeed(string type) =>
@@ -73,7 +82,7 @@ public sealed class TrainingTraffic
     public SimAircraft Spawn(SpawnOptions o)
     {
         var geo = Geometry ?? throw new InvalidOperationException("Select a runway before spawning training traffic.");
-        var style = Styles[_rng.Next(Styles.Length)];
+        var style = PickStyle();
         string cs = o.Callsign is { Length: > 0 } custom ? custom.Trim().ToUpperInvariant().Replace(" ", "") : "";
         while (cs.Length == 0 || _aircraft.Any(a => a.Callsign == cs))
         {
@@ -84,7 +93,11 @@ public sealed class TrainingTraffic
             cs = style.Prefix + number;
         }
 
-        string type = o.TypeCode is { Length: > 0 } t ? t.Trim().ToUpperInvariant() : style.Types[_rng.Next(style.Types.Length)];
+        // A custom callsign built on a listed callword ("BANSHEE21") flies that unit's aircraft unless a type is given.
+        string word = new(cs.TakeWhile(char.IsLetter).ToArray());
+        var unit = o.Callsign is { Length: > 0 } ? MilitaryCallsigns.All.FirstOrDefault(m => m.Callword == word) : null;
+        string type = o.TypeCode is { Length: > 0 } t ? t.Trim().ToUpperInvariant()
+            : unit?.TypeCode ?? style.Types[_rng.Next(style.Types.Length)];
         double rangeFt = o.RangeNm * Units.FeetPerNm;
         var ac = new SimAircraft(cs, type, o, _rng)
         {

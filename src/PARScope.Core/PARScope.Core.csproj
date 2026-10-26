@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Sim\aircraft.csv" LogicalName="PARScope.Core.Sim.aircraft.csv" />
+    <EmbeddedResource Include="Sim\callsigns.csv" LogicalName="PARScope.Core.Sim.callsigns.csv" />
   </ItemGroup>
 
 </Project>

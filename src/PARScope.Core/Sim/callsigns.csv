@@ -1,0 +1,102 @@
+callsign,type,unit,numbering
+ACCURA,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+ACES,F16,119th FS NJ ANG Atlantic City NJ,flight
+AIRGUN,F16,388th FW Hill AFB UT,flight
+AKULA,F16,93rd FS Homestead ARB FL,flight
+ANGRY,F16,121st FS DC ANG Joint Base Andrews MD,flight
+ATOMIC,F16,162nd FS OH ANG Springfield OH,flight
+BANSHEE,F16,56th FW Luke AFB AZ,flight
+BEAST,F16,20th FW Shaw AFB SC,flight
+BUCKEYE,F16,162nd FS OH ANG Springfield OH,flight
+BUDDHA,F16,100th FS AL ANG Dannelly Field AL,flight
+CAESAR,F16,77th FS Shaw AFB SC,flight
+CASINO,F16,79th FS Shaw AFB SC,flight
+ANIMAL,F15,494th FS RAF Lakenheath UK,flight
+ARROW,F15,58th FS Eglin AFB FL,flight
+BADER,F15,19th FS Elmendorf AFB AK,flight
+BALLAD,F15,334th FS Seymour Johnson AFB NC,flight
+BLITZ,F15,173rd FW OR ANG Klamath Falls OR,flight
+BOLO,F15,104th FW MA ANG Barnes ANGB MA,flight
+BREW,F15,123rd FS OR ANG Portland OR,flight
+BUD,F15,131st FW MO ANG St Louis MO,flight
+CARVER,F15,333rd FS Seymour Johnson AFB NC,flight
+BIKER,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+BONES,F22,95th FS Tyndall AFB FL,flight
+ANTAR,A10,357th FS Davis-Monthan AFB AZ,flight
+ATLAS,A10,184th FS AR ANG Fort Smith AR,flight
+AXEMAN,A10,104th FS MD ANG Martin State MD,flight
+BANZAI,A10,23rd FW Moody AFB GA,flight
+BOAR,A10,303rd FS Whiteman AFB MO,flight
+AVENGER,F18H,VMFA-251 MCAS Beaufort SC,flight
+BAT,F18H,VMFA(AW)-242 MCAS Miramar CA,flight
+BENGAL,F18H,VMFA(AW)-224 MCAS Beaufort SC,flight
+BLACKJACK,F18H,VMFA-312 MCAS Beaufort SC,flight
+BLADE,F18H,VMFA-115 MCAS Beaufort SC,flight
+BLASTER,F18H,VFA-34 NAS Oceana VA,flight
+CARR,F18H,VFA-82 NAS Oceana VA,flight
+CAT,F18H,VFA-131 NAS Oceana VA,flight
+BANSHEE,F18S,VMAQ-1 (EA-18G) MCAS Cherry Point NC,flight
+BEEF,F18S,VFA-22 NAS Lemoore CA,flight
+BULLET,F18S,VFA-2 NAS Lemoore CA,flight
+CAM,F18S,VFA-14 NAS Lemoore CA,flight
+CANYON,F18S,VFA-105 NAS Oceana VA,flight
+BONES,F18S,VFA-103 NAS Oceana VA,flight
+ACURA,T38,435th FTS Randolph AFB TX,flight
+ADLER,T38,49th FTS Columbus AFB MS,flight
+ARCO,T38,71st FTS Joint Base Langley-Eustis VA,flight
+CAJUN,T38,435th FTS Randolph AFB TX,flight
+BOOMER,TEX2,VT-27 NAS Corpus Christi TX,flight
+BUCK,TEX2,VT-4 NAS Pensacola FL,flight
+BILLY,TEX2,559th FTS Randolph AFB TX,flight
+BOMA,TEX2,41st FTS Columbus AFB MS,flight
+ALLEY,BE40,48th FTS Columbus AFB MS,flight
+AQUA,BE40,71st FTW Vance AFB OK,flight
+BLAZE,BE40,Columbus AFB MS,flight
+ACME,B52,96th BS Barksdale AFB LA,mission
+AHAB,B52,96th BS Barksdale AFB LA,mission
+ANGER,B52,5th BW Minot AFB ND,mission
+BUFF,B52,2nd BW Barksdale AFB LA,mission
+ARBY,B2,509th BW Whiteman AFB MO,mission
+BATT,B2,509th BW Whiteman AFB MO,mission
+ABIDE,C130,7th Wing Dyess AFB TX,mission
+ADIN,C130,314th AW Little Rock AFB AR,mission
+AFTON,C130,187th AS WY ANG Cheyenne WY,mission
+BANDAGE,C130,95th AS WI ANG Milwaukee WI,mission
+BISON,C130,328th AS Niagara Falls ARS NY,mission
+BREWER,C130,95th AS Moody AFB GA,mission
+BUFFOON,C130,164th AS OH ANG Mansfield OH,mission
+BULL,C130,118th AS CT ANG Bradley ANGB CT,mission
+CASTLE,C130,142nd AS DE ANG New Castle DE,mission
+AEGIS,C30J,40th AS Dyess AFB TX,mission
+ANVIL,C30J,130th AS WV ANG Charleston WV,mission
+ARROW,C30J,48th AS Little Rock AFB AR,mission
+BACON,C30J,143rd AW RI ANG Quonset RI,mission
+BRADY,C30J,VMGR-352 (KC-130J) MCAS Cherry Point NC,mission
+BRONCO,C30J,VMGR-252 (KC-130J) MCAS Cherry Point NC,mission
+AMOR,C17,62nd AW McChord AFB WA,mission
+ARKTIK,C17,517th AS Elmendorf AFB AK,mission
+ASTRA,C17,437th AW Charleston AFB SC,mission
+BEELINER,C17,21st AS Travis AFB CA,mission
+BLADE,C17,97th AMW Altus AFB OK,mission
+BRIM,C17,437th/315th AW Charleston AFB SC,mission
+ADVICE,K35R,132nd ARS ME ANG Bangor ME,mission
+AGILE,K35R,927th ARW Selfridge ANGB MI,mission
+AGIO,K35R,97th AMW Altus AFB OK,mission
+ANKER,K35R,22nd ARW McConnell AFB KS,mission
+ARCTIC,K35R,AK ANG Elmendorf AFB AK,mission
+BEACH,K35R,92nd ARW Fairchild AFB WA,mission
+BOLT,K35R,91st ARS MacDill AFB FL,mission
+BUOY,K35R,6th AMW/927th ARW MacDill AFB FL,mission
+CAULDRON,K35R,IL ANG Scott AFB IL,mission
+CABAL,DC10,60th AMW (KC-10) Travis AFB CA,mission
+AVALON,LJ35,375th AW (C-21) Scott AFB IL,mission
+BATTLE,LJ35,118th FS (C-21A) CT ANG Bradley CT,mission
+BOXER,B737,201st AS (C-40A) DC ANG Joint Base Andrews MD,mission
+ANTE,B752,486th FLTS (C-32B) Eglin AFB FL,mission
+BORG,B752,150th SOS (C-32B) Joint Base McGuire-Dix-Lakehurst NJ,mission
+ATILLA,C560,VMR Det (UC-35) Joint Base Andrews MD,mission
+AZAZ,C560,OSACOM (UC-35A) Joint Base Andrews MD,mission
+AGUILA,BE20,C-12,mission
+ARROW,P3,VP-62 NAS Jacksonville FL,mission
+BUZZARD,P3,NAS Jacksonville FL,mission
+CARDFILE,P8,VP-5 NAS Jacksonville FL,mission
