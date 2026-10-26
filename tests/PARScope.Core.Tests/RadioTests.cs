@@ -50,6 +50,18 @@ public class RadioTests
         Assert.Contains("going missed", r4.Reply);
     }
 
+    [Theory]
+    [InlineData("do not acknowledge further transmissions")]
+    [InlineData("Do not acknowledge further instructions.")]
+    [InlineData("don't acknowledge")]
+    [InlineData("no need to acknowledge further calls")]
+    [InlineData("acknowledgement not required")]
+    [InlineData("no further readbacks")]
+    public void Do_not_acknowledge_variants_are_understood(string text)
+    {
+        Assert.True(Phraseology.Parse(text).DoNotAcknowledge);
+    }
+
     [Fact]
     public void Pause_freezes_aircraft_and_holds_pilot_reactions()
     {

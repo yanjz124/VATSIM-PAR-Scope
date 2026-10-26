@@ -69,7 +69,7 @@ public static partial class Phraseology
             MissedApproach = missed,
             CourseCall = course,
             HowDoYouHear = s.Contains(" how do you hear"),
-            DoNotAcknowledge = s.Contains(" do not acknowledge"),
+            DoNotAcknowledge = NoAckRx().IsMatch(s),
             WheelsDown = s.Contains(" wheels should be down") || s.Contains(" check wheels down"),
             ClearedToLand = ClearedRx().IsMatch(s),
         };
@@ -129,5 +129,7 @@ public static partial class Phraseology
     [GeneratedRegex(@"\b(?:on course|(?:going |slightly |well )?(?:left|right) of course)\b")] private static partial Regex CourseRx();
     [GeneratedRegex(@"\bbegin descent\b|\bstart descent\b")] private static partial Regex DescentRx();
     [GeneratedRegex(@"\bexecute missed approach\b|\bgo around\b|\bwave ?off\b|\btower clearance (?:not received|cancell?ed)\b")] private static partial Regex MissedRx();
+    // "Do not acknowledge further transmissions" (§5-10-10) and the ways people actually say it.
+    [GeneratedRegex(@"\b(?:do not|don t|dont|no need to|not necessary to) (?:acknowledge|read ?back)\b|\backnowledg(?:e|ement)s? not (?:required|necessary)\b|\bno (?:further )?(?:acknowledgements?|acknowledgments?|readbacks?)\b")] private static partial Regex NoAckRx();
     [GeneratedRegex(@"\bcleared (?:to land|for (?:the )?option|touch and go|low approach)\b")] private static partial Regex ClearedRx();
 }

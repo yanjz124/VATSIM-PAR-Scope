@@ -122,7 +122,7 @@ public sealed class TrainingTraffic
         {
             Callsign = callsign,
             TypeCode = typeCode,
-            RangeNm = 6 + _rng.NextDouble() * 4,
+            RangeNm = 8 + _rng.NextDouble() * 4,
             CrossFt = (_rng.NextDouble() - 0.5) * 1600,
             HeightOffsetFt = -400 + _rng.NextDouble() * 300,
             SpeedKt = 0, // from the callsign style's aircraft
