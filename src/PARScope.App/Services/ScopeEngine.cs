@@ -34,6 +34,7 @@ public sealed class ScopeEngine : IDisposable
     public IClock Clock { get; } = SystemClock.Instance;
     public TrackStore Store { get; } = new();
     public TrainingTraffic Training { get; } = new();
+    public TrafficRecorder Recorder { get; } = new();
 
     public RunwayEnd? Runway { get; private set; }
     public AirportRecord? Airport { get; private set; }
@@ -63,7 +64,7 @@ public sealed class ScopeEngine : IDisposable
     public void StartDataFeed(HttpClient http, Func<bool> enabled)
     {
         _feed?.Dispose();
-        _feed = new VatsimDataFeed(http, Clock, Store.Apply,
+        _feed = new VatsimDataFeed(http, Clock, Ingest,
             () => enabled() && Clock.Now - Link.LastDatagram > FeedFallbackAfterSec,
             () => Runway is { } r ? GeoPoint.FromFeet(r.ThresholdLat, r.ThresholdLon, r.ThresholdElevFt) : null);
         _feed.Start();
@@ -123,13 +124,21 @@ public sealed class ScopeEngine : IDisposable
         }
         else
         {
-            Store.Apply(msg);
+            Ingest(msg);
         }
         Volatile.Write(ref _link, link);
     }
 
+    /// <summary>Network traffic (plugin or data feed): record for diagnostics, then track.</summary>
+    private void Ingest(TrafficMessage msg)
+    {
+        if (msg is PositionReport r) Recorder.Record(r, Clock.Now);
+        Store.Apply(msg);
+    }
+
     public void Dispose()
     {
+        Recorder.Dispose();
         _udp?.Dispose();
         _feed?.Dispose();
     }

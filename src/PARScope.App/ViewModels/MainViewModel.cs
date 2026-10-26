@@ -39,6 +39,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ShowCourseWedge = settings.ShowCourseWedge;
         UseUkBands = settings.Bands.Standard == DeviationStandard.UkRa3291;
         UseDataFeed = settings.UseDataFeed;
+        RecordTraffic = settings.RecordTraffic;
+        Engine.Recorder.Enabled = RecordTraffic;
         TrainingMode = settings.TrainingMode;
         bool Panel(string key, bool def) => settings.Panels.TryGetValue(key, out var v) ? v : def;
         ExpandTarget = Panel("target", true);
@@ -47,6 +49,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ExpandVoice = Panel("voice", true);
         ExpandTraining = Panel("training", false);
         ExpandSetup = Panel("setup", false);
+        ExpandDiagnostics = Panel("diagnostics", false);
         ShowScan = settings.ShowScan;
         ShowAdvisories = settings.ShowAdvisories;
         ShowAdvisoriesOnNetwork = settings.ShowAdvisoriesOnNetwork;
@@ -309,6 +312,20 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] public partial bool ExpandVoice { get; set; }
     [ObservableProperty] public partial bool ExpandTraining { get; set; }
     [ObservableProperty] public partial bool ExpandSetup { get; set; }
+    [ObservableProperty] public partial bool ExpandDiagnostics { get; set; }
+    [ObservableProperty] public partial bool RecordTraffic { get; set; }
+    /// <summary>Live per-aircraft update rates (diagnostics section).</summary>
+    public ObservableCollection<string> RateLines { get; } = [];
+    public string DiagnosticsFolder => TrafficRecorder.Folder;
+    partial void OnExpandDiagnosticsChanged(bool value) => _settings.Panels["diagnostics"] = value;
+    partial void OnRecordTrafficChanged(bool value) { _settings.RecordTraffic = value; Engine.Recorder.Enabled = value; }
+
+    [RelayCommand]
+    private void OpenDiagnostics()
+    {
+        Directory.CreateDirectory(TrafficRecorder.Folder);
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(TrafficRecorder.Folder) { UseShellExecute = true });
+    }
     partial void OnExpandTargetChanged(bool value) => _settings.Panels["target"] = value;
     partial void OnExpandAsrChanged(bool value) => _settings.Panels["asr"] = value;
     partial void OnExpandWeatherChanged(bool value) => _settings.Panels["weather"] = value;
@@ -494,6 +511,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] public partial string TypedTransmission { get; set; } = "";
     [ObservableProperty] public partial string PilotStatus { get; set; } = "";
     [ObservableProperty] public partial bool PilotVoices { get; set; } = true;
+    /// <summary>Seconds since the last transmission to the aircraft on final; PAR calls are due about every 5 s
+    /// (7110.65 §5-12-4) and lost communications is declared after 5 s (§5-10-4).</summary>
+    [ObservableProperty] public partial string TxTimerText { get; set; } = "";
+    [ObservableProperty] public partial AdvisoryLevel TxTimerLevel { get; set; }
+    private double _lastTxTime = double.NaN;
     [ObservableProperty] public partial LandingIntent TowerIntent { get; set; }
 
     public IReadOnlyList<LandingIntent> TowerIntents { get; } = Enum.GetValues<LandingIntent>();
@@ -573,6 +595,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         var target = (SelectedCallsign is { } cs ? Engine.Training.Find(cs) : null)
                      ?? (Engine.Training.Aircraft.Count == 1 ? Engine.Training.Aircraft[0] : null);
         Log("FINAL", text.ToUpperInvariant() + (t.IsEmpty ? "  (not understood)" : ""));
+        _lastTxTime = Engine.Now;
         if (t.IsEmpty || target == null || Engine.Runway is not { } rw)
         {
             if (target == null && !t.IsEmpty) StatusMessage = "Select a training aircraft first";
@@ -682,6 +705,17 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         TrafficText = $"{real} network aircraft" + (sim > 0 ? $" · {sim} training" : "");
         UtcText = DateTime.UtcNow.ToString("HH:mm:ss") + "Z";
         HasTraining = sim > 0;
+        var rates = Engine.Recorder.Summary(now);
+        RateLines.Clear();
+        foreach (var line in rates.Take(12)) RateLines.Add(line);
+        if (rates.Count == 0) RateLines.Add("No network traffic received yet.");
+        if (double.IsNaN(_lastTxTime) || !HasTraining) { TxTimerText = ""; TxTimerLevel = AdvisoryLevel.Normal; }
+        else
+        {
+            double since = now - _lastTxTime;
+            TxTimerText = $"Last transmission {since:0} s ago";
+            TxTimerLevel = since < 5 ? AdvisoryLevel.Normal : since < 10 ? AdvisoryLevel.Caution : AdvisoryLevel.Warning;
+        }
 
         RefreshSelection();
         _ = RefreshMetarIfDueAsync(now);

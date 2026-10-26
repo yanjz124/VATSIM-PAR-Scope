@@ -19,6 +19,8 @@ public sealed class AppSettings
     public bool TrainingMode { get; set; }
     /// <summary>Use the public 15 s VATSIM data feed when no vPilot plugin is streaming. Opt-in.</summary>
     public bool UseDataFeed { get; set; }
+    /// <summary>Record received traffic to CSV for update-rate diagnostics.</summary>
+    public bool RecordTraffic { get; set; } = true;
     public string? AirportId { get; set; }
     public string? RunwayId { get; set; }
     public string PresetId { get; set; } = "fpn68";
