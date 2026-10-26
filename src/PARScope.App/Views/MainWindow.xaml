@@ -82,7 +82,6 @@
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
                     <ToggleButton Style="{StaticResource ToolbarToggle}" Content="MTI" IsChecked="{Binding Mti}"
                                   ToolTip="Moving target indicator: rejects targets slower than 40 kt and most ground clutter" />
-                    <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Clutter" IsChecked="{Binding ShowClutter}" ToolTip="Ground clutter near touchdown" />
                     <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Safety" IsChecked="{Binding ShowSafetyLimits}" ToolTip="Lower safe limit (TERPS obstacle clearance surface)" />
                     <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Lateral" IsChecked="{Binding ShowTerpsLateral}" ToolTip="TERPS W-surface lateral limits" />
                     <ToggleButton Style="{StaticResource ToolbarToggle}" Content="2°/5°" IsChecked="{Binding ShowCourseWedge}" ToolTip="UK RA 3291 azimuth lines from touchdown (not shown on US displays)" />
@@ -273,6 +272,13 @@
                                     <ui:NumberBox Value="{Binding SiteOffset}" SmallChange="50" MaxDecimalPlaces="0" Minimum="-2500" Maximum="2500" />
                                 </StackPanel>
                             </Grid>
+                            <ui:ToggleSwitch IsChecked="{Binding SimulateErrors}" Margin="0,0,0,8"
+                                             OnContent="Simulate radar errors" OffContent="Simulate radar errors"
+                                             ToolTip="Measurement noise (ICAO accuracy budget), multipath, ground clutter and missed paints. Off: targets plot exactly where the aircraft is, once per scan." />
+                            <DockPanel Margin="0,0,0,10">
+                                <TextBlock Text="Scope font" Style="{StaticResource MetricLabel}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding ScopeFonts}" SelectedItem="{Binding ScopeFont}" />
+                            </DockPanel>
                             <ui:ToggleSwitch IsChecked="{Binding UseUkBands}" Margin="0,0,0,10"
                                              OnContent="Deviation terms: UK RA 3291 (feet)" OffContent="Deviation terms: US Navy (target quarters)"
                                              ToolTip="US Navy: slightly/well read from quarters of the radar target (NAVEDTRA 14342A Table 10-1). UK: fixed 60/100 ft and 2°/5° lines." />

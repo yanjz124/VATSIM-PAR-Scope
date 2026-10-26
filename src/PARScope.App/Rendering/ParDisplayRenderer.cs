@@ -37,7 +37,16 @@ public readonly record struct HitTarget(string Callsign, float X, float Y);
 public sealed class ParDisplayRenderer : IDisposable
 {
     private const float LabelRowH = 18;
-    private readonly Ink _ink = new();
+    private Ink _ink = new();
+
+    /// <summary>Switches the scope font; takes effect on the next frame.</summary>
+    public void SetFont(string? family)
+    {
+        if (family != null && family.Equals(_ink.FamilyName, StringComparison.OrdinalIgnoreCase)) return;
+        var old = _ink;
+        _ink = new Ink(family);
+        old.Dispose();
+    }
     private readonly List<HitTarget> _hits = [];
     private readonly LabelPlacer _labels = new();
 
@@ -80,7 +89,7 @@ public sealed class ParDisplayRenderer : IDisposable
 
     private void Layout(float w, float h, ParGeometry geo, ParRenderOptions opt)
     {
-        float marginX = _t.Analog ? 16 : 46;
+        float marginX = _t.Analog ? 16 : 56;
         _left = marginX;
         _right = w - 14;
         float top = 10, bottom = h - (_t.Analog ? 10 : LabelRowH);
@@ -364,8 +373,8 @@ public sealed class ParDisplayRenderer : IDisposable
             foreach (var s in shown) _labels.Reserve(new SKRect(s.X - 4, s.Y - 4, s.X + 4, s.Y + 4));
             foreach (var s in shown.OrderByDescending(s => s.Selected).ThenBy(s => s.Track.RangeFt))
             {
-                bool warn = s.Selected && opt.SelectedAdvisory?.Level == AdvisoryLevel.Warning;
-                var col = warn ? _t.Warning : s.Selected ? _t.Selected : _t.Track;
+                // Every track is drawn alike, as on the reference displays; selection is only a bracket.
+                var col = _t.Track;
                 if (radar.Preset.Tracking)
                 {
                     c.DrawRect(s.X - 2, s.Y - 2, 4, 4, _ink.Solid(col));
@@ -468,16 +477,6 @@ public sealed class ParDisplayRenderer : IDisposable
         for (int i = 0; i < lines.Length; i++)
             c.DrawText(lines[i], box.Left + 6, box.Top + 15 + i * 14, SKTextAlign.Left, _ink.Font, tp);
         _labels.Reserve(box);
-
-        if (opt.SelectedAdvisory is { Level: AdvisoryLevel.Warning } w2)
-        {
-            // Major alert: inverse video (RA 3291).
-            string text = w2.Transmission.Split('.')[0];
-            float tw = _ink.Font.MeasureText(text) + 16;
-            var alert = SKRect.Create(box.Right + 10, box.Top, tw, 20);
-            c.DrawRect(alert, _ink.Solid(_t.Warning));
-            c.DrawText(text, alert.Left + 8, alert.Top + 14, SKTextAlign.Left, _ink.Font, _ink.TextPaint(SKColors.Black));
-        }
     }
 
     private static string Signed(double v) => (v >= 0 ? "+" : "-") + Math.Abs(v).ToString("0");

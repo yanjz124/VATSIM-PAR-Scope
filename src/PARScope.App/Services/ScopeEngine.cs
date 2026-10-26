@@ -47,6 +47,8 @@ public sealed class ScopeEngine : IDisposable
     public LinkState Link => Volatile.Read(ref _link);
 
     public bool ClutterEnabled { get; set; } = true;
+    /// <summary>Noise, multipath, clutter and missed paints on both radars. Off by default.</summary>
+    public bool SimulateErrors { get; set; }
     public bool MtiEnabled { get; set; } = true;
 
     public void StartNetwork(int port)
@@ -88,10 +90,15 @@ public sealed class ScopeEngine : IDisposable
         if (Radar != null)
         {
             Radar.ClutterEnabled = ClutterEnabled;
+            Radar.SimulateErrors = SimulateErrors;
             Radar.MtiEnabled = MtiEnabled;
             Radar.Advance(Now, Targets);
         }
-        Asr?.Advance(Now, Targets);
+        if (Asr != null)
+        {
+            Asr.SimulateErrors = SimulateErrors;
+            Asr.Advance(Now, Targets);
+        }
     }
 
     public void ClearTraining()

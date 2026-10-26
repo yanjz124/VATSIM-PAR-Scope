@@ -28,6 +28,8 @@ public sealed class AsrSimulator
     }
 
     public LocalFrame Frame => _frame;
+    /// <summary>Adds ASR-grade range/azimuth noise. Off by default.</summary>
+    public bool SimulateErrors { get; set; }
     public double RangeNm { get; }
     /// <summary>Antenna bearing, degrees true.</summary>
     public double SweepDeg { get; private set; }
@@ -55,8 +57,8 @@ public sealed class AsrSimulator
             double f = brg / 360.0;
             if (Math.Floor(now / SweepSec - f) <= Math.Floor(prev / SweepSec - f)) continue;
 
-            double r = range + Gauss() * 60;
-            double b = Units.DegToRad(brg + Gauss() * 0.08);
+            double r = SimulateErrors ? range + Gauss() * 60 : range;
+            double b = Units.DegToRad(SimulateErrors ? brg + Gauss() * 0.08 : brg);
             // Data blocks show altitude MSL (Mode C corrected for the local altimeter ≈ true altitude).
             _plots.Add(new AsrPlot(t.Callsign, now, r * Math.Sin(b), r * Math.Cos(b), Wgs84.FromEcef(ecef).AltFt));
         }

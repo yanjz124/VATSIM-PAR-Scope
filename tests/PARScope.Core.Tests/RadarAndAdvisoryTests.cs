@@ -43,7 +43,7 @@ public class RadarAndAdvisoryTests
     {
         var (geo, store, sim) = Setup();
         sim.Spawn(new SpawnOptions { RangeNm = 6, HeightOffsetFt = 0, Mode = PilotMode.SelfFlying, Skill = 1 });
-        var radar = new RadarSimulator(RadarPreset.Icao with { NoiseFactor = 1, DetectionProbability = 1 }, geo, seed: 7) { ClutterEnabled = false };
+        var radar = new RadarSimulator(RadarPreset.Icao with { NoiseFactor = 1, DetectionProbability = 1 }, geo, seed: 7) { ClutterEnabled = false, SimulateErrors = true };
         var errs = new List<double>();
         for (double t = 0; t <= 40; t += 1 / 30.0)
         {
@@ -143,7 +143,7 @@ public class AdvisoryTrendTests
         var store = new TrackStore();
         var sim = new TrainingTraffic { Geometry = geo };
         var ac = sim.Spawn(new SpawnOptions { RangeNm = 9, HeightOffsetFt = -400, Mode = PilotMode.ControllerDirected, Skill = 1 });
-        var radar = new RadarSimulator(RadarPreset.Fpn68 with { NoiseFactor = 0.25 }, geo, seed: 11) { ClutterEnabled = false };
+        var radar = new RadarSimulator(RadarPreset.Fpn68 with { NoiseFactor = 0.25 }, geo, seed: 11) { ClutterEnabled = false, SimulateErrors = true };
         for (double t = 0; t <= 25; t += 1 / 30.0)
         {
             foreach (var m in sim.Step(t)) store.Apply(m);
@@ -185,5 +185,33 @@ public class NavyStandardTests
         Assert.Equal(r * Math.Tan(Units.DegToRad(2.5)), geo.LowerSafeLimitHeightFt(r), 3);
         Assert.Equal(800, ParGeometry.LateralSafeLimitFt(r), 3);
         Assert.Equal(100, ParGeometry.LateralSafeLimitFt(0.5 * Units.FeetPerNm), 3);
+    }
+}
+
+public class ErrorFreeDefaultTests
+{
+    [Fact]
+    public void Default_paints_are_exact()
+    {
+        var geo = new ParGeometry(GeometryTests.Runway, GeometryTests.Site);
+        var store = new TrackStore();
+        var sim = new TrainingTraffic { Geometry = geo };
+        sim.Spawn(new SpawnOptions { RangeNm = 5, HeightOffsetFt = 0, Mode = PilotMode.ControllerDirected });
+        var radar = new RadarSimulator(RadarPreset.Fpn63, geo, seed: 1);
+        for (double t = 0; t <= 5; t += 1 / 30.0)
+        {
+            foreach (var m in sim.Step(t)) store.Apply(m);
+            var tracks = store.Snapshot(t);
+            int before = radar.Plots.Count;
+            radar.Advance(t, tracks);
+            foreach (var p in radar.Plots.Skip(before))
+            {
+                var truth = geo.FromEcef(tracks[0].PositionAt(t));
+                Assert.Equal(truth.CrossFt, p.Point.CrossFt, 6);
+                Assert.Equal(truth.HeightFt, p.Point.HeightFt, 6);
+            }
+        }
+        Assert.DoesNotContain(radar.Plots, p => p.IsClutter);
+        Assert.NotEmpty(radar.Plots);
     }
 }

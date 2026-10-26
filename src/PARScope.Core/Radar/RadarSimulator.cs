@@ -41,6 +41,11 @@ public sealed class RadarSimulator
 
     public RadarPreset Preset { get; }
     public ParGeometry Geometry { get; }
+    /// <summary>
+    /// Adds measurement noise, multipath, ground clutter and missed paints. Off by default: targets plot at
+    /// the aircraft's reported position, updated once per scan.
+    /// </summary>
+    public bool SimulateErrors { get; set; }
     public bool ClutterEnabled { get; set; } = true;
     public bool MtiEnabled { get; set; } = true;
 
@@ -79,7 +84,7 @@ public sealed class RadarSimulator
                 Paint(ScopeKind.Elevation, t.Callsign, now, polar, truth);
         }
 
-        if (ClutterEnabled) PaintClutter(prev, now);
+        if (SimulateErrors && ClutterEnabled) PaintClutter(prev, now);
 
         _plots.RemoveAll(p => now - p.Time > HistorySec);
         foreach (var key in _tracks.Where(kv => now - kv.Value.LastUpdate > 8.0).Select(kv => kv.Key).ToList())
@@ -124,6 +129,11 @@ public sealed class RadarSimulator
 
     private void Paint(ScopeKind scope, string callsign, double now, RadarPolar truePolar, ApproachPoint truth)
     {
+        if (!SimulateErrors)
+        {
+            AddPlot(new Plot(scope, callsign, now, truth, truePolar, false));
+            return;
+        }
         if (_rng.NextDouble() > Preset.DetectionProbability) return;
 
         double nf = Preset.NoiseFactor;
@@ -147,12 +157,14 @@ public sealed class RadarSimulator
             ? new RadarPolar(r + Gauss() * rangeSigma, truePolar.AzimuthDeg + Gauss() * azSigmaDeg, truePolar.ElevationDeg + Gauss() * elSigmaDeg * 3)
             : new RadarPolar(r + Gauss() * rangeSigma, truePolar.AzimuthDeg + Gauss() * azSigmaDeg * 3, el + Gauss() * elSigmaDeg);
 
-        var point = Geometry.FromPolar(measured);
-        var plot = new Plot(scope, callsign, now, point, measured, false);
-        _plots.Add(plot);
+        AddPlot(new Plot(scope, callsign, now, Geometry.FromPolar(measured), measured, false));
+    }
 
-        if (!_tracks.TryGetValue(callsign, out var track))
-            _tracks[callsign] = track = new RadarTrack(callsign);
+    private void AddPlot(Plot plot)
+    {
+        _plots.Add(plot);
+        if (!_tracks.TryGetValue(plot.Callsign!, out var track))
+            _tracks[plot.Callsign!] = track = new RadarTrack(plot.Callsign!);
         track.Update(plot);
     }
 

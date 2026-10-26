@@ -123,12 +123,35 @@ internal sealed class Ink : IDisposable
     private readonly SKPathEffect _dot = SKPathEffect.CreateDash([1.5f, 3f], 0);
     private readonly SKMaskFilter _glow = SKMaskFilter.CreateBlur(SKBlurStyle.Solid, 1.8f);
 
-    public Ink()
+    public Ink(string? family = null)
     {
-        var face = SKTypeface.FromFamilyName("Lucida Console") ?? SKTypeface.FromFamilyName("Consolas");
-        Font = new SKFont(face, 11.5f) { Edging = SKFontEdging.Antialias, Hinting = SKFontHinting.Full };
-        FontSmall = new SKFont(face, 10f) { Edging = SKFontEdging.Antialias, Hinting = SKFontHinting.Full };
+        var face = Resolve(family);
+        FamilyName = face.FamilyName;
+        // FixedDemiBold is an X11 terminal face drawn for small sizes; it reads best a little larger.
+        bool fixedFace = FamilyName.StartsWith("Fixed", StringComparison.OrdinalIgnoreCase);
+        Font = new SKFont(face, fixedFace ? 13f : 11.5f) { Edging = SKFontEdging.Antialias, Hinting = SKFontHinting.Full };
+        FontSmall = new SKFont(face, fixedFace ? 12f : 10f) { Edging = SKFontEdging.Antialias, Hinting = SKFontHinting.Full };
         HasArrows = Font.ContainsGlyphs("↑↓");
+    }
+
+    /// <summary>Scope fonts in order of preference: the STARS/ERAM-style FixedDemiBold if installed, then
+    /// plain terminal faces that ship with Windows.</summary>
+    public static readonly string[] Candidates = ["FixedDemiBold", "Lucida Console", "Consolas", "Courier New"];
+
+    public string FamilyName { get; }
+
+    /// <summary>Installed candidates, for the font picker.</summary>
+    public static IReadOnlyList<string> AvailableFamilies() =>
+        Candidates.Where(f => SKFontManager.Default.MatchFamily(f) is { } tf && tf.FamilyName.Equals(f, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    private static SKTypeface Resolve(string? family)
+    {
+        foreach (var f in (family is null ? Candidates : [family, .. Candidates]))
+        {
+            var tf = SKFontManager.Default.MatchFamily(f);
+            if (tf != null && tf.FamilyName.Equals(f, StringComparison.OrdinalIgnoreCase)) return tf;
+        }
+        return SKTypeface.Default;
     }
 
     /// <summary>Whether the face has arrow glyphs for data-block trend indicators.</summary>

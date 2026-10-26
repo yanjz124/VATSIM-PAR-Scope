@@ -62,6 +62,7 @@ public partial class MainWindow : FluentWindow
     private void ParView_PaintSurface(object? sender, SKPaintSurfaceEventArgs e)
     {
         float scale = DpiScale(ParView, e);
+        _par.SetFont(_vm.ScopeFont);
         var c = e.Surface.Canvas;
         c.Save();
         c.Scale(scale);
@@ -86,12 +87,13 @@ public partial class MainWindow : FluentWindow
     private void PlanView_PaintSurface(object? sender, SKPaintSurfaceEventArgs e)
     {
         float scale = DpiScale(PlanView, e);
+        _plan.SetFont(_vm.ScopeFont);
         var c = e.Surface.Canvas;
         c.Save();
         c.Scale(scale);
         var engine = _vm.Engine;
         _plan.Render(c, e.Info.Width / scale, e.Info.Height / scale, engine.Geometry, engine.Asr, engine.Airport,
-            engine.Preset, engine.Targets, engine.Now, _vm.PlanRangeNm, _vm.SelectedCallsign, _vm.ShowAsrSweep, _vm.MetarShort);
+            engine.Preset, engine.Targets, engine.Now, _vm.PlanRangeNm, _vm.SelectedCallsign, _vm.ShowAsrSweep, _vm.MetarStars);
         c.Restore();
     }
 

@@ -57,6 +57,18 @@ public sealed partial record Metar(string Raw)
         }
     }
 
+    /// <summary>STARS SSA altimeter-list form, e.g. "3002 300/09G18".</summary>
+    public string StarsShort
+    {
+        get
+        {
+            string alt = AltimeterHpa is int q ? $"{q}" : AltimeterInHg is double a ? $"{a * 100:0000}" : "----";
+            string wind = WindSpeedKt is null ? "" : WindSpeedKt == 0 ? "CALM"
+                : $"{(WindVariable ? "VRB" : WindDirDeg?.ToString("000"))}/{WindSpeedKt:00}" + (GustKt.HasValue ? $"G{GustKt}" : "");
+            return $"{alt} {wind}".Trim();
+        }
+    }
+
     public static Metar Parse(string raw)
     {
         raw = WhitespaceRx().Replace(raw.Trim(), " ");

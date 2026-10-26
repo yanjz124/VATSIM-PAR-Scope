@@ -48,6 +48,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         HistoryDots = settings.HistoryDots;
         UseVatsimMetar = settings.MetarSource == MetarSource.Vatsim;
         Engine.ClutterEnabled = ShowClutter;
+        SimulateErrors = settings.SimulateErrors;
+        Engine.SimulateErrors = SimulateErrors;
+        ScopeFonts = PARScope.App.Rendering.Ink.AvailableFamilies();
+        ScopeFont = settings.ScopeFont is { } f && ScopeFonts.Contains(f) ? f : ScopeFonts.FirstOrDefault();
         Engine.MtiEnabled = Mti;
     }
 
@@ -252,6 +256,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     [ObservableProperty] public partial bool LogRange { get; set; }
     [ObservableProperty] public partial bool ShowClutter { get; set; }
+    [ObservableProperty] public partial bool SimulateErrors { get; set; }
+    [ObservableProperty] public partial string? ScopeFont { get; set; }
+    public IReadOnlyList<string> ScopeFonts { get; }
     [ObservableProperty] public partial bool Mti { get; set; }
     [ObservableProperty] public partial bool ShowSafetyLimits { get; set; }
     [ObservableProperty] public partial bool ShowTerpsLateral { get; set; }
@@ -271,6 +278,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     partial void OnLogRangeChanged(bool value) => _settings.LogRange = value;
     partial void OnShowClutterChanged(bool value) { _settings.ShowClutter = value; Engine.ClutterEnabled = value; }
+    partial void OnSimulateErrorsChanged(bool value) { _settings.SimulateErrors = value; Engine.SimulateErrors = value; }
+    partial void OnScopeFontChanged(string? value) => _settings.ScopeFont = value;
     partial void OnMtiChanged(bool value)
     {
         _settings.Mti = value;
@@ -496,6 +505,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] public partial FlightCategory MetarCategory { get; set; }
     /// <summary>Wind/altimeter line drawn on the scopes.</summary>
     public string? MetarShort { get; private set; }
+    /// <summary>STARS SSA form for the ASR.</summary>
+    public string? MetarStars { get; private set; }
 
     /// <summary>Called at a few hertz by the view.</summary>
     public void RefreshStatus()
@@ -513,23 +524,26 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         else if (age > 15) { Link = LinkHealth.None; LinkText = "Waiting for vPilot"; LinkDetail = $"Listening on UDP {_settings.UdpPort}"; }
         else
         {
-            bool fast = Engine.Targets.Any(t => t.IsFastActive(now)) || link.FastHook == true;
-            Link = fast ? LinkHealth.Fast : LinkHealth.Slow;
+            // Report what is actually arriving, not just whether the hook is installed.
+            var fastTargets = Engine.Targets.Where(t => t.IsFastActive(now)).ToList();
             bool towerView = link.Callsign?.EndsWith("_TV", StringComparison.OrdinalIgnoreCase) == true;
-            LinkText = (towerView ? "vPilot tower view" : "vPilot") + (link.FastHook == true ? " · Velocity" : " · slow updates");
-            LinkDetail = link.FastHook switch
-            {
-                true => "Fast positions streaming (up to 5 Hz with velocities)",
-                false => "Plugin is not receiving fast positions; targets update every ~5 s and are dead-reckoned",
-                _ => "Connected",
-            };
-            if (link.FastPerMin is double f) LinkDetail += $" · last min {f / 60:0.0} fast/s";
+            string who = towerView ? "vPilot tower view" : "vPilot";
+            Link = fastTargets.Count > 0 ? LinkHealth.Fast : LinkHealth.Slow;
+            LinkText = fastTargets.Count > 0
+                ? $"{who} · 5 Hz data, {fastTargets.Count} aircraft"
+                : $"{who} · 5 s updates only" + (link.FastHook == true ? " (fast hook ready)" : "");
+            LinkDetail = fastTargets.Count > 0
+                ? $"Velocity fast positions arriving at ~{fastTargets.Average(t => t.FastRateHz(now)):0.0} Hz per aircraft"
+                : link.FastHook == true
+                    ? "The plugin is listening for Velocity fast positions but none are arriving; VATSIM only sends them for aircraft near you."
+                    : "The plugin's fast-position hook is not active; targets update every ~5 s and are dead-reckoned.";
+            if (link.FastPerMin is double f) LinkDetail += $" Last minute: {f / 60:0.0} fast packets/s.";
         }
 
         int real = Engine.Targets.Count(t => !t.IsSimulated);
         int sim = Engine.Targets.Count - real;
         int fastNow = Engine.Targets.Count(t => t.IsFastActive(now));
-        TrafficText = $"{real} network ({fastNow} at Velocity rate)" + (sim > 0 ? $" · {sim} training" : "");
+        TrafficText = $"{real} network aircraft" + (sim > 0 ? $" · {sim} training" : "");
         UtcText = DateTime.UtcNow.ToString("HH:mm:ss") + "Z";
         HasTraining = sim > 0;
 
@@ -549,6 +563,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             MetarRaw = m?.Raw ?? $"No METAR for {apt.MetarId}";
             MetarSpoken = m?.Spoken ?? "";
             MetarShort = m?.Short;
+            MetarStars = m?.StarsShort;
             MetarCategory = m?.Category ?? FlightCategory.Unknown;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)

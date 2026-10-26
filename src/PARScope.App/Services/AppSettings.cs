@@ -23,6 +23,10 @@ public sealed class AppSettings
     public double RangeScaleNm { get; set; } = 10;
     public bool LogRange { get; set; }
     public bool ShowClutter { get; set; } = true;
+    /// <summary>Radar noise, multipath, clutter and missed paints (training realism). Off by default.</summary>
+    public bool SimulateErrors { get; set; }
+    /// <summary>Scope font family; null = best installed (FixedDemiBold if present).</summary>
+    public string? ScopeFont { get; set; }
     public bool Mti { get; set; } = true;
     public bool ShowSafetyLimits { get; set; } = true;
     public bool ShowTerpsLateral { get; set; }
