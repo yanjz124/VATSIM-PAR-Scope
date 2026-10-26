@@ -81,7 +81,7 @@ Hover the status text for details; **Settings › Diagnostics** shows live rates
 | Control | |
 |---|---|
 | Airport, runway, radar model | Toolbar, left. Each model sets its own Log, Scan and compass-rose defaults; override them freely. |
-| **ASR**, pop-out | Flip the scope to the ASR (**F**), or put the ASR in its own window. |
+| **ASR**, pop-out | Flip the scope to the ASR (**Z**), or put the ASR in its own window. |
 | Range 5/10/20 NM | **PgUp / PgDn**. |
 | **MTI**, **Safety**, **2°/5°**, **Scan**, **Log** | Moving target indicator, safe limits, UK 2°/5° azimuth lines, antenna sweep, compressed range. |
 | Target | Click, or **Tab** / **Esc**. The side panel shows range, glidepath and course deviation. |
@@ -127,7 +127,7 @@ descent").
 
 ### Coordination
 
-Start a call with **Tower**, **Local**, **Approach** or **Departure** and it goes to that controller
+Start a call with **Local** (or **Tower**), **Approach** or **Departure** and it goes to that controller
 instead of the pilot. Wording can be loose; the aircraft is found by its callsign or number.
 
 * **Handoff in**: approach calls "handoff, one four mile final, Navy one two three four, two thousand
@@ -142,31 +142,30 @@ instead of the pilot. Wording can be loose; the aircraft is found by its callsig
 
 ### Keys
 
-Every call has a key, sent to the selected aircraft as if you had said it. **F1** (or **Key
-assignments** in the training panel or **Settings › Audio**) lists them all; click one to change it.
-The defaults:
+Every call has a key, sent to the selected aircraft (or the only one) as if you had said it. The
+defaults are laid out like a game: left hand on WASD, the number row for the approach in the order it
+is flown. **F1** (or **Key assignments** in the training panel or **Settings › Audio**) lists them all;
+click one to change it.
 
 | | |
 |---|---|
 | Space | Push to talk |
-| Enter | Send the suggested call |
-| ← / → | Heading −1° / +1° (Shift: 5°) |
-| D | Begin descent |
-| R | Range from touchdown |
-| Q / W / E | Slightly above / above / well above glidepath |
-| A | On glidepath |
-| Z / X / C | Slightly below / below / well below glidepath |
-| 1 2 3 · 4 · 5 6 7 (or numpad) | Well left / left / slightly left · on course · slightly right / right / well right |
-| with Shift / Ctrl / Alt | "…and correcting" / "…and holding" / "going…" (glidepath and course keys) |
-| H, B, L, K | Radio check, approach brief, lost communications, missed approach instructions |
-| N, G | Do not acknowledge further transmissions, wheels should be down |
+| F (or Enter) | Send the suggested call, with the right magnitude and trend |
+| W / S (or ↑ / ↓) | Above / below glidepath |
+| A / D | Left / right of course |
+| X / C | On glidepath / on course |
+| hold Ctrl / Shift / Alt | "slightly…" / "well…" / "going…" on the six keys above |
+| Q / E (or ← / →) | Turn left / right 1° (Shift: 5°) |
+| R, G, H | Range from touchdown, wheels should be down, how do you hear me |
+| 1 | Approach: radar contact on a handoff; after a missed approach, coordinate it, then "contact approach" |
+| 2 | Approach brief: PAR to the runway, missed approach and lost communications instructions in one call |
+| 3, 4 | Begin descent, do not acknowledge further transmissions |
+| 5 (or T) | Tower: request the clearance from local, then relay it to the pilot |
+| 6 | Contact tower after landing |
+| M, Shift+M | Execute missed approach; if runway not in sight, execute missed approach |
 | V, Shift+V | Level off, resume normal rate of descent |
-| M, Shift+M | Execute missed approach, if runway not in sight execute missed approach |
-| Y, U | Relay tower's clearance, contact tower after landing |
-| T | Request clearance from tower |
-| Ctrl+R, J, Ctrl+M | Radar contact (accept handoff), contact approach, coordinate missed approach |
-| PgUp / PgDn, Tab, Esc | Range scale, next target, deselect |
-| P, F, F1 | Pause, flip PAR / ASR, key assignments |
+| Tab, Esc, PgUp / PgDn | Next target, deselect, range scale |
+| Z, P, F1 | Flip PAR / ASR, pause, key assignments |
 
 ### Voices
 

@@ -393,10 +393,36 @@ public class RadioTests
     [InlineData("WIND 300 AT 9, RUNWAY 24R, CLEARED TO LAND")]
     [InlineData("CONTACT APPROACH")]
     [InlineData("CONTACT TOWER AFTER LANDING")]
+    [InlineData(CombinedBrief)]
+    [InlineData("SLIGHTLY ABOVE GLIDEPATH")]
+    [InlineData("WELL LEFT OF COURSE")]
     public void Every_hotkey_call_is_understood(string text)
     {
         Assert.False(Phraseology.Parse(text).IsEmpty, text);
 
+    }
+
+    /// <summary>The approach brief key: approach, missed approach and lost communications in one transmission.</summary>
+    private const string CombinedBrief = "THIS WILL BE A P-A-R APPROACH TO RUNWAY 24R. IN THE EVENT OF MISSED APPROACH, CLIMB AND MAINTAIN 2400, FLY RUNWAY HEADING. "
+        + "IF NO TRANSMISSIONS ARE RECEIVED FOR ONE MINUTE IN THE PATTERN OR FIVE SECONDS ON FINAL APPROACH, ATTEMPT CONTACT WITH TOWER AND PROCEED VFR. "
+        + "IF UNABLE, CLIMB AND MAINTAIN 2400 AND EXECUTE MISSED APPROACH";
+
+    [Fact]
+    public void Combined_brief_is_remembered_and_not_flown()
+    {
+        var t = Phraseology.Parse(CombinedBrief);
+        Assert.True(t.ApproachBrief);
+        Assert.True(t.MissedApproachInstructions);
+        Assert.True(t.LostCommsInstructions);
+        Assert.False(t.MissedApproach);
+        Assert.Equal(2400, t.ClimbToFt);
+
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 8, Skill = 1, Mode = PilotMode.ControllerDirected });
+        var r = ac.Receive(t, 0, 243, 700);
+        Assert.NotNull(r.Reply);
+        for (double s = 0.1; s <= 10; s += 0.1) sim.Step(s).ToList();
+        Assert.False(ac.GoingAround);
     }
 
     [Fact]

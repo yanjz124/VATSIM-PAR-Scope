@@ -31,7 +31,9 @@ public partial class MainWindow : FluentWindow
         Title = vm.WindowTitle;
         RestorePlacement();
 
-        _statusTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(250), DispatcherPriority.Background, (_, _) => _vm.RefreshStatus(), Dispatcher);
+        // Above render priority: the scope repaints every frame, and on a large or slow display that can keep
+        // the dispatcher busy enough to starve a background timer (side panel, pilot calls, handoffs stall).
+        _statusTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(250), DispatcherPriority.Normal, (_, _) => _vm.RefreshStatus(), Dispatcher);
         Loaded += async (_, _) =>
         {
             UpdateScopes();
@@ -162,11 +164,11 @@ public partial class MainWindow : FluentWindow
         // Commands and their keys live in KeyMap (rebindable in the Key assignments window). Training calls
         // (FAA JO 7110.65 §5-10, §5-12, §2-1-25) go to the selected aircraft as if spoken.
         if (_vm.Keys.Find(key, mods) is not { } command) return;
-        // Trend modifiers for glidepath and course keys: Shift "…and correcting / coming down", Ctrl "…and holding", Alt "going…".
-        var trend = mods.HasFlag(ModifierKeys.Alt) ? MainViewModel.KeyTrend.Going
-            : mods.HasFlag(ModifierKeys.Control) ? MainViewModel.KeyTrend.Holding
-            : mods.HasFlag(ModifierKeys.Shift) ? MainViewModel.KeyTrend.Correcting : MainViewModel.KeyTrend.None;
-        command.Run(_vm, trend);
+        // Modifiers on glidepath and course keys: Ctrl "slightly…", Shift "well…", Alt "going…".
+        var emphasis = mods.HasFlag(ModifierKeys.Alt) ? MainViewModel.KeyEmphasis.Going
+            : mods.HasFlag(ModifierKeys.Shift) ? MainViewModel.KeyEmphasis.Well
+            : mods.HasFlag(ModifierKeys.Control) ? MainViewModel.KeyEmphasis.Slightly : MainViewModel.KeyEmphasis.Plain;
+        command.Run(_vm, emphasis);
         e.Handled = true;
     }
 

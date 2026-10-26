@@ -126,7 +126,7 @@ public partial class KeysWindow : FluentWindow
             return;
         }
         var mods = Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Shift);
-        if (key == _vm.PttKey && (cmd.Trend || mods == ModifierKeys.None))
+        if (key == _vm.PttKey && (cmd.AnyModifiers || mods == ModifierKeys.None))
         {
             Status.Text = $"{_vm.PttKeyText} is the push-to-talk key.";
             Refresh();

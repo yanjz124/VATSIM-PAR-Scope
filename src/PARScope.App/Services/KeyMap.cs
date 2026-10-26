@@ -1,6 +1,6 @@
 using System.Windows.Input;
 using PARScope.App.ViewModels;
-using Trend = PARScope.App.ViewModels.MainViewModel.KeyTrend;
+using Emphasis = PARScope.App.ViewModels.MainViewModel.KeyEmphasis;
 
 namespace PARScope.App.Services;
 
@@ -49,79 +49,69 @@ public readonly record struct KeyChord(Key Key, ModifierKeys Mods = ModifierKeys
 }
 
 /// <summary>
-/// Something a hotkey does. Trend commands (glidepath and course calls) ignore the modifiers in their binding:
-/// Shift adds "…and correcting", Ctrl "…and holding", Alt makes it "going…".
+/// Something a hotkey does. Deviation commands (glidepath and course) ignore the modifiers in their binding:
+/// Ctrl makes the call "slightly…", Shift "well…", Alt "going…".
 /// </summary>
-public sealed record KeyCommand(string Id, string Group, string Label, KeyChord Default, KeyChord DefaultAlt, bool Trend, Action<MainViewModel, Trend> Run)
+public sealed record KeyCommand(string Id, string Group, string Label, KeyChord Default, KeyChord DefaultAlt, bool AnyModifiers, Action<MainViewModel, Emphasis> Run)
 {
-    public KeyCommand(string id, string group, string label, KeyChord def, Action<MainViewModel> run)
-        : this(id, group, label, def, KeyChord.None, false, (vm, _) => run(vm)) { }
+    public KeyCommand(string id, string group, string label, KeyChord def, Action<MainViewModel> run, KeyChord alt = default)
+        : this(id, group, label, def, alt, false, (vm, _) => run(vm)) { }
 }
 
-/// <summary>The scope's hotkeys: defaults, the user's changes (kept in settings) and lookup.</summary>
+/// <summary>
+/// The scope's hotkeys: defaults, the user's changes (kept in settings) and lookup. The defaults are laid out
+/// like a game: left hand on WASD for the deviation calls and Q/E for turns, the number row for the
+/// approach in the order it is flown, F to send the suggested call.
+/// </summary>
 public sealed class KeyMap
 {
     private static KeyChord K(Key k, ModifierKeys m = ModifierKeys.None) => new(k, m);
-    private const ModifierKeys Shift = ModifierKeys.Shift, Ctrl = ModifierKeys.Control;
+    private const ModifierKeys Shift = ModifierKeys.Shift;
+    private const string Mods = " (Ctrl slightly… · Shift well… · Alt going…)";
 
-    private static KeyCommand Glide(string id, string label, Key k, int level) =>
-        new(id, "Glidepath (Shift …and correcting · Ctrl …and holding · Alt going…)", label, K(k), KeyChord.None, true, (vm, t) => vm.GlidepathKey(level, t));
-    private static KeyCommand Course(string id, string label, int n, int level) =>
-        new(id, "Course (Shift …and correcting · Ctrl …and holding · Alt going…)", label, K(Key.D0 + n), K(Key.NumPad0 + n), true, (vm, t) => vm.CourseKey(level, t));
-    private static KeyCommand Call(string id, string label, Key k, string call, ModifierKeys m = ModifierKeys.None) =>
-        new(id, "Calls", label, K(k, m), vm => vm.KeyCall(call));
+    private static KeyCommand Glide(string id, string label, Key k, Key alt, int side) =>
+        new(id, "Glidepath" + Mods, label, K(k), K(alt), true, (vm, e) => vm.GlidepathKey(side, e));
+    private static KeyCommand Course(string id, string label, Key k, Key alt, int side) =>
+        new(id, "Course" + Mods, label, K(k), K(alt), true, (vm, e) => vm.CourseKey(side, e));
 
     /// <summary>Every hotkey command, in the order the reference shows them.</summary>
     public static readonly IReadOnlyList<KeyCommand> Commands =
     [
-        new("send_suggested", "Radio", "Send the suggested call", K(Key.Enter), vm => vm.SaySuggestedCall()),
-        new("heading_left", "Radio", "Turn left 1°", K(Key.Left), vm => vm.NudgeHeading(-1)),
-        new("heading_right", "Radio", "Turn right 1°", K(Key.Right), vm => vm.NudgeHeading(1)),
-        new("heading_left5", "Radio", "Turn left 5°", K(Key.Left, Shift), vm => vm.NudgeHeading(-5)),
-        new("heading_right5", "Radio", "Turn right 5°", K(Key.Right, Shift), vm => vm.NudgeHeading(5)),
-        new("begin_descent", "Radio", "Begin descent", K(Key.D), vm => vm.BeginDescent()),
+        new("send_suggested", "Radio", "Send the suggested call (with the right trend)", K(Key.F), vm => vm.SaySuggestedCall(), K(Key.Enter)),
+        new("heading_left", "Radio", "Turn left 1°", K(Key.Q), vm => vm.NudgeHeading(-1), K(Key.Left)),
+        new("heading_right", "Radio", "Turn right 1°", K(Key.E), vm => vm.NudgeHeading(1), K(Key.Right)),
+        new("heading_left5", "Radio", "Turn left 5°", K(Key.Q, Shift), vm => vm.NudgeHeading(-5), K(Key.Left, Shift)),
+        new("heading_right5", "Radio", "Turn right 5°", K(Key.E, Shift), vm => vm.NudgeHeading(5), K(Key.Right, Shift)),
         new("range", "Radio", "Range from touchdown", K(Key.R), vm => vm.SayRange()),
+        new("wheels", "Radio", "Approaching glidepath, wheels should be down", K(Key.G), vm => vm.KeyCall("APPROACHING GLIDEPATH, WHEELS SHOULD BE DOWN")),
+        new("radio_check", "Radio", "How do you hear me", K(Key.H), vm => vm.KeyCall("HOW DO YOU HEAR ME")),
 
-        Glide("gp_well_above", "Well above glidepath", Key.E, 3),
-        Glide("gp_above", "Above glidepath", Key.W, 2),
-        Glide("gp_slightly_above", "Slightly above glidepath", Key.Q, 1),
-        Glide("gp_on", "On glidepath", Key.A, 0),
-        Glide("gp_slightly_below", "Slightly below glidepath", Key.Z, -1),
-        Glide("gp_below", "Below glidepath", Key.X, -2),
-        Glide("gp_well_below", "Well below glidepath", Key.C, -3),
+        Glide("gp_above", "Above glidepath", Key.W, Key.Up, 1),
+        Glide("gp_below", "Below glidepath", Key.S, Key.Down, -1),
+        Glide("gp_on", "On glidepath", Key.X, Key.None, 0),
 
-        Course("crs_well_left", "Well left of course", 1, -3),
-        Course("crs_left", "Left of course", 2, -2),
-        Course("crs_slightly_left", "Slightly left of course", 3, -1),
-        Course("crs_on", "On course", 4, 0),
-        Course("crs_slightly_right", "Slightly right of course", 5, 1),
-        Course("crs_right", "Right of course", 6, 2),
-        Course("crs_well_right", "Well right of course", 7, 3),
+        Course("crs_left", "Left of course", Key.A, Key.None, -1),
+        Course("crs_right", "Right of course", Key.D, Key.None, 1),
+        Course("crs_on", "On course", Key.C, Key.None, 0),
 
-        Call("radio_check", "How do you hear me", Key.H, "HOW DO YOU HEAR ME"),
-        new("approach_brief", "Calls", "Approach brief (PAR, runway, minimums)", K(Key.B), vm => vm.SayApproachBrief()),
-        new("lost_comms", "Calls", "Lost communications instructions", K(Key.L), vm => vm.SayLostComms()),
-        new("missed_instructions", "Calls", "Missed approach instructions", K(Key.K), vm => vm.SayMissedInstructions()),
-        Call("do_not_ack", "Do not acknowledge further transmissions", Key.N, "DO NOT ACKNOWLEDGE FURTHER TRANSMISSIONS"),
-        Call("wheels", "Approaching glidepath, wheels should be down", Key.G, "APPROACHING GLIDEPATH, WHEELS SHOULD BE DOWN"),
-        Call("level_off", "Level off", Key.V, "LEVEL OFF YOUR AIRCRAFT, ACKNOWLEDGE"),
-        Call("resume_descent", "Resume normal rate of descent", Key.V, "RESUME NORMAL RATE OF DESCENT", Shift),
-        Call("execute_missed", "Execute missed approach", Key.M, "EXECUTE MISSED APPROACH"),
-        Call("missed_if_not_in_sight", "If runway not in sight, execute missed approach", Key.M, "IF RUNWAY OR APPROACH LIGHTS NOT IN SIGHT, EXECUTE MISSED APPROACH", Shift),
-        new("relay_clearance", "Calls", "Relay tower's clearance", K(Key.Y), vm => vm.SayTowerClearance()),
-        Call("contact_tower_after", "Contact tower after landing", Key.U, "CONTACT TOWER AFTER LANDING"),
+        new("approach_step", "The approach, in order", "Approach: radar contact; after a missed approach, coordinate, then contact approach", K(Key.D1), vm => vm.ApproachStep()),
+        new("approach_brief", "The approach, in order", "Approach brief: PAR to runway, missed approach and lost comms instructions", K(Key.D2), vm => vm.SayApproachBrief()),
+        new("begin_descent", "The approach, in order", "Begin descent", K(Key.D3), vm => vm.BeginDescent()),
+        new("do_not_ack", "The approach, in order", "Do not acknowledge further transmissions", K(Key.D4), vm => vm.KeyCall("DO NOT ACKNOWLEDGE FURTHER TRANSMISSIONS")),
+        new("tower_step", "The approach, in order", "Tower: request the clearance from local, then relay it", K(Key.D5), vm => vm.TowerStep(), K(Key.T)),
+        new("contact_tower_after", "The approach, in order", "Contact tower after landing", K(Key.D6), vm => vm.KeyCall("CONTACT TOWER AFTER LANDING")),
 
-        new("tower_request", "Coordination", "Request clearance from tower", K(Key.T), vm => vm.RequestTowerCommand.Execute(null)),
-        new("radar_contact", "Coordination", "Radar contact (accept handoff)", K(Key.R, Ctrl), vm => vm.AcceptHandoffCommand.Execute(null)),
-        new("coordinate_missed", "Coordination", "Coordinate missed approach with approach", K(Key.M, Ctrl), vm => vm.CoordinateMissedCommand.Execute(null)),
-        new("contact_approach", "Coordination", "Contact approach (switch the pilot)", K(Key.J), vm => vm.ContactApproachCommand.Execute(null)),
+        new("execute_missed", "Missed approach and rate", "Execute missed approach", K(Key.M), vm => vm.KeyCall("EXECUTE MISSED APPROACH")),
+        new("missed_if_not_in_sight", "Missed approach and rate", "If runway not in sight, execute missed approach", K(Key.M, Shift), vm => vm.KeyCall("IF RUNWAY OR APPROACH LIGHTS NOT IN SIGHT, EXECUTE MISSED APPROACH")),
+        new("level_off", "Missed approach and rate", "Level off", K(Key.V), vm => vm.KeyCall("LEVEL OFF YOUR AIRCRAFT, ACKNOWLEDGE")),
+        new("resume_descent", "Missed approach and rate", "Resume normal rate of descent", K(Key.V, Shift), vm => vm.KeyCall("RESUME NORMAL RATE OF DESCENT")),
 
-        new("range_in", "Scope", "Shorter range scale", K(Key.PageUp), vm => vm.StepRange(-1)),
-        new("range_out", "Scope", "Longer range scale", K(Key.PageDown), vm => vm.StepRange(+1)),
         new("next_target", "Scope", "Next target", K(Key.Tab), vm => vm.CycleSelection()),
         new("deselect", "Scope", "Deselect target", K(Key.Escape), vm => vm.Select(null)),
+        new("range_in", "Scope", "Shorter range scale", K(Key.PageUp), vm => vm.StepRange(-1)),
+        new("range_out", "Scope", "Longer range scale", K(Key.PageDown), vm => vm.StepRange(+1)),
+        new("flip", "Scope", "Flip PAR / ASR", K(Key.Z), vm => vm.FlipScope()),
         new("pause", "Scope", "Pause / resume training traffic", K(Key.P), vm => vm.TogglePause()),
-        new("flip", "Scope", "Flip PAR / ASR", K(Key.F), vm => vm.FlipScope()),
         new("show_keys", "Scope", "Show key assignments", K(Key.F1), vm => vm.ShowKeyAssignments()),
     ];
 
@@ -151,19 +141,19 @@ public sealed class KeyMap
         return string.Join(" / ", new[] { p, a }.Where(k => !k.IsNone).Select(k => k.ToString()));
     }
 
-    /// <summary>The command a key press runs: an exact match first, then a trend command on that key with any modifiers.</summary>
+    /// <summary>The command a key press runs: an exact match first, then a deviation command on that key with any modifiers.</summary>
     public KeyCommand? Find(Key key, ModifierKeys mods)
     {
         var chord = new KeyChord(key, mods & (ModifierKeys.Control | ModifierKeys.Alt | ModifierKeys.Shift));
         return Commands.FirstOrDefault(c => Bound(c).Contains(chord))
-            ?? Commands.FirstOrDefault(c => c.Trend && Bound(c).Any(b => b.Key == key));
+            ?? Commands.FirstOrDefault(c => c.AnyModifiers && Bound(c).Any(b => b.Key == key));
     }
 
     private IEnumerable<KeyChord> Bound(KeyCommand c) => new[] { _bindings[c.Id].Primary, _bindings[c.Id].Alt }.Where(k => !k.IsNone);
 
-    /// <summary>Two bindings collide if they share a key and either a trend command (any modifiers) or the same modifiers.</summary>
-    private static bool Clash(KeyChord a, bool aTrend, KeyChord b, bool bTrend) =>
-        !a.IsNone && !b.IsNone && a.Key == b.Key && (aTrend || bTrend || a.Mods == b.Mods);
+    /// <summary>Two bindings collide if they share a key and either a deviation command (any modifiers) or the same modifiers.</summary>
+    private static bool Clash(KeyChord a, bool aAny, KeyChord b, bool bAny) =>
+        !a.IsNone && !b.IsNone && a.Key == b.Key && (aAny || bAny || a.Mods == b.Mods);
 
     /// <summary>
     /// Binds a key to a command (primary or alternate slot). Any other command using it loses it; their labels
@@ -171,14 +161,14 @@ public sealed class KeyMap
     /// </summary>
     public IReadOnlyList<string> Set(KeyCommand cmd, bool alternate, KeyChord chord)
     {
-        if (cmd.Trend) chord = chord with { Mods = ModifierKeys.None };
+        if (cmd.AnyModifiers) chord = chord with { Mods = ModifierKeys.None };
         var taken = new List<string>();
         foreach (var other in Commands)
         {
             var (p, a) = _bindings[other.Id];
             bool self = other.Id == cmd.Id;
-            if ((!self || alternate) && Clash(chord, cmd.Trend, p, other.Trend)) { p = KeyChord.None; if (!self) taken.Add(other.Label); }
-            if ((!self || !alternate) && Clash(chord, cmd.Trend, a, other.Trend)) { a = KeyChord.None; if (!self) taken.Add(other.Label); }
+            if ((!self || alternate) && Clash(chord, cmd.AnyModifiers, p, other.AnyModifiers)) { p = KeyChord.None; if (!self) taken.Add(other.Label); }
+            if ((!self || !alternate) && Clash(chord, cmd.AnyModifiers, a, other.AnyModifiers)) { a = KeyChord.None; if (!self) taken.Add(other.Label); }
             _bindings[other.Id] = (p, a);
         }
         var cur = _bindings[cmd.Id];
@@ -189,7 +179,7 @@ public sealed class KeyMap
 
     /// <summary>Commands whose key (with no modifiers) is the push-to-talk key, which takes precedence.</summary>
     public IReadOnlyList<string> ShadowedBy(Key ptt) =>
-        Commands.Where(c => Bound(c).Any(b => b.Key == ptt && (c.Trend || b.Mods == ModifierKeys.None))).Select(c => c.Label).ToList();
+        Commands.Where(c => Bound(c).Any(b => b.Key == ptt && (c.AnyModifiers || b.Mods == ModifierKeys.None))).Select(c => c.Label).ToList();
 
     public void ResetAll()
     {

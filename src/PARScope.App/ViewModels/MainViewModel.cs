@@ -942,29 +942,18 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ProcessTransmission(call, "key");
     }
 
-    public enum KeyTrend { None, Correcting, Holding, Going }
+    /// <summary>What a modifier adds to a deviation key: Ctrl "slightly", Shift "well", Alt "going".</summary>
+    public enum KeyEmphasis { Plain, Slightly, Well, Going }
 
-    /// <summary>Glidepath call from a key: level −3…3 (well below … well above, 0 on glidepath) plus trend (§5-12-4).</summary>
-    public void GlidepathKey(int level, KeyTrend trend)
-    {
-        if (level == 0) { KeyCall("ON GLIDEPATH"); return; }
-        string side = level > 0 ? "ABOVE" : "BELOW";
-        if (trend == KeyTrend.Going) { KeyCall($"GOING {side} GLIDEPATH"); return; }
-        string mag = Math.Abs(level) switch { 1 => "SLIGHTLY ", 3 => "WELL ", _ => "" };
-        string tail = trend switch { KeyTrend.Correcting => level > 0 ? " AND COMING DOWN" : " AND COMING UP", KeyTrend.Holding => " AND HOLDING", _ => "" };
-        KeyCall($"{mag}{side} GLIDEPATH{tail}");
-    }
+    private static string Emphasis(KeyEmphasis e) => e switch { KeyEmphasis.Slightly => "SLIGHTLY ", KeyEmphasis.Well => "WELL ", KeyEmphasis.Going => "GOING ", _ => "" };
 
-    /// <summary>Course call from a key: level −3…3 (well left … well right, 0 on course) plus trend.</summary>
-    public void CourseKey(int level, KeyTrend trend)
-    {
-        if (level == 0) { KeyCall("ON COURSE"); return; }
-        string side = level > 0 ? "RIGHT" : "LEFT";
-        if (trend == KeyTrend.Going) { KeyCall($"GOING {side} OF COURSE"); return; }
-        string mag = Math.Abs(level) switch { 1 => "SLIGHTLY ", 3 => "WELL ", _ => "" };
-        string tail = trend switch { KeyTrend.Correcting => " AND CORRECTING", KeyTrend.Holding => " AND HOLDING", _ => "" };
-        KeyCall($"{mag}{side} OF COURSE{tail}");
-    }
+    /// <summary>Glidepath call from a key (§5-12-4): side +1 above, −1 below, 0 on glidepath.</summary>
+    public void GlidepathKey(int side, KeyEmphasis e) =>
+        KeyCall(side == 0 ? "ON GLIDEPATH" : $"{Emphasis(e)}{(side > 0 ? "ABOVE" : "BELOW")} GLIDEPATH");
+
+    /// <summary>Course call from a key: side +1 right, −1 left, 0 on course.</summary>
+    public void CourseKey(int side, KeyEmphasis e) =>
+        KeyCall(side == 0 ? "ON COURSE" : $"{Emphasis(e)}{(side > 0 ? "RIGHT" : "LEFT")} OF COURSE");
 
     /// <summary>Enter: transmit the suggested call for the selected aircraft.</summary>
     public void SaySuggestedCall()
@@ -982,18 +971,57 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     private double MissedClimbMsl => Engine.Runway is { } rw ? Math.Round((rw.ThresholdElevFt + 2000) / 100) * 100 : 2000;
 
-    /// <summary>B: approach brief (§5-10-2).</summary>
+    /// <summary>
+    /// Approach brief in one transmission (§5-10-2, §5-10-4): the approach and runway, missed approach
+    /// instructions and lost communications instructions.
+    /// </summary>
     public void SayApproachBrief()
     {
-        if (Engine.Runway is { } rw) KeyCall($"THIS WILL BE A P-A-R APPROACH TO RUNWAY {rw.RunwayId}");
+        if (Engine.Runway is not { } rw) return;
+        KeyCall($"THIS WILL BE A P-A-R APPROACH TO RUNWAY {rw.RunwayId}. "
+            + $"IN THE EVENT OF MISSED APPROACH, CLIMB AND MAINTAIN {MissedClimbMsl:0}, FLY RUNWAY HEADING. "
+            + "IF NO TRANSMISSIONS ARE RECEIVED FOR ONE MINUTE IN THE PATTERN OR FIVE SECONDS ON FINAL APPROACH, ATTEMPT CONTACT WITH TOWER AND PROCEED VFR. "
+            + $"IF UNABLE, CLIMB AND MAINTAIN {MissedClimbMsl:0} AND EXECUTE MISSED APPROACH");
     }
 
-    /// <summary>L: lost communications instructions (§5-10-4).</summary>
-    public void SayLostComms() => KeyCall(
-        $"IF NO TRANSMISSIONS ARE RECEIVED FOR ONE MINUTE IN THE PATTERN OR FIVE SECONDS ON FINAL APPROACH, ATTEMPT CONTACT WITH TOWER AND PROCEED VFR. IF UNABLE, CLIMB AND MAINTAIN {MissedClimbMsl:0} AND EXECUTE MISSED APPROACH");
+    /// <summary>
+    /// The tower key, one step at a time: request a clearance from local, then relay it to the pilot once
+    /// local has cleared them (asks again if local said to continue).
+    /// </summary>
+    public void TowerStep()
+    {
+        if (KeyTarget() is not { } ac) return;
+        if (_tower.AnswerFor(ac.Callsign) == TowerAnswer.Cleared)
+        {
+            if (ac.ClearedToLand) { StatusMessage = $"{ac.Callsign} already has the clearance"; return; }
+            SayTowerClearance();
+        }
+        else TowerRequest(ac, TowerIntent, spoken: false);
+    }
 
-    /// <summary>K: missed approach instructions, runway heading and the missed approach altitude.</summary>
-    public void SayMissedInstructions() => KeyCall($"IN THE EVENT OF MISSED APPROACH, CLIMB AND MAINTAIN {MissedClimbMsl:0}, FLY RUNWAY HEADING");
+    /// <summary>
+    /// The approach key, one step at a time: accept a waiting handoff ("radar contact"); after a missed
+    /// approach, coordinate it with approach, then switch the pilot to approach.
+    /// </summary>
+    public void ApproachStep()
+    {
+        var offered = Engine.Training.Aircraft.Where(a => _approach.IsPending(a.Callsign)).ToList();
+        var missed = CallTarget is { GoingAround: true } m ? m : Engine.Training.Aircraft.FirstOrDefault(a => a.GoingAround && !a.HandedOff);
+        if (missed != null && !missed.HandedOff)
+        {
+            if (!_approach.IsCoordinated(missed.Callsign)) ApproachCoordination(missed, spoken: false);
+            else ProcessTransmissionTo(missed, "CONTACT APPROACH");
+            return;
+        }
+        if (offered.Count > 0) { AcceptHandoff(); return; }
+        StatusMessage = "Nothing for approach: no handoff waiting and no missed approach";
+    }
+
+    /// <summary>A key call to a particular aircraft, whichever is selected.</summary>
+    private void ProcessTransmissionTo(SimAircraft ac, string call)
+    {
+        if (TrainingMode) ProcessTransmission(call, "key", ac);
+    }
 
     /// <summary>Y: relay tower's landing clearance with the wind (§5-10-13).</summary>
     public void SayTowerClearance()
@@ -1053,19 +1081,27 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public event Action? KeyAssignmentsRequested;
     public void ShowKeyAssignments() => KeyAssignmentsRequested?.Invoke();
 
-    private string KeyOf(string id) => Keys.Text(id) is { Length: > 0 } k ? k : "unbound";
+    /// <summary>A command's main key for hints and buttons, e.g. "W".</summary>
+    private string KeyOf(string id)
+    {
+        var c = KeyMap.Commands.First(c => c.Id == id);
+        var k = Keys.Primary(c).IsNone ? Keys.Alternate(c) : Keys.Primary(c);
+        return k.IsNone ? "unbound" : k.ToString();
+    }
 
-    public string RadarContactButtonText => $"Radar contact ({KeyOf("radar_contact")})";
-    public string ContactApproachButtonText => $"Contact approach ({KeyOf("contact_approach")})";
-    public string CoordinateMissedButtonText => $"Coordinate missed approach ({KeyOf("coordinate_missed")})";
+    // The approach key steps through all three (handoff, coordinate, contact approach).
+    public string RadarContactButtonText => $"Radar contact ({KeyOf("approach_step")})";
+    public string ContactApproachButtonText => $"Contact approach ({KeyOf("approach_step")})";
+    public string CoordinateMissedButtonText => $"Coordinate missed approach ({KeyOf("approach_step")})";
 
     public string KeysHint =>
-        $"{PttKeyText} talk (start with 'Tower…' or 'Approach…' to coordinate) · {KeyOf("send_suggested")} send suggested call\n"
-        + $"Glidepath: {KeyOf("gp_slightly_above")}/{KeyOf("gp_above")}/{KeyOf("gp_well_above")} slightly/–/well above · {KeyOf("gp_on")} on · "
-        + $"{KeyOf("gp_slightly_below")}/{KeyOf("gp_below")}/{KeyOf("gp_well_below")} slightly/–/well below\n"
-        + $"Course: {Keys.Primary(KeyMap.Commands.First(c => c.Id == "crs_well_left"))}–{Keys.Primary(KeyMap.Commands.First(c => c.Id == "crs_well_right"))} well left … well right\n"
-        + "  with Shift: …and correcting · Ctrl: …and holding · Alt: going…\n"
-        + $"Every other call has a key too: {KeyOf("show_keys")} shows them all.";
+        $"{PttKeyText} talk (start with 'Local…' or 'Approach…' to coordinate) · {KeyOf("send_suggested")} send the suggested call\n"
+        + $"{KeyOf("gp_above")}/{KeyOf("gp_below")} above/below glidepath · {KeyOf("crs_left")}/{KeyOf("crs_right")} left/right of course · "
+        + $"{KeyOf("gp_on")}/{KeyOf("crs_on")} on glidepath/course\n"
+        + "  hold Ctrl: slightly… · Shift: well… · Alt: going…\n"
+        + $"{KeyOf("heading_left")}/{KeyOf("heading_right")} turn 1° (Shift 5°) · {KeyOf("range")} range · {KeyOf("wheels")} wheels · {KeyOf("execute_missed")} missed approach\n"
+        + $"{KeyOf("approach_step")}–{KeyOf("contact_tower_after")}: radar contact, brief, begin descent, do not acknowledge, tower, contact tower\n"
+        + $"{KeyOf("show_keys")} shows every key.";
 
     /// <summary>Push-to-talk is held (drives the TX indicator).</summary>
     [ObservableProperty] public partial bool IsTransmitting { get; set; }
@@ -1098,13 +1134,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// Sends a transmission: to tower or approach if it opens by addressing them (interphone), otherwise to
     /// the selected training aircraft (or the only one) on the final frequency.
     /// </summary>
-    public void ProcessTransmission(string text, string via)
+    public void ProcessTransmission(string text, string via, SimAircraft? to = null)
     {
         if (TryAcceptHandoff(text, via)) return;
         if (Interphone.Parse(text) is { } call) { ProcessInterphone(call, via); return; }
 
         var t = Phraseology.Parse(text);
-        var target = CallTarget;
+        var target = to ?? CallTarget;
         Log("FINAL", text.ToUpperInvariant() + (t.IsEmpty ? "  (not understood)" : ""));
         _session.Write($"          ({via}) to {target?.Callsign ?? "no aircraft selected"}; understood as: {Understood(t)}");
         _lastTxTime = Engine.Training.SimTime;
