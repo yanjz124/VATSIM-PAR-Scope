@@ -43,6 +43,8 @@ public sealed class AppSettings
     public bool CheckForUpdates { get; set; } = true;
     /// <summary>Training arrivals use the live METAR surface wind instead of a random one.</summary>
     public bool TrainingLiveWind { get; set; } = true;
+    /// <summary>Longest generated training callsign on the radar (5 or 6); longer callwords are abbreviated.</summary>
+    public int MaxCallsignLength { get; set; } = 5;
     /// <summary>Missed approaches, touch and goes and low approaches come round again for another approach.</summary>
     public bool TrainingReturnForAnother { get; set; } = true;
     /// <summary>Record received traffic to CSV for update-rate diagnostics.</summary>

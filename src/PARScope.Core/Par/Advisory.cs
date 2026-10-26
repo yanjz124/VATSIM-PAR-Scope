@@ -197,7 +197,7 @@ public static class AdvisoryEngine
     }
 
     /// <summary>
-    /// Heading that returns the aircraft to the centreline within about 30 s, keeping the wind correction
+    /// Heading that returns the aircraft to the centerline within about 30 s, keeping the wind correction
     /// (heading − track): the controller works out the drift from the heading assigned against the track
     /// seen. Corrections are limited about the drift-corrected course, smaller close in.
     /// </summary>

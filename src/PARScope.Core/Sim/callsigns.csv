@@ -1,102 +1,3699 @@
 callsign,type,unit,numbering
+ABIDE,C130,"7th Wing, Dyess AFB, TX",mission
+ABLOW,K35R,"55th Wing, Offutt AFB, NE",mission
+ABRUM,C130,43rd OG Pope AFB NC,mission
+ABYSS,C130,"302nd AW, Peterson AFB, CO",mission
+ABYSS,C130,"43rd OG, Pope AFB NC NC",mission
 ACCURA,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
-ACES,F16,119th FS NJ ANG Atlantic City NJ,flight
-AIRGUN,F16,388th FW Hill AFB UT,flight
-AKULA,F16,93rd FS Homestead ARB FL,flight
-ANGRY,F16,121st FS DC ANG Joint Base Andrews MD,flight
-ATOMIC,F16,162nd FS OH ANG Springfield OH,flight
-BANSHEE,F16,56th FW Luke AFB AZ,flight
-BEAST,F16,20th FW Shaw AFB SC,flight
-BUCKEYE,F16,162nd FS OH ANG Springfield OH,flight
-BUDDHA,F16,100th FS AL ANG Dannelly Field AL,flight
-CAESAR,F16,77th FS Shaw AFB SC,flight
-CASINO,F16,79th FS Shaw AFB SC,flight
-ANIMAL,F15,494th FS RAF Lakenheath UK,flight
-ARROW,F15,58th FS Eglin AFB FL,flight
-BADER,F15,19th FS Elmendorf AFB AK,flight
-BALLAD,F15,334th FS Seymour Johnson AFB NC,flight
-BLITZ,F15,173rd FW OR ANG Klamath Falls OR,flight
-BOLO,F15,104th FW MA ANG Barnes ANGB MA,flight
-BREW,F15,123rd FS OR ANG Portland OR,flight
-BUD,F15,131st FW MO ANG St Louis MO,flight
-CARVER,F15,333rd FS Seymour Johnson AFB NC,flight
-BIKER,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
-BONES,F22,95th FS Tyndall AFB FL,flight
-ANTAR,A10,357th FS Davis-Monthan AFB AZ,flight
-ATLAS,A10,184th FS AR ANG Fort Smith AR,flight
-AXEMAN,A10,104th FS MD ANG Martin State MD,flight
-BANZAI,A10,23rd FW Moody AFB GA,flight
-BOAR,A10,303rd FS Whiteman AFB MO,flight
-AVENGER,F18H,VMFA-251 MCAS Beaufort SC,flight
-BAT,F18H,VMFA(AW)-242 MCAS Miramar CA,flight
-BENGAL,F18H,VMFA(AW)-224 MCAS Beaufort SC,flight
-BLACKJACK,F18H,VMFA-312 MCAS Beaufort SC,flight
-BLADE,F18H,VMFA-115 MCAS Beaufort SC,flight
-BLASTER,F18H,VFA-34 NAS Oceana VA,flight
-CARR,F18H,VFA-82 NAS Oceana VA,flight
-CAT,F18H,VFA-131 NAS Oceana VA,flight
-BANSHEE,F18S,VMAQ-1 (EA-18G) MCAS Cherry Point NC,flight
-BEEF,F18S,VFA-22 NAS Lemoore CA,flight
-BULLET,F18S,VFA-2 NAS Lemoore CA,flight
-CAM,F18S,VFA-14 NAS Lemoore CA,flight
-CANYON,F18S,VFA-105 NAS Oceana VA,flight
-BONES,F18S,VFA-103 NAS Oceana VA,flight
-ACURA,T38,435th FTS Randolph AFB TX,flight
-ADLER,T38,49th FTS Columbus AFB MS,flight
-ARCO,T38,71st FTS Joint Base Langley-Eustis VA,flight
-CAJUN,T38,435th FTS Randolph AFB TX,flight
-BOOMER,TEX2,VT-27 NAS Corpus Christi TX,flight
-BUCK,TEX2,VT-4 NAS Pensacola FL,flight
-BILLY,TEX2,559th FTS Randolph AFB TX,flight
-BOMA,TEX2,41st FTS Columbus AFB MS,flight
-ALLEY,BE40,48th FTS Columbus AFB MS,flight
-AQUA,BE40,71st FTW Vance AFB OK,flight
-BLAZE,BE40,Columbus AFB MS,flight
-ACME,B52,96th BS Barksdale AFB LA,mission
-AHAB,B52,96th BS Barksdale AFB LA,mission
-ANGER,B52,5th BW Minot AFB ND,mission
-BUFF,B52,2nd BW Barksdale AFB LA,mission
-ARBY,B2,509th BW Whiteman AFB MO,mission
-BATT,B2,509th BW Whiteman AFB MO,mission
-ABIDE,C130,7th Wing Dyess AFB TX,mission
-ADIN,C130,314th AW Little Rock AFB AR,mission
+ACER,F16,"179th FS, MN ANG, Duluth, MN",flight
+ACES,F16,"119th FS, NJ ANG Atlantic City NJ",flight
+ACES,F22,71st FS Joint Base Langley-Eustis VA,flight
+ACKER,C130,"43rd OG, 43AW Pope AFB NC, NC",mission
+ACME,B52,"2nd BW, 96th BS, Barksdale AFB, LA",mission
+ACME,F16,"412th TW, Edwards AFB, CA (ACLM tests)",flight
+ACTIVE,F18H,"VFA-15, CVW-8 NAS OCEANAVA",flight
+ACTON,C130,"352nd SOG, RAF Mildenhall, UK",mission
+ACTON,K35R,"55th Wing, Offutt AFB, NE",mission
+ACURA,T38,435th FTS RANDOLPH AFB TX,flight
+ADAM,T38,435th FTS Randolph AFB TX,flight
+ADDAM,TEX2,USNTPS NAS Patuxent River MD,flight
+ADDER,C30J,"77Sqn Indian Airforce, Hindon AFS, India",mission
+ADIN,C130,"314th AW, Little Rock AFB, AR",mission
+ADLER,F15,4 FW Seymour-Johnson AFB NC,flight
+ADLER,T38,"49th FTS, Columbus AFB, MS",flight
+ADVICE,K35R,ME ANG 101ARW/132ARS Bangor ME,mission
+AEGIS,C30J,30 40 ALS Dyess AFB TX,mission
+AERO,F16,119th FS NJ ANG Atlantic City NJ,flight
 AFTON,C130,187th AS WY ANG Cheyenne WY,mission
-BANDAGE,C130,95th AS WI ANG Milwaukee WI,mission
-BISON,C130,328th AS Niagara Falls ARS NY,mission
-BREWER,C130,95th AS Moody AFB GA,mission
-BUFFOON,C130,164th AS OH ANG Mansfield OH,mission
-BULL,C130,118th AS CT ANG Bradley ANGB CT,mission
-CASTLE,C130,142nd AS DE ANG New Castle DE,mission
-AEGIS,C30J,40th AS Dyess AFB TX,mission
-ANVIL,C30J,130th AS WV ANG Charleston WV,mission
-ARROW,C30J,48th AS Little Rock AFB AR,mission
-BACON,C30J,143rd AW RI ANG Quonset RI,mission
-BRADY,C30J,VMGR-352 (KC-130J) MCAS Cherry Point NC,mission
-BRONCO,C30J,VMGR-252 (KC-130J) MCAS Cherry Point NC,mission
-AMOR,C17,62nd AW McChord AFB WA,mission
-ARKTIK,C17,517th AS Elmendorf AFB AK,mission
-ASTRA,C17,437th AW Charleston AFB SC,mission
-BEELINER,C17,21st AS Travis AFB CA,mission
-BLADE,C17,97th AMW Altus AFB OK,mission
-BRIM,C17,437th/315th AW Charleston AFB SC,mission
-ADVICE,K35R,132nd ARS ME ANG Bangor ME,mission
-AGILE,K35R,927th ARW Selfridge ANGB MI,mission
-AGIO,K35R,97th AMW Altus AFB OK,mission
+AGEING,B762,305th AMW Joint Base McGuire-Lakehurst NJ,mission
+AGILE,K35R,"927th ARW, Selfridge ANGB, MI",mission
+AGIO,K35R,"97th AMW, Altus AFB, OK",mission
+AGONY,C130,"7th Wing, Dyess AFB, TX",mission
+AGONY,K35R,"434th ARW, Grissom ARB, IN",mission
+AGRAM,K35R,USAF 55WG/38RS [KOFF] Offutt AFB NE,mission
+AHAB,B52,"2nd BW, 96th BS, Barksdale AFB LA",mission
+AIRGUN,F16,"388th FW, Hill AFB, UT",flight
+AIRGUN,F22,94th FS Joint Base Langley-Eustis VA,flight
+AKELA,C130,"/HC-130N 550S0W KIRKLAND AFB, NM",mission
+AKEX,A10,107th FTs MI ANG Selfridge ANGB MI,flight
+AKULA,F16,93rd FS Homestead ARB FL,flight
+ALAMO,A10,52FW / 81st FS Spangdahlem GE,flight
+ALBATROSS,P3,New Zealand-RIMPAC exercise 2014,mission
+ALBERT,C30J,"Air Mobility HQs RAF Brize Norton , UK",mission
+ALGA,K35R,"927th ARW, Selfridge ANGB, MI",mission
+ALGER,C130,"146th AW, CA ANG Channel Islands ANGS CA",mission
+ALGUM,C130,"43rd OG, Pope AFB NC NC",mission
+ALKYD,C130,352 SOG Mildenhall UK,mission
+ALLOY,C130,"302nd AW, Peterson AFB, CO",mission
+ALLOY,T38,435th FTS RANDOLPH AFB TX,flight
+ALMUG,C130,Hurlburt Field FL,mission
+ALTA,F16,"466th FS, AFRC Hill AFB, UT",flight
+ALVA,K35R,"319th Wing, Grand Forks AFB, ND",mission
+AMAIN,C17,6th AS Joint Base McGuire-Lakehurst NJ,mission
+AMBUSH,BE20,2 305th MI Bn Ft Huachuca AZ,mission
+AMBUSH,F18H,"VFC-12, NAS OCEANA VA",flight
+AMINO,C130,"314th AW, Little Rock AFB, AR",mission
+AMINO,K35R,"55th Wing, Offutt AFB, NE",mission
+AMMO,A10,52FW / 81st FS Spangdahlem GE,flight
+AMOR,C17,62ND AMW McCHORD AFB WA,mission
+ANARCH,T38,560th FTS Randolph AFB TX,flight
+ANCHOR,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+ANGEL,C130,"7th Wing, Dyess AFB, TX",mission
+ANGER,B52,5th BW Minot AFB ND,mission
+ANGLE,K35R,"121st ARW, OH ANG Rickenbacker ANGB OH",mission
+ANGRY,A10,52FW / 81st FS Spangdahlem GE,flight
+ANGRY,F15,422nd TES Nellis AFB NV,flight
+ANGRY,F16,121ST FS DC ANG Joint Base Andrews MD,flight
+ANIMAL,F15,USAFE 48FW / 494FS LN Lakenheath UK,flight
+ANIMAL,F16,"176th FS, WI ANG , Truax Fld WI",flight
+ANKER,K35R,"163rd ARG, CA ANG March AFB CA",mission
 ANKER,K35R,22nd ARW McConnell AFB KS,mission
+ANKLE,C130,"352nd SOG, RAF Mildenhall, UK",mission
+ANTAR,A10,"357th FTs, DAVIS MONTHAN AFB AZ",flight
+ANTAR,K35R,"319th Wing, Grand Forks AFB, ND",mission
+ANTE,B752,486th FLTS Eglin AFB FL,mission
+ANTIC,C130,"16th SOS, Hurlburt Fld FL",mission
+ANVIL,B703,"552nd ACW, Tinker AFB, OK",mission
+ANVIL,C30J,"130th AS, WVA ANG Charleston WVA",mission
+ANVIL,F16,"120th FS, CO ANG Buckley AFB CO",flight
+ANZAC,C17,McChord AFB WA,mission
+APE,A10,52FW / 81st FS Spangdahlem GE,flight
+APEX,A10,122nd FW IN ANG Ft Wayne ANGS IN,flight
+APEX,F16,Luke AFB AZ,flight
+APRIL,C130,"146th AW, CA ANG Channel Islands ANGS CA",mission
+ARBY,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+ARBY,B2,509th BW Whiteman AFB MO,mission
+ARBY,C130,"314th AW, Little Rock AFB, AR",mission
+ARCHER,A10,"Selfridge ANGB, MI",flight
+ARCO,F15,"388th FW, Hill AFB, UT",flight
+ARCO,T38,71st FTS Joint Base Langley-Eustis VA,flight
+ARCTIC,A10,23 FG Moody AFB GA,flight
 ARCTIC,K35R,AK ANG Elmendorf AFB AK,mission
-BEACH,K35R,92nd ARW Fairchild AFB WA,mission
-BOLT,K35R,91st ARS MacDill AFB FL,mission
-BUOY,K35R,6th AMW/927th ARW MacDill AFB FL,mission
-CAULDRON,K35R,IL ANG Scott AFB IL,mission
-CABAL,DC10,60th AMW (KC-10) Travis AFB CA,mission
-AVALON,LJ35,375th AW (C-21) Scott AFB IL,mission
-BATTLE,LJ35,118th FS (C-21A) CT ANG Bradley CT,mission
-BOXER,B737,201st AS (C-40A) DC ANG Joint Base Andrews MD,mission
-ANTE,B752,486th FLTS (C-32B) Eglin AFB FL,mission
-BORG,B752,150th SOS (C-32B) Joint Base McGuire-Dix-Lakehurst NJ,mission
-ATILLA,C560,VMR Det (UC-35) Joint Base Andrews MD,mission
-AZAZ,C560,OSACOM (UC-35A) Joint Base Andrews MD,mission
-AGUILA,BE20,C-12,mission
+ARGUS,BE20,"1st MI Bn, GE",mission
+ARGUS,BE20,OSACOM,mission
+ARGUS,BE20,USAFE/1st MI Bn GE,mission
+ARGUS,F15,4 FW Seymour-Johnson AFB NC,flight
+ARIES,F15,"492FS RAF Lakenheath, UK",flight
+ARIS,C17,"418TH FLTS, Edwards AFB, CA (supports ARIA?)",mission
+ARK,C130,RAF Mildenhall,mission
+ARKTIK,C17,517th AS Elmendorf AFB AK,mission
+ARRIS,B762,916ARW 77ARS Seymour-Johnson AFB NC,mission
+ARRIS,C17,62nd AW Travis AFB CA,mission
+ARROW,C130,AFRC 302ndAW/731st AS Colorado Springs CO,mission
+ARROW,C130,NV-ANG Reno NV,mission
+ARROW,C30J,"48th AS/314th AW, Little Rock AR",mission
+ARROW,F15,33rd FW/58th FS Eglin AFB FL,flight
+ARROW,F15,Tyndall AFB FL,flight
+ARROW,F16,119th FS NJ ANG Atlantic City NJ,flight
+ARROW,F16,"138th FW, OK-ANG, Tulsa, OK",flight
 ARROW,P3,VP-62 NAS Jacksonville FL,mission
-BUZZARD,P3,NAS Jacksonville FL,mission
-CARDFILE,P8,VP-5 NAS Jacksonville FL,mission
+ARTER,C130,"302nd AW, Peterson AFB, CO",mission
+ARTER,C130,"7th Wing, Dyess AFB, TX",mission
+ARTLY,K35R,"121st ARW, OH ANG Rickenbacker ANGB OH",mission
+ASH,F15,325th FW Tyndall AFB FL,flight
+ASHER,C130,"934th AMW, Minn-St Paul, MN",mission
+ASHER,C30J,ASHER 352 SOW RAF MILDENHALL,mission
+ASPEN,T38,"9th Reconnaissance Squadron, Beale AFB, CA",flight
+ASTRA,C17,"437TH AMW, CHARLESTON AFB SC",mission
+ASTRA,K35R,"92ARW, Fairchild AFB, WA",mission
+ASTRA,K35R,"931st ARG, McConnell AFB KS",mission
+ASTRO,A10,40Th Flts/46Th Tw Eglin AFB FL,flight
+ATARI,F15,C/D/E 48th FW Lakenheath AB England UK,flight
+ATILLA,A10,52FW / 81st FS Spangdahlem GE,flight
+ATILLA,C560,USMC VMR-Det Joint Base Joint Base Andrews,mission
+ATLAS,A10,"184th FS, AR ANG Ft Smith AR",flight
+ATLAS,A10,47th FTs 924th Fighter Group (AFRS) Davis Monthan AFB AZ,flight
+ATLAS,C130,"435 Squadron, CFB Winnipeg",mission
+ATLAS,F22,71st FS Joint Base Langley-Eustis VA,flight
+ATOKA,C130,"352nd SOG, RAF Mildenhall, UK",mission
+ATOMIC,F16,"178th FW/162nd FS OH ANG Springfield ANGB, Springfield OH",flight
+ATTACK,A10,104th FS MD ANG Martin State Airport MD (possible new travel call),flight
+ATTACK,F15,USAFE 48FW / 492FS LN Lakenheath UK,flight
+AUGGIE,T38,"49th FW, Holloman AFB, NM",flight
+AUSTIN,C130,"314th AW, Little Rock AFB, AR",mission
+AUSTIN,F16,52FW / 22FS / 23FS Spangdahlem GE,flight
+AUTO,K35R,93RD ARS AFRC MacDill AFB FL,mission
+AVALANCHE,F16,120th FS CO ANG Buckley AFB CO,flight
+AVALON,LJ35,"/C-40, 375th AW, Scott AFB, IL",mission
+AVENGER,F18H,VMFA-251 MCAS Beaufort SC,flight
+AWOKE,K35R,"55th Wing, Offutt AFB, NE",mission
+AXEMAN,A10,"104th FS MD ANG, Martin State MD",flight
+AXIS,C130,"43rd OG, Moody AFB GA",mission
+AXIS,C130,ABCC Davis Monthan AFB AZ,mission
+AZAZ,C560,OSACOM Joint Base Joint Base Andrews MD,mission
+BABS,C130,"934th AMW, Minn-St Paul, MN",mission
+BACKSTOP,B703,"552nd ACW, Tinker AFB, OK",mission
+BACKY,B762,"77th ARS SEYMOUR JOHNSON AFB, NC",mission
+BACON,C30J,"143rd AG, RI ANG Quonset State Aprt RI",mission
+BACON,F15,MOUNTAIN HOME AFB ID,flight
+BADER,F15,19th FS Elmendorf AFB AK,flight
+BADGER,F15,"104th FG, MA ANG, Barnes ANGB MA",flight
+BADGER,F15,"366th Wing, Mt Home AFB, ID",flight
+BADGER,F15,494th FS Lakenheath UK,flight
+BADGER,F16,176th FS WI ANG Truax Fld WI,flight
+BAJA,A10,"Selfridge ANGB, MI",flight
+BAJA,K35R,"912th ARS, March ARB CA",mission
+BAJI,A10,Whiteman AFB MO,flight
+BALLAD,F15,4th FW/334th FS Seymour-Johnson AFB NC,flight
+BAM,A10,23RD FW Moody AFB GA,flight
+BAMA,F16,"100th FS, AL ANG Dannelly Field AL",flight
+BAMA,F16,52FW / 22FS / 23 FS Spangdahlem GE,flight
+BAMBO,K35R,"434th ARW, Grissom ARB, IN",mission
+BAND,F16,"421st FS, Hill AFB, UT",flight
+BANDAGE,C130,187th AS WY ANG Cheyenne WY,mission
+BANDAGE,C130,95th AS WI ANG General Mitchell IAP Milwaukee WI,mission
+BANDAGE,C130,in Middle East,mission
+BANDIT,F15,104th FW MA ANG Barnes ANGB MA,flight
+BANDIT,F16,121ST FS DC ANG Joint Base Joint Base Andrews MD,flight
+BANDIT,F22,94th FS Joint Base Langley-Eustis VA,flight
+BANDSAW,B703,"552nd ACW, Tinker AFB, OK + LETTER SUFFIX",mission
+BANDWAGON,F18H,"VF-31, CVW-14 NAS OCEANAVA",flight
+BANE,F16,52FW / 22FS / 23FS Spangdahlem GE,flight
+BANE,T38,435th FTS RANDOLPH AFB TX,flight
+BANG,B703,"552nd ACW, Tinker AFB, OK",mission
+BANGER,F16,119TH FS NJ ANG ATLANTIC CITY NJ,flight
+BANGOR,K35R,"101st ARW, ME ANG Bangor ME",mission
+BANIA,C30J,"352SOW / 67SOS RAF Mildenhall, UK",mission
+BANK,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+BANK,T38,560th FTS Randolph AFB TX,flight
+BANKER,K35R,77th ARS Seymour Johnson AFB NC,mission
+BANKS,C130,"16th SOW, Hurlburt Field AFB, FL",mission
+BANSHEE,F16,31st FW Aviano AB Italy,flight
+BANSHEE,F16,"56th FW, Luke AFB AZ",flight
+BANSHEE,F18S,"VMAQ-1, MCAS Cherry Point NC",flight
+BANYAN,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+BANYAP,T38,7th FTs Joint Base Langley-Eustis VA,flight
+BANZAI,A10,23rd FW Moody AFB GA,flight
+BANZAI,T38,T-38C 49th FTW/50th FTS Columbus AFB MS,flight
+BARB,K35R,"55th Wing, Offutt AFB, NE",mission
+BARBA,B703,"552nd ACW, Tinker AFB, OK",mission
+BARD,C130,"314th AW, Little Rock AFB, AR",mission
+BARF,B52,"5th Bomb Wing, Minot AFB, ND",mission
+BARK,F16,"114th FW SD ANG; Sioux Falls, SD",flight
+BARLEY,F15,"4FW Seymour Johnson AFB, NC",flight
+BARN,C130,"352nd SOG, RAF Mildenhall, UK",mission
+BARNEY,A10,104th FS MD ANG Martin State Airport MD-Used by simulated OA-10C FAC at Bollen Range,flight
+BARNEY,F15,104th FW MA ANG Barnes ANGB MA,flight
+BARON,F15,"33rd FW, Eglin AFB FL",flight
+BARON,F16,"31st FW, Aviano, Italy",flight
+BARON,F22,27th FTs Joint base Langley-Eustis VA,flight
+BARON,K35R,"Nellis AFB, NV",mission
+BART,A10,"Selfridge ANGB, MI",flight
+BART,K35R,"55th Wing, Offutt AFB, NE",mission
+BART,K35R,"97th AMW, Altus AFB, OK",mission
+BARTH,B52,5BW Minot AFB ND,mission
+BASCO,C17,"437th AW, AFRC Charleston AFB, SC",mission
+BASH,F22,149th FS VA ANG Joint Base Langley-Eustis VA,flight
+BASHER,A10,23FW Moody AFB GA,flight
+BASTARD,A10,23 Wing Moody AFB GA,flight
+BAT,C130,355TH WG,mission
+BAT,F15,422nd TES Nellis AFB NV,flight
+BAT,F15,44th FS Kadena Japan,flight
+BAT,F18H,VMFA(AW)-242 MCAS Miramar CA,flight
+BAT,K35R,IA-ANG 185ARW/174ARS Sioux City IA,mission
+BATMAN,A10,"Selfridge ANGB, MI",flight
+BATS,K35R,116th ARS /Washington ANG,mission
+BATT,B2,Whiteman AFB MO,mission
+BATTLE,A10,"Selfridge ANGB, MI",flight
+BATTLE,LJ35,CT ANG 103FW/118FS Bradley IAP CT,mission
+BAZOO,K35R,"55th Wing, Offutt AFB, NE",mission
+BEACH,F15,"104th FG, MA ANG, Barnes ANGB MA",flight
+BEACH,K35R,92nd ARW Fairchild AFB WA,mission
+BEACHBALL,A10,"442nd FW, Whiteman AFB, MO",flight
+BEAGLE,T38,2nd FTS Tyndall AFB FL,flight
+BEAK,F16,"388th FW, Hill AFB, UT",flight
+BEAK,K35R,92nd ARW FAIRCHILD AFB WA,mission
+BEAMER,A10,"Selfridge ANGB, MI",flight
+BEAR,F22,71st FS Joint Base Langley-Eustis VA,flight
+BEAR,T38,"53rd WEG, Tyndall AFB FL",flight
+BEAST,A10,81ST FS SPANGDAHLEM AFB GE,flight
+BEAST,F16,20th FW Shaw AFB SC,flight
+BEAST,F16,457 FS/301 FW TX AFRC,flight
+BEAST,F16,457th FTs TX ANG JRB Fort Worth TX,flight
+BEATRA,C130,CT ANG 103AW/118AS Bradley ANGB CT,mission
+BEAVER,B2,Whiteman AFB MO,mission
+BEAVER,F15,"123rd FS, OR ANG Portland",flight
+BEAVER,F16,125 FS/138 FW OK ANG Tulsa OK,flight
+BEAVER,F16,"138th FW 125th FS Tulsa Vipers Tulsa AP, OK",flight
+BEAVIS,F16,52FW 22FS/ 23FS Spangdahlem GE,flight
+BEBOP,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+BEDLAM,BE20,"09-0655, 185th SOS Will Rogers ANGB OK",mission
+BEEF,C17,6th AS 305th AMW Joint Base McGuire-Dix-Lakehurst,mission
+BEEF,F15,"492FS RAF Lakenheath, UK",flight
+BEEF,F18H,"VFA-22, CVW-11 NAS NAS Lemoore CA",flight
+BEELINER,C17,"21st AS/60th AMW, Travis AFB CA",mission
+BEELINER,C17,60AMW/21stAS Travis AFB CA,mission
+BEER,F16,"388th FW, Hill AFB, UT",flight
+BEETLE,A10,"Selfridge ANGB, MI",flight
+BEMA,C130,"16SOW, 4SOS",mission
+BENDER,A10,23FW Moody AFB GA,flight
+BENDY,B52,5BW Minot AFB ND,mission
+BENGAL,F16,79th FS Shaw AFB SC,flight
+BENGAL,F18H,VMFA(AW)-224 MCAS BEAUFORT SC,flight
+BENGAL,P3,NAS JACKSONVILLE FL,mission
+BENT,C130,NY ANG 106RQW/102RQS Gabreski Field NY,mission
+BERT,C30J,"# 170000 USN Blue Angels Demo Team, NAS Pensacola FL",mission
+BERTA,F16,308th FS Luke AFB AZ,flight
+BERTH,C130,"7th Wing, Dyess AFB, TX",mission
+BETA,C130,"355th Wing, Davis-Monthan AFB, AZ",mission
+BETA,C130,"403rd Wing, Keesler AFB, MS",mission
+BETH,B52,"2nd Wing, Barksdale AFB, LA",mission
+BETRA,C130,19AW Little Rock AFB AR,mission
+BETSY,C130,"314th AW, Little Rock AFB, AR",mission
+BICEP,F16,119th FS NJ ANG Atlantic City NJ,flight
+BIGGET,C130,"146th AW, CA ANG at Channel Islands ANGS",mission
+BIKER,F22,"1st FW, 27th/94th FS Joint Base Langley-Eustis VA",flight
+BILK,B703,"552nd ACW, Tinker AFB, OK",mission
+BILLA,T38,7th FTS Joint Base Langley-Eustia VA,flight
+BILLO,B703,"552nd ACW, Tinker AFB, OK",mission
+BILLY,F15,104th FW MA ANG Barnes ANGB MA,flight
+BILLY,TEX2,559th FTS RANDOLPH AFB TX,flight
+BILOXI,A10,"Moody AFB, GA",flight
+BINAL,C130,"403rd Wing, Keesler AFB, MS",mission
+BINGO,C130,/ Fokker 50 334 Sqn NAF Einehoven (Paradropping),mission
+BIRCH,B703,"552nd ACW, Tinker AFB, OK",mission
+BIRD,K35R,92nd ARW Fairchild AFB WA,mission
+BIRTH,C130,"355th Wing, Davis-Monthan AFB, AZ",mission
+BISON,A10,"81ST FS, SPANGDAHLEM AB GE",flight
+BISON,C130,105th AS/TN ANG,mission
+BISON,C130,"328th AS AFRC, Niagara Falls IAP NY",mission
+BISON,F15,325th FW Tyndall AFB FL,flight
+BISON,F16,119th FS NJ ANG Atlantic City NJ,flight
+BISON,K35R,328th ARS Niagara Air Reserve Station NY,mission
+BIXBY,C130,"23rd Wing, Moody AFB GA",mission
+BLACK,C130,352 SOG/7 SOS Mildenhall UK,mission
+BLACK,F15,"4th Wing, SEYMOUR JOHNSON AFB, NC AFB, NC",flight
+BLACK,F16,"31st FW, Aviano, Italy",flight
+BLACK,F18S,"VF-213, CVW-8 NAS OCEANA VA (usually use LION)",flight
+BLACK,F18S,"VFA-154 Lemoore, Ca",flight
+BLACK,T38,T-38C 49th FTW/50th FTS Columbus AFB MS,flight
+BLACKBIRD,T34P,"VT-2/TAW-5, NAS Whiting Field FL",flight
+BLACKFISH,F16,482nd FW JRB Homstead FL,flight
+BLACKJACK,F18H,VMFA-312 MCAS Beaufort SC,flight
+BLADE,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+BLADE,C17,"97TH AMW, ALTUS AFB OK",mission
+BLADE,F16,"178th FW/162nd FS OH ANG Springfield ANGB, Springfield OH",flight
+BLADE,F18H,"VMFA-115, MCAS BEAUFORT SC",flight
+BLADE,TEX2,"72 Sqdn RAF Valley , UK",flight
+BLASTER,F18H,"VFA-34, CVW-2 NAS OCEANAVA",flight
+BLAY,C17,"97TH AMW, Altus AFB OK",mission
+BLAZE,T38,7th FTS Joint Base Langley-Eustis VA,flight
+BLAZER,C130,"43rd OG, Moody AFB GA",mission
+BLEED,T38,435th FTS RANDOLPH AFB TX,flight
+BLINDER,C17,60AMW/21AS Travis AFB CA,mission
+BLITZ,F15,173rd FW OR ANG Kingley ANGB Klamath Falls OR,flight
+BLOB,B703,"552nd ACW, Tinker AFB, OK",mission
+BLOND,C130,"23rd Wing, Moody AFB GA",mission
+BLOND,K35R,"552nd ACW, Tinker AFB, OK",mission
+BLOWER,F16,55 FS/20 FW Shaw AFB SC,flight
+BLOWN,B52,Possible,mission
+BLUE,F15,19th FS Elmendorf AFB AK,flight
+BLUE,F18H,"Navy Demo Team, NAS Pensacola, FL",flight
+BLUES,C17,"183RD AS, MS ANG, JACKSON MS",mission
+BLURB,B2,WHITEMAN AFB MO,mission
+BLUTO,F16,162ND FW AZ ANG Tucson ANGB AZ,flight
+BLUTO,F16,77 FS/20 FW Shaw AFB SC,flight
+BOAR,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+BOAR,A10,23rd FW Moddy AFB GA,flight
+BOAR,A10,303rd FS/442nd FW Whiteman AFB MO,flight
+BOAR,A10,422ND TES NELLIS AFB NV,flight
+BOAR,A10,81ST FS SPANGDAHLEM AB GE,flight
+BOAR,A10,"Selfridge ANGB, MI",flight
+BOAR,C130,HURLBURT FIELD FL,mission
+BOAR,F15,"366th FW/390th FS, Mountain Home AFB, ID",flight
+BOBCAT,F22,94th FS Joint Base Langley-Eustis VA,flight
+BOBCAT,LJ35,USAF VIP ferry aircraft,mission
+BODE,K35R,"434th ARW, Grissom ARB, IN",mission
+BOGG,T38,7th FS Joint Base Langley-Eustis VA,flight
+BOGUE,K35R,"55th Wing, Offutt AFB, NE",mission
+BOILER,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+BOLA,F15,"366th Wing, Mt Home AFB, ID",flight
+BOLAR,F15,492nd FS RAF Lakenheath,flight
+BOLD,C130,"43rd OG, Pope AFB NC",mission
+BOLES,C130,"43rd OG, Pope AFB NC NC",mission
+BOLO,F15,104FW WESTFIELD-BARNES ANG MA,flight
+BOLT,K35R,"91st ARS / 6th AMW, MacDill AFB FL",mission
+BOMA,TEX2,"37th FTW/41st FTS, Columbus AFB MS",flight
+BOMAR,K35R,"434th ARW, Grissom ARB, IN",mission
+BOMBER,F16,61ST FS LUKE AFB AZ,flight
+BONA,C130,"43rd OG, Pope AFB NC NC",mission
+BONES,F15,USAFE 48FW / 494FS LN Lakenheath,flight
+BONES,F18S,VFA-103 NAS OCEANA VA,flight
+BONES,F22,95th FS Tyndall AFB FL,flight
+BONES,T38,50th FTS//14th FTW Columbus AFB MS,flight
+BONG,F16,176th FS WI ANG Truax Fld WI,flight
+BONG,F16,"176th FS WI ANG Truax, Madison, WI:",flight
+BONSI,F16,"388th FW, Hill AFB, UT",flight
+BONUS,F15,173rd FW OR ANG Kingley ANGB Klamath Falls OR,flight
+BONZAI,A10,23d FW Moody AFB GA,flight
+BOOK,K35R,"92nd ARW, Fairchild AFB WA",mission
+BOOKER,F16,79 FS/20 FW Shaw AFB SC,flight
+BOOKIE,F16,77th FTs Shaw AFB SC,flight
+BOOKSHELF,C130,Back-end callsign for ABCC,mission
+BOOM,K35R,22nd ARW McConnell AFB KS,mission
+BOOM,K35R,OH ANG 121ARW Rickenbacher ANGB OH,mission
+BOOMER,T38,"49th FW, Holloman AFB, NM",flight
+BOOMER,TEX2,VT-27 NAS Corpus Christi TX,flight
+BOOT,F15,333 FS Seymour Johnson AFB NC,flight
+BOOT,K35R,"55th Wing, Offutt AFB, NE",mission
+BORA,K35R,"931st ARG, McConnell AFB KS",mission
+BORER,B703,"552nd ACW, Tinker AFB, OK",mission
+BORG,A10,303RD FS AFRES WHITEMAN AFB MO,flight
+BORG,B752,150th Special Operations Squadron Joint Base-McGuire-Dix-Lakehurst NJ,mission
+BORON,F15,MASS ANG BARNES MA,flight
+BOSS,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+BOXER,B737,"201st AS, DC ANG Joint Base Joint Base Andrews MD",mission
+BOZZ,A10,"Selfridge ANGB, MI",flight
+BRADY,C130,"139th AW/180th AS MO-ANG Rosecrans ANGB, St. Joseph, MO",mission
+BRADY,C130,30 336sqn Netherlands Air Force,mission
+BRADY,C130,731AS Petersen AFB CO,mission
+BRADY,C130,USAF AFRC/920RQW/39RQS Patrick AFB FL,mission
+BRADY,C30J,30 RI ANG 143AW/143AS Quonset Point RI,mission
+BRADY,C30J,USAF 317AW Dyess AFB TX,mission
+BRADY,C30J,VMGR-352 MCAS Cherry Point NC,mission
+BRAG,F16,55 FS/20 FW Shaw AFB SC,flight
+BRANDY,F16,Luke AFB AZ,flight
+BRAT,F15,"494th FS, RAF Lakenheath",flight
+BRAT,F16,"115th FW, Madison, WI",flight
+BRAVE,F16,121ST FS DC ANG Joint Base Joint Base Andrews MD (Scramble/Travelling),flight
+BRAVE,F16,135th FW OK ANG Tulsa ANGB OK,flight
+BRAVE,F16,"138th FW, OK-ANG, Tulsa, OK",flight
+BRAY,K35R,"55th Wing, Offutt AFB, NE",mission
+BREW,B52,"2nd Wing, Barksdale AFB, LA",mission
+BREW,F15,123rd FS OR ANG Portland IAP OR,flight
+BREW,F15,USAFE 48FW / 492FS LN Lakenheath,flight
+BREW,T38,560th FTS Randolph AFB TX,flight
+BREWER,C130,"440th AW, Pope AFB NC",mission
+BREWER,C130,95AS/440AW Moody AFB GA,mission
+BRICE,K35R,"126th ARW, IL ANG Scxott AFB IL",mission
+BRICK,F16,187TH FG AL ANG MONTGOMERY AL,flight
+BRICK,LJ35,Air Force Flight Standards Agency (AFFSA) Tinker AFB OK,mission
+BRICKYARD,K35R,"434th ARW, Grissom ARB, IN",mission
+BRICKYARD,P3,"/P-8 Poseidon, deployed to Middle East/Persian Gulf",mission
+BRIG,B52,Barksdale AFB LA,mission
+BRIG,K35R,MacDill AFB FL,mission
+BRIGG,C130,"352nd SOG, RAF Mildenhall, UK",mission
+BRIGHAM,B703,"961st AWACS, Kadena AB, Japan",mission
+BRIM,C17,437/315 AW Charleston AFB SC,mission
+BRINEY,F15,"144th FW, CA ANG Fresno ANGB CA",flight
+BROAD,P3,VP-62 NAS Jacksonville FL,mission
+BROCK,B2,509th BW Whiteman AFB MO,mission
+BROCK,B752,150th Special Operations Squadron Joint Base-McGuire-Dix-Lakehurst NJ,mission
+BROCK,C17,437AW Charleston AFB SC,mission
+BROKE,C30J,352nd SOW RAF Mildenhall UK,mission
+BROKE,K35R,/T 319th ARW Grand Forks AFB ND,mission
+BRONCO,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+BRONCO,A10,23 Wing Moody AFB GA,flight
+BRONCO,A10,81st FS Moody AFB GA,flight
+BRONCO,C30J,VMGR-252 MCAS Cherry Point NC,mission
+BRONCO,F16,"31st FW, Aviano, Italy",flight
+BRONCO,F16,79 FS/20 FW Shaw AFB SC,flight
+BRONK,F15,325th FW Tyndall AFB FL,flight
+BRONZE,C17,315th AMW/300th AS USAFRC Charleston AFB SC,mission
+BROODY,F15,104FW WESTFIELD-BARNES ANG MA,flight
+BROOK,C130,"153rd AG, WY ANG Cheyenne WY",mission
+BROOM,K35R,"452nd AMW, March AFB, CA",mission
+BRUSH,K35R,101st ARW RAF Mildenhall UK,mission
+BUBBA,A10,USAFE 52FW/81FS Spangdhalem GE,flight
+BUCANERO,C130,"198th AS PR-ANG Luis Munos Marin, PR",mission
+BUCK,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+BUCK,F15,"492nd FS, Lakenheath UK",flight
+BUCK,TEX2,"Texan II , VT-4/TAW-6, NAS Pensacola FL",flight
+BUCKEYE,F16,"162nd FS, OH ANG Springfield OH",flight
+BUCKO,A10,75th FS Moody AFB GA,flight
+BUCKY,F16,176th FS WI ANG Truax Fld WI,flight
+BUD,F15,/E 48FW LN Lakenheath AB UK,flight
+BUD,F15,"131ST FW/ 110TH FS MO A.N.G. LAMBERT INTNL. AIRPORT, ST. LOUIS MO",flight
+BUD,F15,131st FS MO ANG St Louis MO,flight
+BUDDHA,F16,100th FS AL ANG Dannelly Fld Birmingham AL,flight
+BUDDHA,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+BUDDY,K35R,22nd ARW Mconnell AFB KS,mission
+BUDDY,T38,435th FTS RANDOLPH AFB TX,flight
+BUDMAN,F16,113TH FW 121ST FS DC ANG Joint Base Joint Base Andrews MD,flight
+BUFF,B52,"2nd Wing, Barksdale AFB, LA",mission
+BUFFOON,C130,"164th AS, OH ANG Mansfield OH",mission
+BUG,T38,7th FTS Joint Base Langley-Eustis VA,flight
+BUGSY,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+BUILD,C130,"440th AW, Milwaukee, WI",mission
+BULB,C130,"910th AG, Youngstown, OH",mission
+BULL,C130,"103rd AW/118th AS, CT ANG Bradley ANGB CT",mission
+BULL,C130,"314th OG, Little Rock AFB, AR",mission
+BULL,F15,123rd FS OR ANG Portland IAP OR,flight
+BULL,F18H,"VFA-37, NAS OCEANA VA",flight
+BULL,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+BULLDOG,A10,354TH FS DAVIS-MONTHAN AZ,flight
+BULLDOG,F16,124th FS IA ANG Des Moins IA,flight
+BULLDOG,F16,"RNAF Dutch Airforce, Volkel AFB, NL",flight
+BULLET,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+BULLET,A10,"Selfridge ANGB, MI",flight
+BULLET,F16,457th FTs TX ANG JRB Fort Worth TX,flight
+BULLET,F18S,"VF-2, Bounty Hunters"" CVW-2 NAS Lemoore CA",flight
+BULLET,F18S,"VFA-2 NAS Lemoore, Ca",flight
+BULLIT,F16,55 FS/20 FW Shaw AFB SC,flight
+BULLY,F16,121ST FS Joint Base Joint Base Andrews MD,flight
+BUNCH,B2,509th Bomb Wing; Whiteman AFB MO,mission
+BUNK,C130,"16th OG, HURLBURT FIELD FL",mission
+BUOY,K35R,6thAMW/927ARW MacDill AFB FL,mission
+BURGER,F15,"SEYMOUR JOHNSON AFB, NC AFB SC",flight
+BURGLAR,C130,"550th SOS, Kirtland AFB, NM CP",mission
+BURNER,F15,33rd FW Eglin FL,flight
+BURNER,F15,85th TES Eglin AFB FL,flight
+BURNER,F22,71st FS Joint Base Langley-Eustis VA,flight
+BURNER,T38,"49th FW, Holloman AFB, NM",flight
+BURR,C130,"16th SOW, Hurlburt Field AFB, FL",mission
+BURSA,LJ35,"76th AS, Ramstein AB GE",mission
+BURT,K35R,"552nd ACW, Tinker AFB, OK",mission
+BUSCH,F15,"131ST FW/ 110TH FS MO ANG LAMBERT INTNL. AIRPORT, ST. LOUIS MO",flight
+BUSH,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+BUSH,B52,23rdBS Minot AFB ND,mission
+BUSTER,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+BUSTER,A10,MOODY AFB GA,flight
+BUTCH,B703,"552nd ACW, Tinker AFB, OK",mission
+BUTCH,B752,"#02-4452/227th SOF, NJ-ANG, McGuire AFB, NJ",mission
+BUTCH,K35R,/T 319th ARW Grand Forks AFB ND,mission
+BUTLER,F15,"4 FW SEYMOUR JOHNSON AFB, NC",flight
+BUZAIN,C30J,"4thSOS / AFSOC Hurlburt Field, FL",mission
+BUZZ,C130,"352nd SOG, RAF Mildenhall, UK",mission
+BUZZ,F15,OR-ANG,flight
+BUZZ,F16,"112th FS, OH ANG at Toledo OH",flight
+BUZZARD,F16,510th FS Aviano Italy,flight
+BUZZARD,P3,NAS Jacksonville FL ME,mission
+BUZZY,F22,27th/94th FSJoint Base Langley-Eustis VA,flight
+BYLAW,B703,"552nd ACW, Tinker AFB, OK",mission
+CABAL,DC10,"60th AMW, Travis AFB CA",mission
+CACTUS,C560,6-52nd Avn Weisbaden GE,mission
+CADDO,C17,"62ND AMW, MCCHORD AFB WA",mission
+CADDO,C17,"97TH AMW, ALTUS AFB OK",mission
+CADDY,F18S,VQ-3 / VQ-4 Tinker AFB OK,flight
+CADE,F22,27th/94th FS Joint Base Langley Eustis VA,flight
+CADS,C130,374AW/36AS Yakota AB Japan [RJTY],mission
+CADS,C30J,19AW/61AS Little Rock AFB AR,mission
+CAESAR,F16,"77 FS/20 FW, Shaw AFB SC",flight
+CAESAR,K35R,121st ARW OH ANG Rickenbacher ANGB OH,mission
+CAESER,F15,"159th FW, LA ANG New Orleans JRB LA",flight
+CAF,K35R,92ARW Fairchild AFB WA,mission
+CAGEY,A10,706TH FS AFRES NAS NEW ORLEANS LA,flight
+CAGEY,C130,154th TAS AR ANG Little Rock AR,mission
+CAJUN,A10,52FW / 81st FS Spangdahlem GE,flight
+CAJUN,F16,HILL AFB,flight
+CAJUN,F22,94th FS Joint Base Langley-Eustis VA,flight
+CAJUN,T38,435th FTS RANDOLPH AFB TX,flight
+CAJUN,T38,"49th FW, Holloman AFB, NM",flight
+CALVIN,F16,56th FW Luke AFB AZ,flight
+CAM,F18S,"VFA-14, NAS Lemoore CA",flight
+CAMAY,K35R,"55th Wing, Offutt AFB, NE",mission
+CAMEL,C17,"437TH AMW, CHARLESTON AFB SC",mission
+CAMEL,T38,"49th FW, Holloman AFB, NM",flight
+CAMELOT,F18S,"VFA-14, Lemoore CA",flight
+CAMPO,B703,"552nd ACW, Tinker AFB, OK",mission
+CANDO,C17,/KC-46 514th AMW USAFR Joint Base-McGuire-Dix-Lakehurst NJ (KWRI) pronounced CAN-DO,mission
+CANDOR,F15,"4FW SEYMOUR JOHNSON AFB, NC",flight
+CANDOR,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+CANE,F16,93rd FS Homestead ARB FL,flight
+CANINE,A10,"Selfridge ANGB, MI",flight
+CANNON,A10,414TH CTS NELLIS AFB NV,flight
+CANNON,F15,131ST FS MA ANG BARNES MA,flight
+CANNON,F16,55TH FS SHAW AFB SC,flight
+CANUCK,A10,23 FG Moody AFB GA,flight
+CANYON,F18S,"VFA-105, CVW-3 NAS OCEANA VA",flight
+CAP,C130,"VR-53 Joint Base Joint Base Andrews. Ref to Sqdn name "" Capitol Express""",mission
+CAPE,F22,27th/94th FS Joint Base Langley-Ft Eustis VA,flight
+CAPITOL,F16,121ST FS DC ANG Joint Base Joint Base Andrews MD-traveling callsign,flight
+CAPOA,B52,Barksdale AFV LA,mission
+CAPON,K35R,"55th Wing, Offutt AFB, NE",mission
+CAPRA,K35R,"161st ARG, AZ ANG Phoenix AZ",mission
+CAPRA,K35R,"161st ARW, AZ ANG Pheonix AZ",mission
+CAPS,F16,121ST FS DC ANG Joint Base Joint Base Andrews MD,flight
+CARBON,A10,"Selfridge ANGB, MI",flight
+CARD,T38,560th FTS Randolph AFB TX,flight
+CARDFILE,P8,Poseidon VP-5 NAS Jacksonville FL (JIATF callsign),mission
+CARLO,B2,Whiteman AFB MO,mission
+CARLY,C130,"43rd OG, Pope AFB NC NC",mission
+CARMEN,C130,142nd AS DE-ANG New Castle DE,mission
+CARNY,C130,"314th AW, Little Rock AFB, AR",mission
+CARP,C17,"62ND AMW, MCCHORD AFB WA",mission
+CARR,F18H,VFA-82 CVW-1 NAS OCEANAVA,flight
+CARSON,F15,Seymour-Johnson AFB NC,flight
+CARTY,C130,"43rd OG, Moody AFB GA",mission
+CARVER,F15,333 FS Seymour Johnson AFB NC,flight
+CASA,TEX2,559th FTS RANDOLPH AFB TX,flight
+CASE,B52,"5th BW, Minot AFB, ND",mission
+CASEY,K35R,"55th Wing, Offutt AFB, NE",mission
+CASH,F16,"31st FW, Aviano, Italy",flight
+CASH,T38,85TH FTS LAUGHLIN AFB TX,flight
+CASINO,A10,303RD FS AFRES WHITEMAN AFB MO,flight
+CASINO,B52,2 BW Barksdale AFB LA,mission
+CASINO,F15,USAFE 48FW / 494FS LN Lakenheath,flight
+CASINO,F16,79th FS Shaw AFB SC,flight
+CASINO,F22,90th FS Elmendorf AFB AK,flight
+CASIO,F15,MASS ANG BARNES MA,flight
+CASS,C130,"43rd OG, Moody AFB GA",mission
+CASTLE,C130,DE ANG 166AW/142AS New Castle DE,mission
+CASTRO,F16,308th FS Luke AFB AZ,flight
+CAT,C130,"314th AW, Little Rock AFB, AR",mission
+CAT,F18H,VFA-131,flight
+CATBIRD,GLF4,"#165151 Commander in Chief, US Naval Forces Europe",mission
+CATFISH,F15,MASS ANG BARNES MA,flight
+CATFISH,K35R,"319th Wing, Grand Forks AFB, ND",mission
+CATMAN,A10,Moody AFB GA,flight
+CATMAN,A10,Whiteman AFB MO,flight
+CATMAN,TEX2,559th FTS RANDOLPH AFB TX,flight
+CATS,A10,"74TH FS, Moody AFB GA",flight
+CAULDRON,K35R,"IL ANG Scott AFB, IL",mission
+CAVE,F22,94th FS Joint Base Langley-Eustis VA,flight
+CAVEMAN,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+CECIL,C130,"43rd OG, Pope AFB NC NC",mission
+CEDAR,K35R,"552nd ACW, Tinker AFB, OK",mission
+CHAIN,F16,"178th FW/162nd FS OH ANG Springfield ANGB, Springfield OH",flight
+CHAIN,F16,70th FS IL ANG Springfield IL,flight
+CHALLIS,B703,"552nd ACW, Tinker AFB, OK + LETTER SUFFIX",mission
+CHAMP,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+CHAOS,A10,107th FTs MI ANG Selfridge ANGB MI,flight
+CHAOS,B2,509th BW Whiteman AFB MO,mission
+CHAOS,B52,2BW/343rd Bomb Sqdn Barksdale AFB LA,mission
+CHAOS,B762,97th AMW Altus AFB OK,mission
+CHAPPS,F16,111th FS TX ANG Ellington ANGB TX,flight
+CHAPPY,A10,"303rd Fighter Sqdn, 442nd FW; Whiteman AFB MO",flight
+CHAPPY,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+CHAPS,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+CHARGER,F18H,"VFA-27, CVW-5 NAS NORTH ISLAND, CA",flight
+CHEATER,C30J,19th AW Little Rock AFB AR,mission
+CHECK,F16,"115th FW, Madison, WI",flight
+CHECK,F18H,"VMFA-312, MCAS BEAUFORT SC",flight
+CHECK,T38,435th FTS RANDOLPH AFB TX,flight
+CHECK,T38,7th FTs Joint Base Langley-Eustis VA,flight
+CHECKER,F22,71st FS Joint Base Langley-Eustis VA,flight
+CHEETAH,C130,"43rd OG, Moody AFB GA",mission
+CHEETAH,F15,"4th FW SEYMOUR JOHNSON AFB, NC NC",flight
+CHEMO,F15,325th FW Tyndall AFB FL,flight
+CHENA,K35R,168th ARS AK ANG EIELSON AFB,mission
+CHEROKEE,F16,"31st FW, Aviano, Italy",flight
+CHESDA,F15,104th FW MA ANG Barnes ANGB MA,flight
+CHETA,C130,"302nd AW, Peterson AFB, CO",mission
+CHETAH,T38,560th FTS Randolph AFB TX,flight
+CHEVY,A10,"184th FS, AR ANG Ft Smith",flight
+CHEVY,F16,"163rd FS IN ANG, Baer Fld Ft Wayne",flight
+CHEVY,F16,52nd FW Spangdahlem AB GE,flight
+CHICKEN,A10,23rd FTW Moody AFB GA,flight
+CHICO,F15,114th FS OR ANG Portland,flight
+CHICO,F15,"SEYMOUR JOHNSON AFB, NC AFB SC",flight
+CHICO,F16,31st FW Aviano Italy,flight
+CHIEF,B52,"5thBW MINOT AFB, ND",mission
+CHIEF,C30J,"67SOS RAF Mildenhall, UK",mission
+CHIEF,F15,"335Th FS,SEYMOUR JOHNSON AFB, NC AFB NC",flight
+CHIEF,T38,7th FTs Joint Base Langley-Eustis VA,flight
+CHIEFS,F16,125TH FS OK ANG TULSA,flight
+CHILI,F15,144th FW CA ANG FRESNO ANGB,flight
+CHILI,F16,23rd FS Spangdahlem AB GE,flight
+CHILI,F16,308th FS Luke AFB AZ,flight
+CHILL,B52,"5th BW/23rd BS Minot AFB, ND",mission
+CHILL,F18H,VMFA-312 MCAS Beaufort SC,flight
+CHIME,K35R,"55th Wing, Offutt AFB, NE",mission
+CHIPPY,F18H,"VFA-195 CVW-5, NAF Atsugi, Japan",flight
+CHISEL,A10,303RD FS AFRES WHITEMAN AFB MO,flight
+CHISEL,F16,56th FW Luke AFB AZ,flight
+CHISUM,C130,"355th Wing, Davis-Monthan AFB, AZ",mission
+CHISUM,K35R,"55th Wing, Offutt AFB, NE",mission
+CHISUM,K35R,"927th ARW, MacDill AFB FL",mission
+CHOCK,B752,150th Special Operations Squadron NJ-ANG Joint Base-McGuire-Dix-Lakehurst NJ (KWRI),mission
+CHOCK,C130,"146th AW, CA ANG at Channel Islands ANGS",mission
+CHOCK,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+CHOCK,K35R,22ARW McConnell AFB KS,mission
+CHOCK,K35R,"552nd ACW, Tinker AFB, OK",mission
+CHOCKS,A10,"Selfridge ANGB, MI",flight
+CHOICE,C130,DE ANG 166AW/142AS New Castle DE,mission
+CHOMP,F16,"138th Fighter Wing, Oklahoma Air National Guard, Tulsa, OK",flight
+CHOSEN,F15,"104th FG, MA ANG, Barnes ANGB MA",flight
+CHOSEN,F16,121ST FS DC ANG Joint Base Joint Base Andrews MD,flight
+CHRIS,C130,"7th Wing, Dyess AFB, TX",mission
+CHROME,C130,"40th AS Dyess AFB, TX",mission
+CHUCK,A10,52FW / 81st FS Spangdahlem GE,flight
+CHUCK,B52,5BW Minot AFB ND,mission
+CHUG,C130,"934th AMW, Minn-St Paul, MN",mission
+CHUGGS,F15,104th FW MA ANG Barnes ANGB MA,flight
+CHURCH,C17,437AW Charleston AFB SC,mission
+CHURCH,K35R,"552nd ACW, Tinker AFB, OK",mission
+CIDER,F15,4th FW Seymour-Johnson AFB NC,flight
+CINDY,C130,"129th RQG, CA ANG at NAS Moffett (HH-60)",mission
+CIPHER,A10,23rd FW Moody AFB GA,flight
+CIRCUS,C130,"440th AW, Milwaukee, WI",mission
+CISCO,F16,"115th FW, Madison, WI",flight
+CITY,F16,"31st FW, Aviano, Italy",flight
+CLAM,F16,"115th FW, Madison, WI",flight
+CLAN,F16,Luke AFB AZ,flight
+CLASSIC,A10,23rd FW Moody AFB GA,flight
+CLAUS,C130,"145th AW NC ANG Charlotte, NC",mission
+CLAW,A10,303RD FS AFRES WHITEMAN AFB MO,flight
+CLAW,A10,"74th FS/23rd WNG, Moody AFB GA",flight
+CLAW,B52,"2nd Wing, Barksdale AFB, LA",mission
+CLAW,C17,305th AMW/6th AS Joint Base-McGuire-Dix-Lakehurst NJ,mission
+CLAW,F15,390th FS/366th FW Mountain Home AFB ID,flight
+CLAW,F16,31st FW Aviano AB Italy,flight
+CLAW,F16,79th FS Shaw AFB SC,flight
+CLAW,F18H,VFA-82 CVW-1 NAS OCEANA VA,flight
+CLAW,P3,VP-16 EAGLES NAS Jacksonville. Also seen as Red Claw,mission
+CLAWS,F22,71st FS Joint Base Langley-Eustis VA,flight
+CLEAT,F16,121ST FS DC ANG Joint Base Joint Base Andrews MD,flight
+CLEAT,T38,435th FTS RANDOLPH AFB TX,flight
+CLOG,C130,7th SOS Mildenhall UK,mission
+CLOP,B752,"#00-9001, AFSOC Used by the State Dept for FEST operations",mission
+CLOUT,B52,5BW Minot AFB ND,mission
+CLOVE,T38,435th FTS Randolph AFB TX,flight
+CLOWN,K35R,AL ANG Birmingham AL,mission
+CLUB,F16,CJ 77th FTs Shaw AFB SC,flight
+CLUB,F18S,"VF-103, CVW-17 NAS OCEANA VA",flight
+CLUBLEAF,F18H,"VF-103, NAS OCEANA",flight
+CLUCK,B703,"552nd ACW, Tinker AFB, OK",mission
+CLUE,BE20,"86th AW, Ramstein AB, GE",mission
+CLUNY,B703,"552nd ACW, Tinker AFB, OK",mission
+COACH,C130,"146th AW, CA ANG at Channel Islands ANGS CA",mission
+COACH,F16,"115th FW, Madison, WI",flight
+COACH,F22,94th FS Joint Base Langley-Eustis VA,flight
+COBALT,A10,"Selfridge ANGB, MI",flight
+COBALT,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+COBB,C130,"700th AS, AFRES Dobbins ARB GA",mission
+COBBY,C130,"352nd SOG, RAF Mildenhall, UK",mission
+COBRA,F15,415th TS Edwards AFB CA,flight
+COBRA,F16,111th FS TX ANG Ellington ANGB TX,flight
+COBRA,F16,"140th FW, CO ANG at Buckley AFB",flight
+COBRA,F16,"57th FW Weapons School, Nellis AFB NV",flight
+COBRA,F16,79th FS Shaw AFB SC,flight
+COBRA,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+COBRA,K35R,"55th Wing, Offutt AFB, NE",mission
+COBRA,K35R,"Open Skies, 55Wing/45RS Offutt AFB, NE",mission
+COBRA,T38,39th FTS Randolph AFB TX,flight
+COBRA,T38,"TPS Edwards AFB, CA",flight
+COCHISE,F16,"31st FW, Aviano, Italy",flight
+COCK,F15,19th FS Elmendorf AFB AK,flight
+COCK,F15,67th FTs Kadena Japan,flight
+COCO,C130,16th SOW Hurlburt FL,mission
+CODA,F15,OREGON-ANG,flight
+CODER,K35R,"126th ARW, IL ANG Scott AFB IL",mission
+CODY,K35R,"916th ARW Seymour Johnson AFB, NC",mission
+COHO,C17,"62ND AMW, MCCHORD AFB WA",mission
+COHO,K35R,"121st ARW, OH ANG at Rickenbacker ANGB OH",mission
+COHO,P8,Poseidon NAS Whidbey Island WA,mission
+COIL,F15,125th FW Det 1 Homestead ARS FL,flight
+COIL,T38,7th FTs HOLOLMAN NM,flight
+COKE,F15,67th FTs Kadena Japan,flight
+COLBY,F16,"115th FW, Madison, WI",flight
+COLD,F16,"388th FW, Hill AFB, UT",flight
+COLONEL,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+COLT,A10,"104th FS, MD ANG Martin State MD",flight
+COLT,A10,"163FS IN ANG Fort Wayne, IN",flight
+COLT,A10,52FW / 81st FS Spangdahlem GE,flight
+COLT,C130,16th SOW Hurlburt Field FL,mission
+COLT,F15,173rd FW OR ANG Kingley ANGB Klamath Falls OR,flight
+COLT,F16,34TH FS HILL AFB UT,flight
+COLT,F16,55 FS/20 FW Shaw AFB SC,flight
+COMAL,B52,9th Bomb Sqdn Barksdale AFB LA,mission
+COMBAT,F18H,"VMFA(AW)-121, NAS Miramar, CA",flight
+COMBO,C130,"355th Wing, Davis-Monthan AFB, AZ",mission
+COMFY,C130,"314th AW, Little Rock AFB, AR",mission
+CONAN,F15,57th FW Nellis AFB NV,flight
+CONAN,F16,55FS/20thFW Shaw AFB SC,flight
+CONAN,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+CONDA,T38,T-38C 49th FTW/50th FTS Columbus AFB MS,flight
+CONDOR,C130,VR-62 JointBase McGuire-Lakehurst,mission
+CONE,C130,"352nd SOG, RAF Mildenhall, UK",mission
+CONIC,C130,2nd AS Pope AFB NC NC,mission
+CONIC,K35R,22ARW McConnell AFB KS,mission
+CONNER,B52,2nd BW Barksdale AFB LA,mission
+CONVICT,F18H,"VMFA-533, MCAS Beaufort SC",flight
+COOKY,C130,WV ANG 130AW/130AS Cheyenne WY,mission
+COOL,T38,LAUGHLIN AFB TX,flight
+COOP,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+COORS,C130,Hurlburt FL,mission
+COPE,K35R,"319th Wing, Grand Forks AFB, ND",mission
+COPPER,K35R,"161st ARG, AZ ANG Phoenix AZ",mission
+CORAL,F16,"31st FW, Aviano, Italy",flight
+CORD,B703,"552nd ACW, Tinker AFB, OK",mission
+CORN,T38,435th FTS RANDOLPH AFB TX,flight
+CORNHUSKER,K35R,"190th ARG, KS ANG at Topeka KS",mission
+CORONA,F22,27th FS Joint Base Langley-Eustis VA,flight
+CORSO,C130,"198th AS, PR ANG, Luis Munoz Marin ANGB PR",mission
+CORVETTE,F15,492nd FS Lakenheath UK,flight
+CORVETTE,F16,"20th FW, Shaw AFB, NC",flight
+CORVETTE,F16,"388th FW, Hill AFB, UT",flight
+CORVETTE,LJ35,CT ANG 103FW/118FS Bradley IAP CT,mission
+COSMIK,F16,"119th FS, NJ ANG Atlantic City NJ",flight
+COSMO,K35R,"55th Wing, Offutt AFB, NE",mission
+COUGAR,BE20,Beale AFB CA,mission
+COUGAR,C130,463rd AG 41st AS AR ANG LIttle Rock AR,mission
+COUGAR,F18S,"VAQ-139, NAS Whidbey Island, WA",flight
+COUGAR,F22,Joint Base Langley-Eustis VA,flight
+COUGAR,LJ35,457th AS Joint Base Joint Base Andrews MD,mission
+COUNT,K35R,"92nd ARW, Fairchild AFB WA",mission
+COUNT,K35R,USAF 22ARW McConnell AFB KS,mission
+COUPON,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+COVERT,C17,Travis AFB CA,mission
+COVET,C130,"934th AMW, Minn-St Paul, MN",mission
+COVET,C17,60AMW/21AS Travis AFB CA,mission
+COVEY,A10,47th FTs / 924th Fighter Group (AFRS) Davis Monthan AFB AZ,flight
+COWBOY,A10,23rd FW Moody AFB GA,flight
+COWBOY,C130,"15th SOS, Hurlburt Field FL",mission
+COWBOY,F15,334 FS Seymour-Johnson AFB NC,flight
+COWBOY,F15,422nd TES Nellis AFB NV,flight
+COWBOY,F16,35th FS Kunsan Korea,flight
+COWBOY,F18H,"VMFA-112, NAS/JRB Ft Worth TX",flight
+COWBOY,F22,27th FTs Joint Base Langley-Eustis VA,flight
+COWBOY,T38,T-38C 49th FTW/50th FTS Columbus AFB MS,flight
+COYOTE,K35R,"190th ARG, KS ANG Topeka KS",mission
+CRACK,A10,"303rd Fighter Sqdn, 442nd FW; Whiteman AFB MO",flight
+CRACKER,A10,"303rd Sqdn, 442nd FW Whiteman AFB MO",flight
+CRAFT,A10,"303rd Sqdn, 442nd FW Whiteman AFB MO",flight
+CRAFT,C130,"86th AW, Ramstein AB, GE",mission
+CRAFT,F16,Luke AFB AZ,flight
+CRAG,B2,"509thBW, Whiteman AFB, MO",mission
+CRANE,F15,4th FW/334th FS Seymour-Johnson AFB NC,flight
+CRANK,A10,23rd FW Moody AFB GA,flight
+CRANK,A10,47th FTs / 924th Fighter Group (AFRS) Davis Monthan AFB AZ,flight
+CRANKY,F16,Luke AFB AZ,flight
+CRANKY,F22,43 FS Tyndall AFB FL,flight
+CRAZY,F15,"104th FG, MA ANG, Barnes ANGB MA",flight
+CREECH,C130,55ECG Davis Monthan AFB AZ,mission
+CREEK,F16,138th FW OK ANGB Tulsa OK,flight
+CREEP,T38,435th FTS RANDOLPH AFB TX,flight
+CREOLE,B52,Barksdale AFB LA,mission
+CRISP,K35R,"55th Wing, Offutt AFB, NE",mission
+CROC,T38,7th FTS Joint Base Langley-Eustis VA,flight
+CROME,C130,United States OH ANG 179AW/164AS Mansfield Lahm Regional Airport OH,mission
+CROOK,BE20,"Sierra Nevada Corp, Hagerstown MD",mission
+CROW,F15,325th FW Tyndall AFB FL,flight
+CROWN,C30J,106th RQW Francis Gabreski ANGB Long Island NY,mission
+CROWN,C30J,71ST RQS MOODY AFB GA,mission
+CRUD,F15,"144th FW, CA ANG at Fresno ANGB CA",flight
+CRUNCH,A10,"303rd Sqdn, 442nd FW Whiteman AFB MO",flight
+CRUSTY,A10,23rd FG Moody AFB GA,flight
+CUB,A10,303RD FS WHITEMAN AFB MO,flight
+CUCKOO,T38,435th FTS Randolph AFB TX,flight
+CUDA,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+CUDA,LJ35,CT ANG 103FW/118FS Bradley IAP CT,mission
+CUDDA,A10,303RD FS AFRES WHITEMAN AFB MO,flight
+CUERVO,F16,"194th FS, CA ANG Fresno CA",flight
+CUFMY,K35R,"552nd ACW, Tinker AFB, OK",mission
+CUJO,A10,"Selfridge ANGB, MI",flight
+CUJO,F22,71st FS Joint Base Langley-Eustis VA,flight
+CULT,C130,"43rd OG, Moody AFB GA",mission
+CUMMINS,F16,56th FW Luke AFB AZ,flight
+CUPPY,K35R,"552nd ACW, Tinker AFB, OK",mission
+CURE,C130,352 SOG/67 SOS Mildenhall UK,mission
+CUSHY,C130,"934th AMW, Minn-St Paul, MN",mission
+CUSTER,F16,"55 FS/20 FW, Shaw AFB SC",flight
+CUTLASS,TEX2,"37th FTW/41st FTS, Columbus AFB MS",flight
+CUTTY,A10,"Selfridge ANGB, MI",flight
+CUTTY,C130,"934th AMW, Minn-St Paul, MN",mission
+CUTTY,T38,T-38C 49th FTW/50th FTS Columbus AFB MS,flight
+CYBORG,A10,"Selfridge ANGB, MI",flight
+CYBORG,F16,"466th FS, AFRC Hill AFB, UT",flight
+CYCLONE,F16,124th FS IA ANG Des Moins IA,flight
+CYLON,F22,Elmendorf AFB AK,flight
+CYNIC,B703,"552nd ACW, Tinker AFB, OK",mission
+DABBA,C130,"154th TAS, AR ANG Little Rock AFB AR",mission
+DACTYL,B752,"486Th FLTS,Eglin AFB FL",mission
+DAGDA,K35R,"55th Wing, Offutt AFB, NE",mission
+DAGGER,A10,23rd FW Moody AFB GA,flight
+DAGGER,C130,352 SOG/7 SOS Mildenhall UK,mission
+DAGGER,F15,"104th FG, MA ANG Barnes MA",flight
+DAGGER,F16,"388th FW, Hill AFB, UT",flight
+DAGGER,F16,"USAF 52FW / 480FS Spangdahlem AFB, Germany",flight
+DAGGER,LJ35,CT ANG 103FW/118FS Bradley IAP CT,mission
+DAGGER,P3,POSS USN OR US CUSTOMS IN CARIBBEAN DRUG INTERDICTION,mission
+DAGGER,T38,7th FTs Joint Base Langley-Eustis VA,flight
+DAGO,C130,"136th AW, TX ANG NAS/JRB Ft Worth TX",mission
+DAGON,C130,"314th AW, Little Rock AFB, AR",mission
+DAILY,C130,"352nd SOG, RAF Mildenhall, UK",mission
+DALLAS,F15,"335th FS SEYMOUR JOHNSON AFB, NC",flight
+DALLAS,F16,23rd FS Spangdahlem AB GE,flight
+DALLAS,F16,62nd FS Luke AFB AZ,flight
+DALLY,K35R,"55th Wing, Offutt AFB, NE",mission
+DAME,B703,"552nd ACW, Tinker AFB, OK",mission
+DAMON,A10,"23rd Wing, Moody AFB GA",flight
+DANDA,C17,"62nd AW, McChord AFB, WA",mission
+DANNO,F15,"104th FG, MA ANG Barnes MA",flight
+DANTE,K35R,6th AMW/ 927th ARW MacDill AFB FL,mission
+DARE,C130,"302nd AW, Peterson AFB, CO",mission
+DARKSTAR,B703,"552nd ACW, Tinker AFB, OK",mission
+DART,A10,23 FW Moody AFB GA,flight
+DARTH,B2,"509th BW, Whiteman AFB MO",mission
+DASH,F16,Luke AFB AZ,flight
+DATSUN,T38,"71st FTS, Joint Base Langley-Eustis VA",flight
+DATUM,C130,"9th SOS, Hurlburt Fld, FL",mission
+DAVEN,B752,150th SOS NJ ANG Joint Base-McGuire-Dix-Lakehurst NJ,mission
+DAWG,C130,"158th AS GA ANG Savannah, GA",mission
+DAZZLE,F16,"115th FW, Madison, WI",flight
+DEADLY,F16,79th FS Shaw AFB SC,flight
+DEADLY,F22,1st FW Joint Base Langley-Eustis VA,flight
+DEALER,F18S,"VFA-41, NAS Lemoore CA",flight
+DEATH,A10,23 Wing Moody AFB GA,flight
+DEATH,A10,"355th Wing, Davis-Monthan AFB, AZ",flight
+DEATH,B2,"509th BW, Whiteman AFB MO",mission
+DECAY,F16,79 FS/20 FW Shaw AFB SC,flight
+DECK,F16,77th FTs Shaw AFB SC,flight
+DECK,F16,"USAF 31FW / 510FS Aviano AFB, Italy",flight
+DECOY,BE20,Sierra Nevada Corp Hagerstown MD,mission
+DECOY,C17,167th AS WVA ANG Martinsburg WVA,mission
+DEE,T38,71st FTS Joint Base Langley-Eustis VA,flight
+DEECEE,K35R,"459th ARW/756th ARS AFRC, Joint Base Joint Base Andrews MD",mission
+DEED,C17,assoc w/supporting POTUS travel,mission
+DEEP,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+DEEP,F22,27th FTs Joint base Langley-Eustis VA VA,flight
+DEEP,P3,VQ-1 NAS Whidbey Island WA,mission
+DEERLODGE,F18S,USMC,flight
+DEFENDER,A10,"23 FW, Moody AFB GA",flight
+DEFIANT,F16,77th FTs Shaw AFB SC,flight
+DEFT,F22,94th FS Joint Base Langley-Eustis VA,flight
+DEFY,F16,79 FS Shaw AFB SC,flight
+DELCO,C17,"437TH AMW, CHARLESTON AFB SC",mission
+DELER,C130,19AW/53AS Little Rock AFB AR,mission
+DELVE,C130,"7th Wing, Dyess AFB, TX",mission
+DEMO,B52,5th BW Minot AFDB ND,mission
+DEMO,F15,C/D/E 48th FW Lakenheath AB UK,flight
+DEMO,F22,149th FS VA ANG Joint Base Langley-Eustis VA,flight
+DEMO,F22,71st FS Joint Base Langley-Eustis VA,flight
+DEMON,A10,107th FTs MI ANG Selfridge ANGB MI,flight
+DEMON,F15,"104th FG, MA ANG, Barnes ANGB MA",flight
+DEMON,F15,"19th Fighter Squadron Elmendorf AFB, AK",flight
+DEMON,F15,44th FS Kadena Japan,flight
+DEMON,F16,169th FW McEntire ANGB SC,flight
+DEMON,F16,52nd FW Spangdahlem AB GE,flight
+DEMON,F16,56th FW Luke AFB AZ,flight
+DEMON,F22,149th FS VA ANG Joint Base Langley-Eustis VA,flight
+DEMON,F22,43 FS Tyndall AFB FL,flight
+DEMON,P3,"VP-40,""Fighting Marlins"" NAS Whidbey Is, WA",mission
+DEMON,T38,"49th FW, Holloman AFB, NM",flight
+DEMON,T38,7th FTs Joint Base Langley-Eustis VA,flight
+DEMUS,F16,"366th Wing, Mt Home AFB, ID",flight
+DENALI,C17,517th AS Elmendorf AFB AK,mission
+DERBY,C130,"165th AS, KY ANG Louisville KY",mission
+DERMA,B703,"552nd ACW, Tinker AFB, OK",mission
+DETONE,B703,"552nd ACW, Tinker AFB, OK",mission
+DETOX,F16,179 FS/148 FW MN ANG/ Duluth MN,flight
+DEUCE,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+DEUCE,B52,"2BW, Barksdale AFB LA",mission
+DEUCE,C130,"2nd AS/43rd AW, Pope AFB NC NC",mission
+DEUCE,F16,"457th FTs, NAS Ft. Worth, TX (Used as Alert Callsign)",flight
+DEVIL,F15,19th FS Elmendorf AFB AK,flight
+DEVIL,F15,"325th FW, Tyndall AFB, FL",flight
+DEVIL,F16,"119th FS, NJ ANG Atlantic City NJ",flight
+DEVIL,F16,"302nd FS, AFRC, Luke AFB AZ",flight
+DEVIL,F18H,"VMFA-232, NAS MIRAMAR, CA",flight
+DEVIL,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+DEVIL,T34P,"Strike Fighter Weapons School Atlantic, NAS Oceana VA",flight
+DEVIL,T38,7th FTS Joint Base Langley-Eustis VA,flight
+DEVISE,PC12,USAF Spec Ops,mission
+DEVO,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+DEVON,K35R,"55th Wing, Offutt AFB, NE",mission
+DEWEY,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+DEWEY,A10,47th FTs / 924th Fighter Group (AFRS) Davis Monthan AFB AZ,flight
+DEWEY,C130,"355th Wing, Davis-Monthan AFB, AZ",mission
+DIAMOND,A10,"Selfridge ANGB, MI",flight
+DIAMOND,F16,77 FS/20 FW Shaw AFB SC,flight
+DIAMOND,F18S,"VF-102, CVW-5 NAS Atsugi JA",flight
+DIAMOND,F18S,"VFA-146, CVW-9 NAS Lemoore, CA",flight
+DIAMONDBACK,F18S,"VF-102, CVW-5 NAS Atsugi JA",flight
+DICE,F16,55 FS Shaw AFB SC,flight
+DICE,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+DICE,F22,"USAF 3rdWG / 90FS Elmendorf AFB, AK",flight
+DICEY,TEX2,37B 459th FTS Sheppard AFB TX,flight
+DIDDY,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+DIDO,C130,"934th AMW, Minn-St Paul, MN",mission
+DILL,F15,Mass ANG BARNES ANGB MA,flight
+DILLON,LJ35,118th AS/103rd AW Bradley ANGB CT,mission
+DILLON,LJ35,CO ANG 140WG/200AS Petersen AFB Colorado Springs CO,mission
+DINGO,F16,114th FW SD ANG Sioux Falls SD,flight
+DINO,F16,MN ANG Duluth MN,flight
+DIRGO,K35R,101ARW/132ARS ME ANG Bangor ME,mission
+DIRK,F16,"56th FW, Luke AFB, AZ",flight
+DIRT,C130,"43rd OG, Pope AFB NC",mission
+DIRT,C130,"94th AW, Dobbins ARB, GA",mission
+DIRTY,A10,23rd FW Moody AFB GA,flight
+DIRTY,F15,15th FS Kadena Japan,flight
+DIRTY,T38,7th FTs Joint Base Langley-Ft. Eustis,flight
+DISCO,F15,"104th FG, MA ANG Barnes ANGB MA",flight
+DISCO,F16,"178th FW Springfield, OH",flight
+DITTO,A10,303RD FS AFRES WHITEMAN AFB MO,flight
+DITTY,C130,"352nd SOG, RAF Mildenhall, UK",mission
+DIVE,K35R,55 Wing Offutt AFB NE,mission
+DIXIE,F16,"31st FW, Aviano, Italy",flight
+DIXIE,K35R,117TH ARW AL ANG BIRMINGHAM AL,mission
+DOBBY,F15,"33rd FW, Eglin AFB, FL",flight
+DOCK,B703,USAF 552ACW Tinker AFB OK,mission
+DODGE,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+DOG,C130,"908th AG, Maxwell AFB, AL",mission
+DOG,F15,Eglin?,flight
+DOG,F16,"119th FS, NJ ANG Atlantic City NJ",flight
+DOG,F16,61st FS Luke AFB AZ,flight
+DOG,F18H,"VFA-125 ""Desert Dogs"" NAS Lemoore, CA",flight
+DOG,F18S,MCAS CHERRY Point NC,flight
+DOG,F18S,VFA-143 NAS OCEANA VA,flight
+DOGGY,C130,"146th AW, CA ANG at Channel Islands ANGS",mission
+DOGGY,C130,"314th AW, Little Rock AFB, AR",mission
+DOGS,F15,144th FW GA ANG Fresno ANGB CA,flight
+DOGWOOD,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+DOME,A10,23rd FW moody AFB GA,flight
+DONNA,C130,"352nd SOG, RAF Mildenhall, UK",mission
+DOOM,B52,"2nd BW, 96th BS, Barksdale AFB, LA",mission
+DOOM,F22,27th/94th FS Joint Base Langley-Eustis.VA,flight
+DORY,F15,"MA ANG Barnes ANGB, MA",flight
+DOUD,C130,"118th AW, TN ANG Nashville TN",mission
+DOUGHBOY,F16,"366th Wing, Mt Home AFB, ID",flight
+DOWNY,C130,"302nd AW, Peterson AFB, CO",mission
+DOZER,A10,163rd FS IN ANG Ft Wayne ANGB IN,flight
+DOZER,A10,Whiteman AFB MO (exercise call),flight
+DOZER,C130,55ECG Davis Monthan AFB AZ,mission
+DOZER,K35R,55th Wing/45th RS Offutt NE,mission
+DRACO,A10,81ST FS SPANGDAHLEM AB GE,flight
+DRAFT,C130,"139th AW MO-ANG; Rosecrans Memorial Airport, St Joseph, MO",mission
+DRAFT,C130,KY ANG 123AW/165AS Louisville Intn'l Airport Louisville KY,mission
+DRAFT,C30J,"VMGR-352 MCAS Cherry Point, NC",mission
+DRAGON,A10,357th FTs DAVIS-MONTHAN AZ,flight
+DRAGON,BE20,Joint Base McGuiire NJ,mission
+DRAGON,BE20,Sierra Nevada Corp (SNC) Hagerstown MD,mission
+DRAGON,F16,"31st FW, Aviano, Italy",flight
+DRAGON,F16,510th FS Aviano Italy,flight
+DRAGON,F18H,"VFA-192, CVW-5, NAF Atsugi Japan",flight
+DRAGON,F22,94th FS Joint Base Langley-Eustis VA,flight
+DRAGON,P8,Poseidon VP-4 NAS Whidbey Island WA,mission
+DRAGON,P8,USN NAF Kadena VP Detachment,mission
+DRAGON,PC12,"5th SOS, Hurlburt Field FL",mission
+DRAT,C30J,19AW/41AS Little Rock AFB AR,mission
+DRAW,C130,"314th AW, Little Rock AFB, AR",mission
+DRDV,PC12,S177 Decomissioned 2004,mission
+DREW,K35R,50th ARS / 6th AMW MacDill AFB FL,mission
+DROSS,C130,"16TH SOS, Hurlburt Fld FL",mission
+DRYER,C130,"16th SOS, Hurlburt Fld FL",mission
+DUBAI,C130,(L100-30) Reg=A6-QFY,mission
+DUCK,F16,"115th FW, Madison, WI",flight
+DUCK,F16,"309th FS, Luke AFB, AZ",flight
+DUCK,F16,79TH FS SHAW AFB SC,flight
+DUDE,A10,23rd FW Moody AFB GA,flight
+DUDE,F15,33rd FW Eglin AFB FL,flight
+DUDE,F15,85th TES Eglin AFB FL,flight
+DUDE,T38,7th FTs Joint Base Langley-Eustis VA,flight
+DUECE,B52,2nd BW Barksdale AFB LA,mission
+DUECE,C130,95th AS General Mitchell IAP WI ANG Milwaukee WI,mission
+DUFF,F22,94th FS Joint Base Langley-Eustis VA,flight
+DUKE,BE20,/UC-35 US ARMY Europe B/1-214 AVN Wiesbaden GE,mission
+DUKE,BE20,"6-52nd Avn Bn Los Alamitos, CA",mission
+DUKE,C17,517th AS Elmendorf AFB AK,mission
+DUKE,T38,71FTW/25FTS Vance AFB OK,flight
+DUPE,C130,"302nd AW, Peterson AFB, CO",mission
+DUPLE,K35R,"55th Wing, Offutt AFB, NE",mission
+DUSTER,A10,52FW / 81st FS Spangdahlem GE,flight
+DUSTER,T38,"586th Flight Test Squadron (586th FLTS) Holloman AFB, NM",flight
+DUSTY,C130,"165th AG, GA ANG Savannah GA",mission
+DUSTY,F16,"115th FW, Madison, WI",flight
+DUSTY,F16,"31st FW, Aviano, Italy",flight
+DUTCH,A10,"Selfridge ANGB, MI",flight
+DUTCH,F16,77 FS Shaw AFB SC,flight
+EAGLE,C130,"43rd OG, Moody AFB GA",mission
+EAGLE,C17,436th AMW Charleston AFB SC,mission
+EAGLE,C17,436th AMW/3rd AS Dover AFB DE,mission
+EAGLE,F15,"104th FG, MA ANG, Barnes ANGB MA",flight
+EAGLE,F15,123rd FS OR ANG Portland IAP OR,flight
+EAGLE,F15,19th FS Elmendorf AFB AK,flight
+EAGLE,F15,"415th TS, Edwards AFB, CA",flight
+EAGLE,F15,"4th FW SEYMOUR JOHNSON AFB, NC",flight
+EAGLE,F15,C/D/E 48th FW Lakenheath AB England,flight
+EAGLE,F16,56th FW Luke AFB AZ,flight
+EAGLE,F18H,"VFA-115, CVW-14, NAS NORTH ISLAND CA",flight
+EAGLE,F18S,"VAQ-129, NAS Whidbey Island WA",flight
+EAGLE,P3,VP-16 NAS Jacksonville FL,mission
+EAGLE,P3,VP-9 (PD) MCAS Kaneohe Bay HI,mission
+EAGLE,P3,VQ-1 NAS Whidbey Island WA,mission
+EAGLE,T38,435th FTS Randolph AFB TX,flight
+EAGLE,T38,50Th FTS/14th FTW Columbus AFB MS,flight
+EARL,K35R,"163rd ARG, CA ANG March AFB CA",mission
+EARL,K35R,6th AMW 91st ARS MacDill AFB FL,mission
+EARL,K35R,"92nd Wing, Fairchild AFB, WA",mission
+EASY,C560,"VR-54, NAS JRB New Orleans LA",mission
+EASY,F18S,"VMAQ-2, MCAS Cherry Point, NC",flight
+ECHO,F16,Luke AFB AZ,flight
+ECLES,F18S,"VAQ-130, NAS Whidbey Island WA",flight
+EDDIE,F16,"AFFTC Command Edwards AFB, CA",flight
+EDDIE,K35R,"OH ANG, 121ARW Rickenbacher Int'l Airport Columbus OH",mission
+EDGAR,C130,"16th SOW, Hurlburt Field AFB, FL",mission
+EDGE,F15,2nd TFTS Tyndall AFB FL,flight
+EDGY,B703,"552nd AWC, Tinker AFB, OK (flight training)",mission
+ELGIN,B52,"2nd Wing, Barksdale AFB, LA",mission
+ELTON,C130,"43rd OG, Moody AFB GA",mission
+ELVAN,C130,"934th AMW, Minn-St Paul, MN",mission
+ELVIS,BE20,"/W, 224 MI Bn Hunter AAF GA",mission
+ELVIS,C17,"155th AS, TN ANG, Memphis TN",mission
+EMINE,B52,5th BW Minot AFB ND,mission
+EMMET,C130,"43rd OG, Moody AFB GA",mission
+EMPIRE,F18S,"VFA-106, Oceana NAS VA",flight
+ENTRY,C130,"43rd OG, Pope AFB NC NC",mission
+ENTRY,K35R,"161st ARW, AZ ANG Phoenix AZ",mission
+EPIC,C17,156th AS NC-ANG Charlotte NC,mission
+EPOXY,K35R,"161st ARW, AZ ANG Phoenix AZ",mission
+ESKAN,K35R,"319TH ARW, GRAND FORK AFB ND",mission
+ESKAN,K35R,6th ARW MacDill AFB FL,mission
+ESSEX,C130,"352nd SOG, RAF Mildenhall, UK",mission
+ESSO,K35R,121st ARW OH-ANG,mission
+ESSO,K35R,173rd ARS Nebraska ANG Lincoln NE,mission
+ETHYL,K35R,"97th AMW, Altus AFB, OK",mission
+ETHYL,K35R,East coast alert tanker,mission
+EUCHRE,T38,435th FTS RANDOLPH AFB TX,flight
+EUREKA,F15,"142nd FG, OR ANG Portland ANGB OR",flight
+EURO,T38,"469th FTS Sheppard Air Force Base, TX",flight
+EVA,C130,"94th AW, Dobbins ARB, GA",mission
+EVADE,F16,63rd FS Luke AFB AZ,flight
+EVAL,BE20,US Army,mission
+EVEN,C130,"43rd OG, Moody AFB GA",mission
+EVENT,F15,"SEYMOUR JOHNSON AFB, NC AFB NC",flight
+EVIL,A10,23rd FW Moody AFB GA,flight
+EVIL,F15,"131ST FW/ 110TH FS MO - A.N.G. LAMBERT INTNL. AIRPORT, ST. LOUIS MO",flight
+EXAM,A10,23rd FW Moody AFB GA,flight
+EXILE,F15,493rd FS Lakenheath UK,flight
+EXOR,K35R,38th Recce Sqdn Offutt AFB NE,mission
+EXPERT,F18S,"/T-34C VFA-122 FRS, NAS Leemore CA",flight
+EXPO,K35R,"116th ARS, WA ANG Fairchild AFB WA",mission
+EXPRESS,C130,"VR-53 CAPITAL EXPRESS , Joint Base Joint Base Andrews MD",mission
+EXUDE,K35R,"55th Wing, Offutt AFB, NE",mission
+EXULT,K35R,"55th Wing, Offutt AFB, NE",mission
+EXXON,K35R,/T 319th ARW Grand Forks AFB ND,mission
+FADE,F15,334 FS Seymour-Johnson AFB NC,flight
+FAIL,C130,USAFE/67th SOS,mission
+FALCON,A10,355TH FS EIELSON AFB AK,flight
+FALCON,F15,"4th Wing, SOF SEYMOUR JOHNSON AFB NC",flight
+FALCON,F16,111th FS TX ANG Ellington ANGB TX,flight
+FALCON,F16,510th FS Aviano Italy,flight
+FALCON,F16,55th FS Shaw AFB SC,flight
+FALCON,F18H,"VFA-137, CVW-2 NAS Lemoore, CA",flight
+FALCON,F18S,"VFA-137 NAS Lemoore, CA",flight
+FALCON,GLF4,Cmdr USAF Europe Ramstein GE,mission
+FALCON,GLF5,USAF 86AW/309AS Chierves BE,mission
+FALCON,P3,DUTCH NAVY P-3CS DEPLOYED TO CARIBBEAN,mission
+FALLS,K35R,92nd ARW Fairchild AFB WA,mission
+FAME,LJ35,"45th AS/314th AW, Keesler AFB MS",mission
+FANG,C130,"355th Wing, Davis-Monthan AFB, AZ",mission
+FANG,F15,159th FS FL ANG Jacksonville Intn'l Airport FL,flight
+FANG,F22,27th/94th FS Joint base Langley-Eustis VA VA,flight
+FANGO,F15,"SEYMOUR JOHNSON AFB, NC",flight
+FANGS,F15,125th FW Det 1 Homestead ARS ARS FL,flight
+FANGS,F16,"176th FS WI ANG, Truax Fld Madison, WI",flight
+FANGS,TEX2,559th FTS Randolph AFB TX,flight
+FARAD,K35R,117th ARW AL ANG Birmingham AL,mission
+FARMER,F16,"115th FW, Madison, WI",flight
+FARVA,C130,/P 352 SOG Mildenhall UK,mission
+FAST,F18H,"VF-41 CVW-8, ""Black Aces"" NAS Lemoore, CA",flight
+FAT,F15,"194th FS CA ANG, Fresno IAP CA",flight
+FAULT,C130,"118th AW, TN ANG Nashville TN",mission
+FAZE,C130,55 Wing / 55 ECG Davis-Monthan AFB AZ,mission
+FAZER,F15,33rd FW Eglin AFB FL,flight
+FEAR,B52,5th BW Minot AFB ND,mission
+FELIX,C130,"23rd AW, Pope AFB NC",mission
+FELIX,F18S,"VF-31, CVW-14, NAS OCEANA VA",flight
+FELON,A10,23rd FW Moody AFB GA,flight
+FELON,C130,96th AS 94th AW/700 AS AFRES Milwaukee WI,mission
+FENCE,B52,5th BW Minot AFB ND,mission
+FEND,C130,"HURLBURT FIELD, FL",mission
+FENDY,LJ35,76TH AS RAMSTEIN AB GE,mission
+FENEC,BE20,U>S> Embassy Rabat Morocco,mission
+FENIX,F18S,VAQ-129 Vikings NAS Whidby Island WA,flight
+FENNY,C130,"934th AMW, Minn-St Paul, MN",mission
+FERDA,A10,23rdFW Moody AFB GA,flight
+FEUD,F18H,VMFA-533 MCAS Cherry Point NC,flight
+FEUD,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+FEWER,C130,"43rd OG, Pope AFB NC",mission
+FIAT,K35R,166th ARW OH ANG Rickenbacher ANGB OH,mission
+FIBER,F15,33rd FW Eglin AFB FL,flight
+FIDDLE,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+FIDO,F16,22nd FS Spangdahlem AB GE,flight
+FIEND,F16,36th FS Osan AB Korea,flight
+FIGHTING,P3,NAS Jacksonville FL,mission
+FIGHTING,P3,VP-8 NAS Jacksonville FL,mission
+FILO,B703,"552nd ACW, Tinker AFB, OK",mission
+FINDER,P3,PROB NAS Jacksonville FL,mission
+FIRE,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+FIREBIRD,B703,"AWACS front end, Tinker AFB OK",mission
+FIREBIRD,K35R,"51Sqn RAF Waddington, UK",mission
+FIRM,B703,"552nd ACW, Tinker AFB, OK",mission
+FIRST,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+FIRST,T38,7th FTs Joint Base Langley-Eustis VA-out of area travel callsign,flight
+FISH,B52,5th BW Minot AFB ND,mission
+FIST,B762,"133rd ARS, NH ANG Pease ANGB NH",mission
+FIST,F16,"RNAF Dutch Airforce, Volkel AFB, NL",flight
+FIST,F18H,"VFA-25, CVW-14 NAS NORTH ISLAND CA",flight
+FITCH,C130,"146th AW, CA ANG Channel Islands ANGS CA",mission
+FIXER,C30J,129th RQW/130th RQS Moffett Afld CA,mission
+FIXER,C30J,30 19AW Little Rock AFB AR,mission
+FIXER,C30J,37th AS/86th AW Ramstein AB USAFE,mission
+FIXER,C30J,Lockheed Test Flight from Dobbins JRB GA,mission
+FLANKER,F15,"333rd FS SEYMOUR JOHNSON AFB, NC",flight
+FLANKER,F15,57th FWG Nellis AFB NV,flight
+FLANKER,F16,"USAF 31FW / 510FS Aviano AFB, Italy",flight
+FLAP,F16,Luke AFB AZ,flight
+FLASH,F22,94th FS Joint Base Langley-EustisVA,flight
+FLASH,K35R,"61-0321, 6th ARW / 927th ARW MacDill AFB FL",mission
+FLEAGLE,C130,"7th Wing, Dyess AFB, TX",mission
+FLEX,F16,"480FS / 52FW Spangdahlem AFB, Germany",flight
+FLEX,F16,55 FS/20 FW Shaw AFB SC,flight
+FLIP,C130,16th SOS,mission
+FLIP,C130,AFRC 440thAW/95th AS Pope AFB NC,mission
+FLITE,C130,"73-1595, 41st ECS Davis-Monthan AFB AZ",mission
+FLITE,TEX2,"Texan, 14th FLTW Columbus AFB SC",flight
+FLOSS,K35R,"55th Wing, Offutt AFB, NE",mission
+FLOUT,K35R,"55th Wing, Offutt AFB, NE",mission
+FLOYD,B2,509 BW/393 BS Whiteman AFB MO,mission
+FLUFF,A10,23rd FW Moody AFB GA,flight
+FLUG,F16,179th FS MN ANG Duluth MN,flight
+FLUKY,K35R,"55th Wing Offutt AFB, NE",mission
+FLUME,C130,"94th AW, Dobbins ARB, GA",mission
+FLUSH,F16,77 FS/20 FW Shaw AFB SC,flight
+FLUX,B52,5th BW Minot AFB ND,mission
+FOCUS,B703,"962nd AWACS, ELMENDORF AK",mission
+FOCUS,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+FOLIC,C130,"9th SOS, Hurlburt Fld FL",mission
+FONG,C130,"403rd Wing, Keesler AFB, MS",mission
+FONT,C130,"94th AW, Dobbins ARB, GA",mission
+FORAY,B52,Barksdale AFB LA,mission
+FORCE,B762,"32nd ARS, Joint Base-McGuire-Dix-Lakehurst NJ",mission
+FORGE,C30J,193rd SOS PA ANG Harrisburg PA,mission
+FORGE,TEX2,559th FTS RANDOLPH AFB TX,flight
+FORWARD,F16,Luke AFB AZ,flight
+FOSS,C130,"403rd Wing, Keesler AFB, MS",mission
+FOUND,F15,366th FW Mountain Home AFB ID,flight
+FOX,BE20,MCAS Beaufort SC,mission
+FOXY,T38,90th FTS/80th FTW Sheppard AFB TX,flight
+FRAG,F15,114th FS OR ANG Portland OR,flight
+FRAG,F16,61st FS Luke AFB AZ,flight
+FRANK,F22,27/94th FS Joint Base Langley Eustis VA,flight
+FRATE,F15,"104th FG, MA ANG at Barnes ANGB",flight
+FRAY,B703,"552nd ACW, Tinker AFB, OK",mission
+FREAK,F15,OR-ANG,flight
+FREE,B703,"552nd ACW, Tinker AFB, OK",mission
+FREEBIE,A10,"Selfridge ANGB, MI",flight
+FREIGHT,F15,Mass ANG BARNES MA,flight
+FRESCA,A10,303RD FS AFRES WHITEMAN AFB MO,flight
+FRESH,K35R,HI ANG Joint Base Hickam-Pearl Harbor HI,mission
+FRIZZ,C17,437th AMW/315th AMW Charleston AFB SC,mission
+FROST,B52,5th BW Minot AFB ND,mission
+FROSTY,A10,"Selfridge ANGB, MI",flight
+FROSTY,F16,"179th FS, MN ANG Duluth",flight
+FROZEN,C17,517AS Elmendorf AFB AK,mission
+FUELER,K35R,AFRC | 452AMW | 336ARS March ARB CA,mission
+FUJIN,F16,"4th FS, Hill AFB, UT",flight
+FUNGO,K35R,"552nd ACW, Tinker AFB, OK",mission
+FUNNY,K35R,"552nd ACW, Tinker AFB, OK",mission
+FUROR,C130,"352nd SOG, RAF Mildenhall, UK",mission
+FURR,K35R,"55th Wing, Offutt AFB, NE",mission
+FURRY,F16,23rd FS Spangdahlem AB GE,flight
+FURY,B2,509 BW/393 BS Whiteman AFB MO,mission
+FURY,F15,"1st TFTS, TYNDALL AFB FL",flight
+FURY,F22,71st FS Joint Base Langley-Eustis VA,flight
+FUSS,C130,"302nd AW, Peterson AFB, CO",mission
+FUZZY,C130,914th AW/328th AS NY ANG Niagara Falls ARS NY,mission
+FUZZY,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+GADGET,A10,303RD FS AFRES WHITEMAN AFB MO,flight
+GAGE,C130,"9th SOS, Hurlburt Fld FL",mission
+GAIN,B703,"552nd ACW, Tinker AFB, OK",mission
+GAINER,F16,"388th FW, Hill AFB, UT",flight
+GALE,K35R,"552nd ACW, Tinker AFB, OK",mission
+GAMBLE,F15,"144th FW, CA ANG Fresno ANGB CA",flight
+GAMBLER,F16,77th FTs Shaw AFB SC,flight
+GAMBLER,F16,Luke AFB AZ,flight
+GARBY,C130,"314th AW, Little Rock AFB, AR",mission
+GARDUA,F18S,VAQ-134 NAS Whidbey Island WA,flight
+GARTH,F15,Mass ANG BARNES MA,flight
+GASPAR,K35R,63rd ARS / 927th ARW (USAFR) MacDill AFB FL,mission
+GASSER,K35R,Altus AFB OK,mission
+GATE,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+GATES,F15,333rd FS Seymour-Johnson AFB NC,flight
+GATOR,A10,"Selfridge ANGB, MI",flight
+GATOR,BE20,USN/USMC,mission
+GATOR,C30J,317th AG Dyess AFB TX,mission
+GATOR,F15,33rd FW Eglin AFB FL,flight
+GATOR,F15,493FS Lakenheath UK,flight
+GATOR,F15,FL ANG 125th FW,flight
+GATOR,F16,22nd FS Spangdahlem AB GE,flight
+GATOR,F16,"85th TES, Eglin AFB, FL",flight
+GATOR,F16,93rd FS FL ARB Homestead ANGB FL,flight
+GATOR,T38,560th FTS Randolph AFB TX,flight
+GAUCHO,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+GAWKY,C130,EGLIN AFB,mission
+GEIST,C30J,1st SOW,mission
+GELD,B2,509TH BW WHITEMAN AFB MO,mission
+GELD,C130,"314th AW, Little Rock AFB, AR",mission
+GELT,C130,"94th AW, Dobbins ARB, GA",mission
+GENUS,C130,"352nd SOG, RAF Mildenhall, UK",mission
+GENUS,K35R,"55th Wing, Offutt AFB, NE",mission
+GEOD,B2,"509th BW, Whiteman AFB MO",mission
+GEORGE,C17,"62ND AMW, MCCHORD AFB WA",mission
+GERT,B2,509th BW Whiteman AFB MO,mission
+GETUP,K35R,"434th ARW, Grissom ARB, IN",mission
+GEYSER,A10,"Selfridge ANGB, MI",flight
+GHOST,B2,Whiteman AFB MO,mission
+GHOST,BE20,Edwards AFB CA,mission
+GHOST,C130,"16th SOS, Hurlburt Fld, FL",mission
+GHOST,F16,"115th FW, Madison, WI",flight
+GHOST,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+GHOST,GLF4,"# 165153 ""Grey Ghost"" VMR Det MCAS Kanoehe Point, HI",mission
+GHOST,GLF4,VMR-1 MCAS Cherry Point NC,mission
+GHOST,K35R,AFMC | 412TW | 412FLTS Edwards AFB CA,mission
+GIANT,F15,125th FW FL ANG,flight
+GIDEON,A10,303rd FS/442nd FW Whiteman AFB MO,flight
+GILLY,C130,37th AS,mission
+GINGER,F15,HI-ANG Joint Base Hickam-Pearl Harbor AFB HI,flight
+GINZU,T38,7th FTS Joint Base Langley-Eustis VA,flight
+GITMO,BE20,NAS Guantanamo Bay Cuba,mission
+GLANE,C30J,30 19AW Little Rock AFB AR,mission
+GLARE,BE20,"/UH-60 Sierra Navada Corp, Hagerstown MD & NAS Lakehurst NJ",mission
+GLEAN,C30J,30 19AW Little Rock AFB AR,mission
+GLIDA,C130,67th SOS Mildenhall UK,mission
+GLIDE,C130,AFRC 908AW/357AS Maxwell AFB AL,mission
+GLIDE,C130,"WY ANG 153AW/187AS Cheyenne Regional/Jerry Olson Field, WY",mission
+GNARL,C30J,30 19AW AR ANG Little Rock AFB AR,mission
+GNARLY,F16,194TH FS CA ANG,flight
+GNARLY,T38,560th FTS Randolph AFB TX,flight
+GOAL,F16,56th FW Luke AFB AZ,flight
+GOAT,C130,"302nd AW, Peterson AFB, CO",mission
+GOAT,TEX2,559th FTS Randolph AFB TX,flight
+GOATEE,F15,4th FW Seymour-Johnson AFB NC,flight
+GOB,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+GOBBER,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+GOBLIN,A10,23rd Wing Moody AFB GA,flight
+GOBO,K35R,"55th Wing, Offutt AFB, NE",mission
+GOFER,C130,MN ANG 133AW/109AS Minneapolis-St Paul MN,mission
+GOLAN,B703,"552nd ACW, Tinker AFB, OK",mission
+GOLDFINCH,P8,Poseidon VP-45 NAS Jacksonville FL (JIATF callsign),mission
+GOLLY,K35R,55th Wing Offutt AFB NE,mission
+GOMER,F16,"31st FW, Aviano, Italy",flight
+GONZO,A10,303RD FS AFRES WHITEMAN AFB MO,flight
+GOODY,F16,"56th FW, Luke AFB, AZ",flight
+GOOF,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+GOOFY,K35R,"55th Wing, Offutt AFB, NE",mission
+GOOFY,K35R,"927th ARW, MacDill AFB FL",mission
+GOONY,C30J,19th AW/441st AS Little Rock AFB AR,mission
+GOOSE,C130,711TH SOS Duke Field FL,mission
+GOPACK,F16,176th FS WI ANG Truax Fld WI,flight
+GORAL,C130,"302nd AW, Peterson AFB, CO",mission
+GORBY,A10,"303rd Fighter Sqdn, 442nd FW, Whiteman AFB MO",flight
+GORDO,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+GORDON,F18H,VF-2 NAS OCEANA VA,flight
+GORGON,B52,5th BW Minot AFB ND,mission
+GORTEX,P3,NAS Jacksonville FL,mission
+GOSH,C17,437th AW Charlston AFB SC,mission
+GOTHAM,C17,"137TH AS NY ANG, STEWART ANGB NY",mission
+GOURD,C130,"7th Wing, Dyess AFB, TX",mission
+GOYA,B752,486FLTS Eglin AFB FL,mission
+GOYA,C130,"43rd OG, Pope AFB NC",mission
+GRABBY,F16,Luke AFB AZ,flight
+GRADY,F15,2nd TFTS Tyndall AFB FL,flight
+GRADY,T38,7th FTS Joint Base Langley-Eustis,flight
+GRANT,F16,56th FW Luke AFB AZ,flight
+GRAPPA,T38,435th FTS Randolph AFB TX,flight
+GRAY,P8,"VP-46, NAS Whidbey Island, WA",mission
+GREASY,F16,77 FS/20 FW SHAW AFB SC,flight
+GREEN,T38,560th FTS Randolph AFB TX,flight
+GREG,K35R,/T 319th ARW Grand Forks AFB ND,mission
+GREMLIN,A10,52FW / 81st FS Spangdahlem GE,flight
+GREMLIN,B52,2 BW Barksdale AFB LA,mission
+GREMLIN,P3,Drug interdiction mission,mission
+GREY,BE20,"US Army B/224th MIB (AE), Savannah GA",mission
+GRIFFIN,F15,"144th FS, CA ANG Fresno ANGB CA",flight
+GRIFFIN,F18S,VFA-113 NAS Oceana VA,flight
+GRIFFIN,P8,Poseidon VP-45/CPRW-11 NAS Jacksonville FL,mission
+GRIM,B52,"2nd BW/20th BS, Barksdale AFB, LA",mission
+GRIM,F18S,VAQ-142 CVW-8 NAS Whidbey Island WA,flight
+GRIM,F22,27th FTs Joint Base Langley-Eustis VA,flight
+GRITS,C17,315 AW Charleston AFB SC,mission
+GRITTY,F22,27th FTs Joint Base Langley-Eustis VA,flight
+GRITZ,F16,"138th FW Oklahoma ANG, Tulsa, OK",flight
+GRIZZLY,BE20,US Navy,mission
+GRIZZLY,C17,60th AMW/21st AS Travis AFB CA,mission
+GRIZZLY,C560,H&HS Third Marine Air Wing MCAS Miramar Ca,mission
+GRIZZLY,F15,19th FS Elmendorf AFB AK,flight
+GRIZZLY,K35R,"163rd Attack Wing (CA ANG) 196th Attack Sq, March ARB CA",mission
+GROAT,B703,"552nd ACW, Tinker AFB, OK",mission
+GROOVY,F16,Netherlands AF 306SQ,flight
+GROUCH,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+GROUP,K35R,"55th Wing, Offutt AFB, NE",mission
+GROUT,C130,"355th Wing, Davis-Monthan AFB, AZ",mission
+GROUT,K35R,22ARW McOnnell AFB KS,mission
+GROWL,A10,Barksdale AFB LA,flight
+GROWL,F15,"144th FW, CA ANG at Fresno ANGB",flight
+GROWN,C130,"129th RQG, CA ANG at NAS Moffett (HH-60)",mission
+GRUB,B703,"552nd ACW, Tinker AFB, OK",mission
+GRUMAN,F16,"115th FW, Madison, WI",flight
+GRUMP,F16,31st FW Aviano AB Italy,flight
+GRUMP,F22,43 FS Tyndall AFB FL,flight
+GRUMPY,F15,"4th FW SEYMOUR JOHNSON AFB, NC",flight
+GRUMPY,F16,"388th FW, Hill AFB, UT",flight
+GRUNT,C130,KY ANG 123AW/165AS Louisville KY,mission
+GRUNT,C130,WV ANG | 130AW | 130AS Charleston / Yeager AP WVA,mission
+GRUNT,F16,"115th FW, Madison, WI",flight
+GRUP,C17,"62ND AMW, MCCHORD AFB WA",mission
+GUDA,C130,"352nd SOG, RAF Mildenhall, UK",mission
+GUINESS,F15,Mass ANG BARNES MA,flight
+GUINNESS,F15,"492FS RAF Lakenheath, UK",flight
+GULL,C130,"53rd WRS, Keesler AFB, MS",mission
+GUMBY,F15,Mass ANG BARNES MA,flight
+GUMP,C130,908th AW Maxwell AFB AL,mission
+GUN,A10,23rd FG Moody AFB GA,flight
+GUN,A10,81ST FS SPANGDAHLEM AB GE,flight
+GUN,F15,"4th FW SEYMOUR JOHNSON AFB, NC AFB NC",flight
+GUN,F16,23rd FS Spangdahlem AB GE,flight
+GUNDOG,F16,148th FW MN ANG Duluth MN,flight
+GUNDOG,F16,79 FS/20 FW Shaw AFB SC,flight
+GUNDOG,T38,50Th FTS/14th FTW Columbus AFB MS,flight
+GUNMAN,A10,74th FS Moody AFB GA,flight
+GUNMAN,A10,"Selfridge ANGB, MI",flight
+GUNNER,F16,"20th FW, Shaw AFB",flight
+GUNNER,F16,"79 FS/20 FW, Shaw AFB SC",flight
+GUNNY,F16,121ST FS DC ANG Joint Base Joint Base Andrews MD,flight
+GUNS,A10,23rd FFW Moody AFB GA,flight
+GUNSHOT,F15,"104th FG, MA ANG, Barnes ANGB MA",flight
+GUNSHY,BE20,US Army in Middle East,mission
+GUNSTAR,F18H,VFA-136 NAS Leemore CA,flight
+GURNSEY,P8,54/120 Sqdn RAF Lossiemouth,mission
+GUSS,K35R,"434th ARW, Grissom ARB, IN",mission
+GUTS,BE20,US Embassy Flt Dhahran,mission
+GUTS,C130,VR-53 Joint Base Joint Base Andrews MD,mission
+GUTS,T38,T-38C 49th FTW/50th FTS Columbus AFB MS,flight
+GYPSY,A10,"Selfridge ANGB, MI",flight
+GYPSY,F15,USAFE 48FW / 492 FS LN Lakenheath UK,flight
+GYPSY,F18H,VMFA-312 MCAS Beaufort SC,flight
+GYPSY,F18S,"VF-32, ""Swordsmen"" CVW-3 NAS OCEANAVA",flight
+HABNO,C130,317AG Dyess AFB TX,mission
+HADES,F16,119th FS NJ ANG Atlantic City NJ,flight
+HAIL,C130,"314th AW, Little Rock AFB, AR",mission
+HAITI,C130,"94th AW, Dobbins ARB, GA",mission
+HAKE,K35R,"55th Wing, Offutt AFB, NE",mission
+HALE,F16,112th FS OH ANG Toledo (when in AZ trng),flight
+HALL,B703,"552nd ACW, Tinker AFB, OK",mission
+HALL,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+HALO,A10,23rd FG Moody AFB GA,flight
+HAMBONE,T38,"586FLTS/46TW, Holloman AFB NM",flight
+HAMMER,A10,23rd FW Moody AFB GA,flight
+HAMMER,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+HAMMER,A10,"355th Wing, Davis-Monthan AFB, AZ",flight
+HAMMER,A10,"Selfridge ANGB, MI",flight
+HAMMER,B2,Whiteman AFB MO,mission
+HAMMER,B52,5th BW Minot AFB ND,mission
+HAMMER,C130,USAF 1SOW Hurlburt Field FL,mission
+HAMMER,F16,"119th FG, NJ ANG Atlantic City NJ",flight
+HAMMER,F16,31st FW Aviano AB Italy,flight
+HAMMER,F16,50-CF USAFE 52FW/480FS Spangdahlem GE,flight
+HAMMER,T38,"Vance AFB Enid, OK",flight
+HANK,C130,357Th AS Maxwell AFB AL,mission
+HANK,T38,49TH FW HOLOMAN AFB,flight
+HAPPY,A10,104th FS MD ANG Martin State MD,flight
+HAPPY,K35R,"126th ARW/108ARS, IL ANG Scott AFB/Mid-America IL",mission
+HARD,C17,62AW McChord AFB WA,mission
+HARDY,K35R,"927th ARW, MacDill AFB FL",mission
+HARLEY,T38,T-38C 49th FTW/50th FTS Columbus AFB MS,flight
+HARLY,K35R,WI ANG 128ARW/126ARS Milwaukee WI,mission
+HARM,B703,"552nd ACW, Tinker AFB, OK",mission
+HARM,F16,22nd FS Spangdahlem AB GE,flight
+HARM,F22,94th FS Joint Base Langley-Eustis VA,flight
+HARMO,K35R,"55th Wing, Offutt AFB, NE",mission
+HART,C130,"146th AW, CA ANG Channel Islands ANGS CA",mission
+HATCH,F15,114th FS OR ANG Portland OR,flight
+HATCH,F16,"138th FW, Oklahoma ANG Tulsa, OK",flight
+HATE,B52,"5thBW MINOT AFB, ND",mission
+HATMAN,F15,102nd FW Barnes ANGB MA,flight
+HAVOC,B52,2ND BW 96TH BS BARKSDALE LA,mission
+HAVOC,C30J,193rd SOS PA ANG Harrisburg PA,mission
+HAVOC,C30J,317th AG Dyess AFB TX,mission
+HAVOC,F15,104th FW MA ANG Barnes ANGB MA,flight
+HAWG,A10,47th FTs / 924th Fighter Group (AFRS) Davis Monthan AFB AZ,flight
+HAWG,A10,"Selfridge ANGB, MI",flight
+HAWG,K35R,/V/W 55 Wing OF Offut (55 Wing Training),mission
+HAWK,F15,104FW Westfield-Barnes ANGB MA,flight
+HAWK,F16,23rd FS Spangdahlem AB GE,flight
+HAWK,F16,55th FS Shaw AFB SC,flight
+HAWK,F18H,"VFA-136, CVW-7 NAS OCEANA VA",flight
+HAWK,F18H,"VFA-97, CVW-11, NAS NORTH ISLAND CA",flight
+HAWK,F18H,VMFA(AW)-533 MCAS BEAUFORT SC,flight
+HAWK,LJ35,457th AS Joint Base Joint Base Andrews MD,mission
+HAWK,LJ35,458th AS Scott AFB IL,mission
+HAWK,T38,"28th Wing, Ellsworth AFB, SD",flight
+HAWKER,F16,Luke AFB AZ,flight
+HAWKEYE,F16,"124th FS, IA ANG Des Moines IA",flight
+HAZARD,C130,"317th AG, Dyess)",mission
+HAZZARD,K35R,"153rd ARS, MS ANG Meridian MS",mission
+HEAD,F16,80th FS Kunsan Korea,flight
+HEAD,K35R,"552nd ACW, Tinker AFB, OK CP",mission
+HEARSE,F22,95th FS Tyndall AFB FL,flight
+HEAT,A10,163rd FS IN ANG Ft Wayne IN,flight
+HEAT,F16,157 FS/169 FW South Carolina ANG McEntire ANGB SC,flight
+HEAT,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+HEINZ,C130,"43rd OG, Pope AFB NC",mission
+HELIX,C130,"43rd OG, Pope AFB NC",mission
+HELL,F16,119th FS NJ ANG Atlantic City NJ,flight
+HELLCAT,F16,79th FS Shaw AFB SC,flight
+HELLCAT,F22,95th FS Eglin AFB FL,flight
+HELLION,F16,"56th FW, Luke AFB, AZ",flight
+HEMPY,B703,"552nd ACW, Tinker AFB, OK",mission
+HENDO,F15,Mass ANG BARNES MA,flight
+HENRY,B703,"552nd ACW, Tinker AFB, OK",mission
+HENRY,C130,"934th AMW, Minn-St Paul, MN",mission
+HERC,C130,164th AS OH-ANG Mansfield OH,mission
+HERC,C130,generic C-130 callsign,mission
+HERKY,C130,/J USAFE 86AW / 76AS RS Ramstein GE,mission
+HERKY,C130,"314th AW, Little Rock AFB, AR",mission
+HERKY,C130,"317th AG, Dyess AFB TX",mission
+HERMA,C130,"314th AW, Little Rock AFB, AR",mission
+HERMA,K35R,55 Wing / 38 RS Offutt AFB NE,mission
+HEWIT,B703,"552nd ACW, Tinker AFB, OK",mission
+HEWY,C130,"355th Wing, Davis-Monthan AFB, AZ",mission
+HEXAD,K35R,"55th Wing, Offutt AFB, NE",mission
+HICK,F16,55 FS/20 FW Shaw AFB SC,flight
+HIKE,K35R,"552nd ACW, Tinker AFB, OK",mission
+HIKING,C130,934th AMW/96th AS MN ANG Minneapolis-St Paul MN,mission
+HIND,C130,355TH WG DAVIS-MONTHAN AZ,mission
+HIPPY,B752,150th Special Operations Squadron NJ-ANG Joint Base-McGuire-Dix-Lakehurst NJ,mission
+HIPPY,C130,"23rd Wing, Moody AFB GA",mission
+HIRAM,K35R,"552nd ACW, Tinker AFB, OK",mission
+HIRE,C17,"62nd AW, McChord AFB WA",mission
+HITMAN,C130,"43rd OG, Pope AFB NC",mission
+HITMAN,F15,366th FW Mountain Hone AFB ID,flight
+HOAX,F15,"335FS/4 FW SEYMOUR JOHNSON AFB, NC",flight
+HOBBY,C130,"129th RQG, CA ANG NAS Moffett CA",mission
+HOBBY,C30J,815TH AS AFRC KEESLER MS,mission
+HOBEY,B762,108th ARS NJ ANG Joint Base Lakehurst-McGuire NJ,mission
+HOBEY,B762,Joint Base-McGuire-Dix-Lakehurst NJ,mission
+HOBIE,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+HOBO,F18H,"VFA-94, 11 NAS LEMOORE, CA",flight
+HOBO,K35R,100th ARW RAF Mildenhall UK,mission
+HOBO,T38,7th FTS Joint Base Langley-Eustis VA,flight
+HOCUS,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+HOG,A10,163FS IN ANG Ft Wayne IN,flight
+HOG,A10,23rd FG Moody AFB GA,flight
+HOG,A10,"25TH FS, OSAN AB KOREA",flight
+HOG,A10,355TH FS EIELSON AFB AK,flight
+HOG,A10,414TH CTS NELLIS AFB NV,flight
+HOG,F15,"104th FG, MA ANG at Barnes ANGB MA",flight
+HOGGER,F15,366th FW Mountain Home AFB ID,flight
+HOIST,B762,"2/32nd ARS, Joint Base-McGuire-Dix-Lakehurst NJ",mission
+HOKIE,F15,"4 FW SEYMOUR JOHNSON AFB, NC",flight
+HOKU,F15,199th FS HI ANG Joint Base Hickam-Pearl Harbor HI,flight
+HOKU,K35R,203rd ARS HI ANG Joint Base Hickam-Pearl Harbor AFB HI,mission
+HOLE,K35R,"55th Wing, Offutt AFB, NE",mission
+HOMER,K35R,"434th ARW, Grissom ARB, IN",mission
+HONK,B703,"552nd ACW, Tinker AFB, OK",mission
+HONOR,B752,00-9001,mission
+HOOD,F15,123rd FS OR ANG Portland IAP OR (real world scramble),flight
+HOODOO,T38,"Vance AFB Enid, OK",flight
+HOOK,F15,"19th Fighter Squadron at Elmendorf AFB, Alaska",flight
+HOOK,F16,"52nd FW, USAFE, GE",flight
+HOOK,F18S,"VMAQ-4, MCAS Cherry Point NC",flight
+HOOPER,F22,94TH FS Joint Base Langley-Eustis VA,flight
+HOOSIER,F16,"122nd FG, IN ANG Fort Wayne IN",flight
+HOOTER,F16,78TH FS SHAW AFB SC,flight
+HOPE,C17,"60th AMW, Tr avis AFB, CA",mission
+HOPS,C130,189AS Idaho ANG ID,mission
+HORNET,F18H,generic F/A-18 callsign-ALSO F-18 E/F SUPER HORNET-PAX,flight
+HORNET,F22,43 FS Tyndall AFB FL,flight
+HORSE,B52,2nd BW Barksdale AFB LA,mission
+HORSE,C130,53AS AR ANG Little Rock AR,mission
+HORSE,F16,"31st FW, Aviano, Italy",flight
+HOSER,F15,131st FS MA ANG BARNES MA,flight
+HOSER,F15,"19 FS, SEYMOUR JOHNSON AFB, NC AFB SC",flight
+HOSER,F15,"33rd FW, Eglin AFB FL",flight
+HOSER,K35R,141st ARS NJ ANG Joint Base-McGuire-Dix-Lakehurst NJ,mission
+HOSS,A10,"Selfridge ANGB, MI",flight
+HOSS,F15,57th FW Nellis AFB NV,flight
+HOSS,F16,111th FS TX ANG Ellington ANGB TX,flight
+HOSS,F16,"176th FS WI ANG Truax Fld, Madison, WI",flight
+HOTDOG,F15,"40th FLTS/46th TW, Eglin AFB FL",flight
+HOTDOG,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+HOUND,F16,114th FW SD ANG Sioux Falls SD,flight
+HOUND,T38,2nd FTS Tyndall AFB FL,flight
+HOUND,T38,"412th TW 445th FLTS Edwards AFB, CA",flight
+HOVER,T38,7th FTS Joint Base Langley-Eustis VA,flight
+HOWDY,F15,104th FW MA ANG Barnes ANGB MA,flight
+HOWEL,C130,"7th Wing, Dyess AFB, TX",mission
+HOWL,C130,"314th AW, Little Rock AFB, AR",mission
+HOWL,K35R,"552nd ACW, Tinker AFB, OK",mission
+HOWLER,F15,4th FW Seymour-Johnson AFB NC,flight
+HUE,C130,"8th SOS, Hurlburt Fld FL",mission
+HUGE,A10,"Selfridge ANGB, MI",flight
+HUGGY,A10,23 FW Moody AFB GA,flight
+HULK,C130,55 Wing / 55 ECG Davis-Monthan AFB AZ,mission
+HUMMER,F16,"115th FW, Madison, WI",flight
+HUMMER,F22,71st FS Joint Base Langley-Eustis VA,flight
+HUNGRY,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+HUNT,C17,"305th AMW/6th AS, McGuire AFB, NJ",mission
+HUNTER,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+HUNTER,C30J,314AW/48AS Little Rock AFB AR,mission
+HUNTER,F16,55th FS Shaw AFB SC,flight
+HUNTER,PC12,"5th SOS, Hurlburt Field FL",mission
+HURA,B703,"552nd ACW, Tinker AFB, OK",mission
+HURC,C130,"179th AG, OH ANG Mansfield Airport OH",mission
+HURDS,K35R,"55th Wing, Offutt AFB, NE",mission
+HURKY,C130,"86th AW, Ramstein AB, GE",mission
+HURLY,C130,"146th AW, CA ANG at Channel Islands ANGS",mission
+HURRICANE,C130,"53rd WRS Gull Squadron, Keesler AFB, MS",mission
+HURRY,T38,435th FTS RANDOLPH AFB TX,flight
+HUSKER,F16,155th ARW NE-ANG,flight
+HUSKER,K35R,"173rd ARS, NE ANG Lincoln NE",mission
+HUSKY,A10,223rd FW Moody AFB GA,flight
+HUSKY,C130,"142nd AS, DE ANG New Castle DE",mission
+HUSKY,C17,"62ND AMW, MCCHORD AFB WA",mission
+HUSKY,C30J,"335SKV Norwegian Airforce, Gardemoen Air Station, Norway",mission
+HUSKY,F15,325th FW Tyndall AFB FL,flight
+HUSKY,F16,56th FW Luke AFB AZ,flight
+HUSKY,F16,Luke AFB AZ,flight
+HUSKY,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+HUSTLER,LJ35,457th AS Joint Base Joint Base Andrews,mission
+HYDRA,F16,"55 FS/20 FW, Shaw AFB SC",flight
+HYDRO,A10,"23rd Wing, Moody AFB GA",flight
+HYMN,K35R,"121st ARW, OH ANG at Rickenbacker ANGB",mission
+HYMN,K35R,"55th Wing, Offutt AFB, NE",mission
+HYPER,F15,"CA-ANG, 194FS/144FW Fresno CA",flight
+HYPO,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+HYTEK,C30J,19AW/48AS Little Rock AFB AR,mission
+HYTEK,C30J,27SOW/522SOS Cannon AFB NM,mission
+ICEMAN,A10,"Selfridge ANGB, MI",flight
+ICEMAN,F16,"34th FS, Hill AFB, UT",flight
+ICEMAN,F16,52nd FW Spangdahlem AB GE,flight
+ICEMAN,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+ICEMAN,T38,560th FTS Randolph AFB TX,flight
+ICER,B52,5th BW Minot AFB ND,mission
+ICON,K35R,22 ARW McConnell AFB KS,mission
+IDLER,B703,"552nd ACW, Tinker AFB, OK",mission
+IDOL,B52,Barksdale AFB LA,mission
+IDOL,K35R,"552nd ACW, Tinker AFB, OK",mission
+IGUANA,F16,Hill AFB UT,flight
+ILKA,C130,"HURLBURT FIELD, FL",mission
+ILLINI,K35R,126th ARW Scott AFB IL,mission
+IMPAC,C17,"437TH AMW, CHARLESTON AFB SC-Spec Ops mission",mission
+IMPACT,C17,"62ND AMW, MCCHORD AFB WA",mission
+IMPACT,T38,"49th FW, Holloman AFB, NM",flight
+IMPY,C130,"7th Wing, Dyess AFB, TX",mission
+IMPY,K35R,"927th ARW, MacDill AFB FL",mission
+INDEX,F16,Luke AFB AZ,flight
+INDIA,B703,"552nd ACW, Tinker AFB, OK",mission
+INDY,A10,184th FS AR ANG Ft Smith AR,flight
+INDY,A10,52 FW / 81st FS Spangdahlem GE,flight
+INDY,K35R,"434th ARW, AFRC Grissom ARB, IN",mission
+INFERNO,F18S,CVW-1 VFA-81 NAS Oceana Va,flight
+INFERNO,F18S,VFA-81 NAS OCEANA VA,flight
+INFIELD,A10,C 23rd FW Moody AFB GA,flight
+INSANE,A10,23rd FW Moody AFB GA,flight
+INSANE,F16,Luke AFB AZ,flight
+INTAC,C130,"23rd Wing, Moody AFB GA",mission
+INTEL,BE20,111th MI BDE Libby AAF Ft Huachuca AZ,mission
+INTO,C130,"352nd SOG, RAF Mildenhall, UK",mission
+IONIC,C130,"403rd Wing, Keesler AFB, MS",mission
+IONS,B703,"552nd ACW, Tinker AFB, OK",mission
+IONS,C130,"146th AW, CA ANG at Channel Islands ANGS CA",mission
+IOTA,K35R,"55th Wing, Offutt AFB, NE",mission
+IRATE,F16,Luke AFB AZ,flight
+IRISH,BE20,US NAVY,mission
+IRISH,K35R,434th ARW AFRC Grissom ARB IN,mission
+IROC,C17,514th AMW USAFRC Joint Base McGuire-Lakehurst NJ,mission
+IRON,F18S,Tinker AFB OK,flight
+IRON,F18S,VAQ-136 NAS Whidbey Island WA,flight
+IRON,P3,"VP-46, NAS Whidbey Island, WA",mission
+IRON,T38,1st FW/7th FTS Joint Base Langley-Eustis VA,flight
+ISLANDER,B737,VR-61 NAS Whidbey Island WA,mission
+IVAN,F16,"414th CTS, Nellis AFB NV",flight
+IVAN,T38,7th FTs Joint base Langley-Eustis VA VA,flight
+IVORY,C30J,"154 TAS AR ANG, Little Rock AFB, AR",mission
+IVORY,C30J,317AG/39AS Dyess AFB TX,mission
+JABLO,A10,23rd FW Moody AFB GA,flight
+JACKAL,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+JACKAL,A10,52 FW 81st FS Spangdahlem,flight
+JACKAL,T38,50th FTS/14th FTW Columbus AFB MS,flight
+JACKPOT,F16,77 FS/20 FW SHAW AFB SC,flight
+JACKPOT,F16,77th FTs Shaw AFB SC,flight
+JACKYL,F15,334 FS Seymour-Johnson AFB NC,flight
+JADED,C130,39th RQS Patrick AFB FL,mission
+JADED,C130,50th AS Peterson AFB CO,mission
+JADED,C130,Hill AFB AZ,mission
+JADED,C130,TX ANG 136AW/181AS JRB Ft Worth TX,mission
+JAG,BE20,185th SOS Oklahoma ANG,mission
+JAGGER,F16,79 FS Shaw AFB SC,flight
+JAGS,F15,FL ANG 125th FW NAS Jacksonville FL,flight
+JAGUAR,C130,"159th FS/125th FW, FL ANG Jacksonville FL",mission
+JAGUAR,F16,79TH FS SHAW AFB SC,flight
+JAKAL,C130,"17SOS/353SOG(Kadena AB,Japan)",mission
+JAKE,F16,79 FS/20 FW Shaw AFB SC,flight
+JAKE,F22,1st FW 94TH FS Joint Base Langley-Eustis VA,flight
+JAKE,K35R,"134 ARW/151ARS TN ANG McGhee Tyson ANGB Alcoa, TN",mission
+JALOPY,LJ35,USAFE/76th AS Ramstein AB GE,mission
+JAM,A10,23rd FW Moody AFB GA,flight
+JAMBO,B52,"2nd BW/20th BS, Barksdale AFB, LA",mission
+JAMIE,B703,"552nd ACW, Tinker AFB, OK",mission
+JAMMER,C17,"436TH AMW, DOVER AFB DE",mission
+JANUS,B703,"552nd ACW, Tinker AFB, OK",mission
+JAPE,C130,"440th AW, Milwaukee, WI",mission
+JAREM,B703,"552nd ACW, Tinker AFB, OK",mission
+JASPER,F16,"34th FS, Hill AFB, UT",flight
+JASPER,F16,Luke AFB AZ,flight
+JASPER,T38,7th FTS Joint Base Langley-Eustis VA,flight
+JAVA,B703,"552nd ACW, Tinker AFB, OK",mission
+JAVA,F15,Mass ANG BARNES MA,flight
+JAWS,C130,"9th SOS, HURLBURT FIELD, FL",mission
+JAWS,F16,93rd FS FL ANG Homestead AFB FL,flight
+JAWS,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+JAX,BE20,NAS JACKSONVILLE FL,mission
+JAYLO,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+JAZY,C17,21st AS Travis AFB CA,mission
+JAZZ,C130,"314th AW, Little Rock AFB, AR",mission
+JAZZ,F15,"122nd FS, LA ANG NAS New Orleans LA",flight
+JAZZ,F15,"492nd FS, Lakenheath UK",flight
+JECKYL,F16,466th FS AFRC Hill AFB UT,flight
+JEDI,C17,"305TH AMW, Joint Base-McGuire-Dix-Lakehurst NJ",mission
+JEDI,F15,144th FW CA ANG Fresno CA,flight
+JEDI,F16,"176th FS WI ANG Truax Fld, Madison, WI",flight
+JEDI,F16,"388th FW, Hill AFB, UT",flight
+JEDI,F22,27th FS Joint Base Langley-Eustis VA,flight
+JEEP,F22,94th FS Joint Base Langley-Eustis VA,flight
+JEEP,K35R,127th ARS MI-ANG Milwaukee WI,mission
+JEEP,K35R,171st ARS MI-ANG Selfridge ANGB MI,mission
+JENNY,B52,"2nd Wing, Barksdale AFB, LA",mission
+JERK,F16,119th FS NJ ANG Atlantic City NJ,flight
+JERSEY,A10,23rd FW Moody AFB GA,flight
+JESS,F15,"CA ANG 144th FW Fresno/Yosemite Airport, Fresno CA",flight
+JESSE,C130,"180th AS MO-ANG; Rosecrans Memorial Airport, St Joseph, MO",mission
+JEST,A10,"355th Davis-Monthan AFB, AZ",flight
+JEST,C130,"352nd SOG, RAF Mildenhall, UK",mission
+JEST,K35R,"54th ARS/97th AMW,ALTUS AFB OK",mission
+JESTER,F15,"SEYMOUR JOHNSON AFB, NC",flight
+JESTER,F16,"56th FW, Luke AFB, AZ",flight
+JESTER,F16,"? 461st FLTS Edwards AFB, CA",flight
+JESTER,F18H,VFA-34,flight
+JESTER,F18S,MCAS Cherry Point VMAQ-2,flight
+JETHRO,F15,102nd FW Barnes ANGB MA,flight
+JETTY,F22,27th FTs Joint Base Langley-Eustis VA,flight
+JIGGS,C130,"23rd Wing, Moody AFB GA",mission
+JIGGS,K35R,22nd ARW McConnell AFB KS,mission
+JIGGS,K35R,"434th ARW, Grissom ARB, IN",mission
+JILL,C130,142nd AS DE ANG Newcastle DE,mission
+JILL,C130,700th AS Dobbins ARB GA,mission
+JILL,C130,AFRC | 911AW | 758AS Pittsburgh PA,mission
+JILL,C130,USAF | 317AG Dyess AFB TX,mission
+JILL,C30J,30 19AW Little Rock AFB AR,mission
+JILL,C30J,RI ANG 143AW/143AS Quonset Point RI,mission
+JIMBO,T38,49th FTS/14th FTW Columbus AFB MS,flight
+JINGLE,F16,Luke AFB AZ,flight
+JINX,C17,6th AS Joint Base-McGuire-Dix-Lakehurst NJ,mission
+JINX,TEX2,559th FTS RANDOLPH AFB TX,flight
+JOCKEY,C130,"16th SOS, Hurlburt Fld FL",mission
+JODY,C130,"62nd AS/314th AW, Little Rock AR",mission
+JOHN,C130,"355th Wing, Davis-Monthan AFB, AZ",mission
+JOJO,F15,"366th Wing, Mt Home AFB, ID",flight
+JOKE,K35R,"153rd ARS, MS ANG Meridian MS",mission
+JOKER,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+JOKER,F18H,"VFA-34, NAS OCEANA VA",flight
+JOKER,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+JOLT,B752,"108th WG, 150th SOS, McGuire JRB, NJ",mission
+JONAS,C130,"302nd AW, Peterson AFB, CO",mission
+JOSE,F16,"115th FW, Madison, WI",flight
+JOSH,B752,150th SOS NJ ANG Joint Base McGuire NJ,mission
+JOSS,K35R,"55th Wing, Offutt AFB, NE",mission
+JOYCE,C130,"40th AS Dyess AFB, TX",mission
+JUBA,C17,"305th AMW, McGuire AFB, NJ",mission
+JUDGE,F15,104th FW Barnes ANGB MA,flight
+JUDGE,F16,176th FS WI ANG Truax Fld WI,flight
+JUDGEMENT,C30J,"47th Sqdn RAF Brize Norton , UK",mission
+JUG,A10,303RD FS AFRES WHITEMAN AFB MO,flight
+JUGGLE,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+JUGGS,F15,104th FW MA ANG Barnes ANGB MA,flight
+JUICE,B703,"552nd ACW, Tinker AFB, OK",mission
+JUICE,F15,"104th FG, MA ANG, Barnes ANGB MA",flight
+JUICY,B2,509TH BW WHITEMAN AFB MO,mission
+JUMBO,C17,"97th AMW, Altus AFB, OK",mission
+JUMBO,K35R,"22nd ARW, McConnell AFB, KS",mission
+JUMP,C30J,USAFE 86AW 37AS Ramstein AB GE,mission
+JUNGLE,B52,5th BW Minot AFB ND,mission
+JUNGLE,F15,Lakenheath UK,flight
+JUNIOR,F16,55 FS/20 FW Shaw AFB SC,flight
+JUNK,C130,"352nd SOG, RAF Mildenhall, UK",mission
+JUNKER,F15,MA ANG BARNES ANGB MA,flight
+JURY,F18S,"VFA-192, ""Golden Dragons"" NAS Leemore CA",flight
+JUST,C130,"43rd OG, Moody AFB GA",mission
+JUST,K35R,97TH ARW ALTUS OK,mission
+JUSTICE,F16,Luke AFB AZ,flight
+JUVAT,F16,80th FS Kunsan Korea,flight
+KABUKI,T38,435th FTS Randolph AFB TX,flight
+KAISER,F18H,"MAG-31 MCAS Beaufort, SC",flight
+KALE,C130,"302nd AW, Peterson AFB, CO",mission
+KANG,F22,94TH FS Joint Base Langley-Eustis VA,flight
+KANG,T38,435th FTS RANDOLPH AFB TX,flight
+KANTO,C30J,374AW/36AS Yokota AB JA,mission
+KANZA,K35R,"18th ARS, MCCONNELL AFB, KS",mission
+KAPUT,B703,"552nd ACW, Tinker AFB, OK",mission
+KARATE,F16,55th FS Shaw AFB SC,flight
+KARMA,C130,"43rd OG, Moody AFB GA",mission
+KARO,B752,NJ ANG 108WG/150th SOS McGuire AFB NJ,mission
+KATANA,T38,435th FTS RANDOLPH AFB TX,flight
+KATE,B703,"552nd ACW, Tinker AFB, OK",mission
+KATT,TEX2,"Texan II, VT-10/TAW-6, NAS Pensacola FL",flight
+KAWW,B762,94th AMW Altus AFB OK,mission
+KAY,A10,303RD FS AFRES WHITEMAN AFB MO,flight
+KAYO,C130,"934th AMW, Minn-St Paul, MN",mission
+KBAR,BE20,MCAS New River NC,mission
+KBAR,BE20,VMF MCAS New River NC,mission
+KECK,C17,assoc w/supporting POTUS travel,mission
+KELP,C130,"7th Wing, Dyess AFB, TX",mission
+KELT,K35R,"55th Wing, Offutt AFB, NE",mission
+KEMP,B703,"552nd ACW, Tinker AFB, OK",mission
+KETCH,C130,"94th AW, Dobbins ARB, GA",mission
+KEVLAR,F22,94th FS Joint Base Langley-Eustis VA,flight
+KEY,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+KEYS,K35R,153RD ARS MS ANG Meridian MS,mission
+KEYS,K35R,"WI ANG 128th ARW/126 ARS, Milwaukee WI",mission
+KHARMA,F16,"162nd FS, OH ANG Springfield, OH",flight
+KICK,F16,"31st FW, Aviano, Italy",flight
+KICK,F16,LUKE AFB AZ,flight
+KICK,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+KILL,A10,"23rd Wing, Moody AFB GA",flight
+KILLER,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+KILLER,F15,"104 FW, (training) Westfield Barnes ANGB MA",flight
+KILLER,F15,123rd FS OR ANG Portland OR,flight
+KILLER,F16,119th FS NJ ANG Atlantic City NJ,flight
+KILLER,F16,55TH FS SHAW AFB SC,flight
+KILLER,F22,27th FS Joint Base Langley-Eustis VA,flight
+KILO,C130,"314th AW, Little Rock AFB, AR",mission
+KING,C130,"102nd RQS/106th RQW, NY ANG, Gabreski NY",mission
+KING,C130,"711th SOS, Duke Fld FL",mission
+KING,C130,"8th SOS, Hurlburt Fld FL",mission
+KING,C130,AFRC 920RQW/39RQS Patrick AFB FL,mission
+KING,C130,CA ANG 129RQW/129RQS Moffett Federal Airfield CA,mission
+KING,C130,USAF 23Wing/79RQS Davis Monthan AFB AZ,mission
+KING,F16,79TH FS SHAW AFB SC,flight
+KINKY,C130,"15th SOS, Hurlburt Fld, FL",mission
+KIOWA,BE20,332ND ALS RANDOLPH AFB TX,mission
+KIRBY,A10,"23rd Wing, Moody AFB GA",flight
+KITE,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+KITSAP,C17,"62ND AMW, MCCHORD AFB WA",mission
+KIWI,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+KNIFE,F15,12th FS Kadena Japan,flight
+KNIFE,F15,422nd TES Nellis AFB NV,flight
+KNIFE,F22,27th FTs Joint Base Langley-Eustis VA,flight
+KNIGHT,A10,"347th Wing, Moody AFB, GA",flight
+KNIGHT,F15,"19 FS/3rd Wing SEYMOUR JOHNSON AFB, NC AFB SC",flight
+KNIGHT,F16,308th FS Luke AFB AZ,flight
+KNIGHT,F18S,VFA-154 NAS Lemoore CA,flight
+KNIGHT,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+KNIGHT,K35R,"92nd ARW, Fairchild WA",mission
+KNITE,K35R,22ARW McConnell AFB KS,mission
+KNOT,B703,"552nd ACW, Tinker AFB, OK",mission
+KNOWN,C17,"437th AW, Charleston AFB, SC",mission
+KOA,P8,VP-47 NAS Whidbey Island WA. Also RIMPAC exercise 2014,mission
+KONG,B2,"509th BW, Whiteman AFB MO",mission
+KONG,F15,"335FS/ 4FW SEYMOUR JOHNSON AFB, NC",flight
+KOO,K35R,/T 100 ARW/351 ARS Mildenhall UK,mission
+KRAIT,C130,Belgium 20th Sqdn Melbrok BE,mission
+KRAIT,C130,France ET02.061,mission
+KRUPA,B703,"552nd ACW, Tinker AFB, OK",mission
+KRYPTON,A10,"303rd Fighter Sqdn, 442nd FW; Whiteman AFB MO",flight
+KULIS,C30J,211RQS Elmendorf AK,mission
+LAG,C130,"914th AG, Niagara Falls, NY",mission
+LAGR,K35R,100th ARW RAF Mildenhall UK,mission
+LAITY,B703,"552nd ACW, Tinker AFB, OK",mission
+LAKE,A10,"303rd FS, 442nd FW; Whiteman AFB MO",flight
+LAKER,F16,"148th FG, MN ANG at Duluth MN",flight
+LAMBO,T38,7th FTS Joint Base Langley-Eustis VA,flight
+LANCE,C130,"352nd SOG, RAF Mildenhall, UK",mission
+LANCE,F15,12th FS Kadena Japan,flight
+LANCE,F15,"325th FW, Tyndall AFB, FL",flight
+LANCER,F15,19th FS Elmendorf AFB AK,flight
+LANCER,F15,"333rd FS SEYMOUR JOHNSON AFB, NC",flight
+LANCER,F18S,"VAQ-131, NAS Whidbey Island, WA",flight
+LANCER,P8,Poseidon VP-10 RED Lancers NAS Jacksonville FL,mission
+LANDO,C130,"7th Wing, Dyess AFB, TX",mission
+LANG,C130,"355th Wing, Davis-Monthan AFB, AZ",mission
+LANK,C17,6th AS Joint Base McGuire-Lakehurst NJ,mission
+LAPEL,C30J,"4thSOS Hurlburt Field, FL",mission
+LARGO,B752,Eglin AFB FL,mission
+LARK,K35R,"55th Wing, Offutt AFB, NE",mission
+LARMA,C130,"352nd SOG, RAF Mildenhall, UK",mission
+LARSEN,F16,56th FW Luke AFB AZ,flight
+LARVA,K35R,"55th Wing, Offutt AFB, NE",mission
+LATCH,F18H,VMFA-312 MCAS Beaufort SC,flight
+LAVA,C17,"183RD AS, MS ANG Jackson MS",mission
+LAVA,C17,"535th AS/15th AW, Joint Base Hickam-Pearl Harbor/PACAF",mission
+LEAF,F15,325th FW Tyndall AFB FL,flight
+LEAHI,B2,"Northrop Palmdale AF Plant 42, CA",mission
+LEGACY,F18S,"Demonstration Team, Electronic Attack Squadron 129, Whidbey Island WA",flight
+LEHI,B2,"412th TW, Edwards AFB, CA",mission
+LEHI,F16,"412th TW, Edwards AFB, CA",flight
+LEICA,C130,"16th SOW, Hurlburt Field AFB, FL",mission
+LEMAY,B52,"5th BW, Minot AFB, ND",mission
+LENNA,C130,"934th AMW, Minn-St Paul, MN",mission
+LEOPARD,C130,"HURLBURT FIELD, FL",mission
+LEOPARD,F15,54th FS Elmendorf AFB AK,flight
+LETHAL,F15,104th FW MA ANG Barnes ANGB MA,flight
+LEVI,C130,"16th SOW, Hurlburt Field AFB, FL",mission
+LEXUS,T38,49Th FTS/14Th FTW Columbus AFB MS,flight
+LIBEL,T38,435th FTS RANDOLPH AFB TX,flight
+LIBERTY,A10,23rd FS Moody AFB GA,flight
+LIBERTY,BE20,9RW/489RS Beale AFB CA,mission
+LIDO,F15,"142nd FG, OR ANG at Portland ANGB OR",flight
+LIFTER,C17,"437TH AMW, Charleston AFB SC",mission
+LIFTER,C17,generic C-17 callsign,mission
+LILY,C130,"934th AMW, Minn-St Paul, MN",mission
+LIMA,K35R,108th AMW/141st ARS NJ ANG Joint Base McGuire-Lakehurst NJ,mission
+LIME,C130,"16th SOS, Hurlburt Fld FL",mission
+LIME,F15,Seymour-Johnson AFB NC,flight
+LIMEY,F22,27th FTs Joint Base Langley-Eustis VA,flight
+LINDY,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+LINDY,B2,509 BW Whiteman AFB MO,mission
+LINED,C130,"156AS(145AG), NC ANG",mission
+LINER,F18H,"VFA-81, NAS Oceana VA",flight
+LINK,A10,303rd FS 442nd FW Whiteman AFB MO,flight
+LION,C130,139AW/180AS MO ANG Rosencrans MAP St Joseph MO,mission
+LION,C17,3rd AS/436th AMW Dover AFB DE,mission
+LION,C30J,30 86AW/37AS Ramstein AB GE,mission
+LION,F15,"33rd FW, Eglin AFB, FL",flight
+LION,F15,"SEYMOUR JOHNSON AFB, NC",flight
+LION,F18S,VFA-213 NAS OCEANA VA,flight
+LION,F22,1st FW 94TH FS LANGELY AFB VA,flight
+LIPPO,C130,Hurlburt Field FL,mission
+LIPS,F15,104th FW MA ANG Barnes ANGB MA,flight
+LISA,B52,"2nd Wing, Barksdale AFB, LA",mission
+LITE,C130,"86th AW, Ramstein AB, GE",mission
+LITZ,B703,"552nd ACW, Tinker AFB, OK",mission
+LLOYD,BE20,185Th SOS OK ANG Tinker AFB OK,mission
+LOBBY,K35R,6th ARW MacDill AFB FL,mission
+LOBO,A10,"Selfridge ANGB, MI",flight
+LOBO,B52,49th TEG 49th TS Barksdale AFB LA,mission
+LOBO,C560,"VMR-1 MCAS Cherry Point, NC",mission
+LOBO,F16,114th FW SD ANG Joe Foss Field ANGB Sioux Falls SD,flight
+LOBO,F16,23rd FS Spangdahlem AB GE,flight
+LOBSTA,F15,104th FW MA ANG Barnes ANGB MA,flight
+LOCO,F16,"138th FW, OK-ANG, Tulsa, OK",flight
+LOGIC,BE20,"332AEW Joint Base Balad, Iraq",mission
+LOGO,T38,435th FTS RANDOLPH AFB TX,flight
+LOLLY,K35R,"434th ARW, Grissom ARB, IN",mission
+LOMA,F16,112th FS OH ANG Toledo OH (travelling CSS),flight
+LONE,P3,South Korea RIMPAC exercise 2014,mission
+LONER,F16,55 FS/20 FW Shaw AFB SC,flight
+LONNY,C130,"14th AW, Little Rock AFB, AR",mission
+LOOK,B703,"552nd ACW, Tinker AFB, OK",mission
+LOOP,C130,"934th AMW, Minn-St Paul, MN",mission
+LOPER,B703,"552nd ACW, Tinker AFB, OK",mission
+LOTTO,A10,"23rd Wing, Moody AFB GA",flight
+LOUD,K35R,22nd ARW McConnell AFB KS,mission
+LOUIE,C130,"55th Wing, Davis-Monthan AFB, AZ",mission
+LOUT,C130,"934th AMW, Minn-St Paul, MN",mission
+LUBO,F16,"56th FW, Luke AFB, AZ",flight
+LUCID,F16,77 FS Shaw AFB SC,flight
+LUCKY,B762,AFRC 916ARW 77ARS Seymour-Johnson AFB NC,mission
+LUCKY,C130,601st Sqdn Thai Air Force,mission
+LUCKY,F15,125th FW FL ANG NAS Jacksonville FL,flight
+LUCKY,F16,"77th FTs SHAW AFB, SC",flight
+LUCKY,T38,71st FS Joint Base Langley-Eustis VA,flight
+LUGO,C130,"16th SOW, Hurlburt Field AFB, FL",mission
+LULU,C17,CHARLESTON AFB SC,mission
+LUMP,B703,"552nd ACW, Tinker AFB, OK",mission
+LUMPER,F16,61st FS Luke AFB AZ,flight
+LUMPY,K35R,# 62-4138 55th WG/38th RS Offutt AFB NE,mission
+LUNA,F15,TYNDALL AFB FL,flight
+LUNAR,F15,104th FW MA ANG Barnes ANGB MA,flight
+LUNDY,C130,"16th SOW, Hurlburt Field AFB, FL",mission
+LUSK,C130,"43rd OG, Pope AFB NC",mission
+LUTHA,B762,Pegasus McConnell AFB KS,mission
+LUXOR,F16,20th FW Shaw AFB,flight
+LUZON,TEX2,559th FTS Randolph AFB TX,flight
+LYNX,BE20,Beale AFB CA,mission
+LYRE,TEX2,559th FTS RANDOLPH AFB TX,flight
+MAC,F15,"BOEING FLIGHT TEST, ST. LOUIS MO",flight
+MAC,F18H,"BOEING FLIGHT TEST, ST. LOUIS MO",flight
+MACE,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+MACE,A10,163rd FS IN ANG Baer Fld FT WAYNE IN,flight
+MACE,F15,USAFE 48FW 493FS LN Lakenheath UK,flight
+MACE,F16,"169th FS, SC ANG McEntire ANGB SC",flight
+MACE,F18H,"VFA-27, CVW-5 NAS NORTH ISLAND CA",flight
+MACE,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+MACH,F15,"104th FG, MA ANG, Barnes ANGB MA",flight
+MACH,F15,1st TFTS Tyndall AFB FL,flight
+MACH,T38,560th FTS Randolph AFB TX,flight
+MACHO,A10,"Selfridge ANGB, MI",flight
+MACHO,T38,"469th FTS Sheppard Air Force Base, TX",flight
+MACK,B52,BARKSDALE AFB LA,mission
+MAD,A10,81ST FS SPANGDAHLEM AB GE,flight
+MAD,A10,"Selfridge ANGB, MI",flight
+MAD,F15,Mass ANG BARNES MA,flight
+MAD,F15,USAFE 48FW 492FS LN Lakenheath UK,flight
+MAD,F16,79TH FS SHAW AFB SC,flight
+MAD,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+MAD,P8,Poseidon VP-5 MAD FOXES NAS JACKSONVILLE FL,mission
+MAFFS,C130,"146th Airlift Wing, Channel Islands, Ventura County, CA",mission
+MAFFS,C130,"152nd AW Nevada Air National Guard, Reno",mission
+MAFFS,C130,"153rd Airlift Wing, Cheyenne, WY",mission
+MAFFS,C130,"302nd Airlift Wing, Colorado Springs, CO",mission
+MAFIA,K35R,"55th Wing, Offutt AFB, NE",mission
+MAFIA,T38,14th FTW/41st FTS Columbus AFB MS,flight
+MAGA,TEX2,14th FTW/41st FTS Columbus AFB MS,flight
+MAGIC,C130,142nd AS DE ANG Newcastle DE (prob special mission call),mission
+MAGIC,C560,MAW-4 Joint Base Joint Base Andrews MD,mission
+MAGIC,C560,MCAS Futenma JA,mission
+MAGIC,F15,"144th FW, CA ANG Fresno ANGB CA",flight
+MAGIC,F18S,Prowlers VAQ-133,flight
+MAGIC,F18S,VAQ-133 NAS Whidbey Island WA,flight
+MAGIC,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+MAGMA,BE20,224th MI Bn Hunter AFF Savannah GA,mission
+MAGNI,C130,"146th AW, CA ANG at Channel Islands ANGS CA",mission
+MAGNUM,F16,"115th FW, Madison, WI",flight
+MAGOO,F15,102nd FW Barnes ANGB MA,flight
+MAGRAW,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+MAHI,F16,93rd FS Homestead ARS FL,flight
+MAI,F16,21st FS Luke AFB AZ,flight
+MAI,F22,199th FS Joint Base Pearl Harbor-Hickam HI,flight
+MAI,F22,27th FTsJoint Base Langley-Eustis VA,flight
+MAINE,K35R,132nd ARS ME ANG Bangor ME,mission
+MAINIAC,A10,.74/75Th FS/23Rd Wing Moody AFB GA,flight
+MAJE,P3,NAS Jacksonville FL,mission
+MAKER,C17,437/315 AW Charleston AFB SC,mission
+MAKIN,C130,43rd OG Pope AFB NC,mission
+MAKO,F16,"93rd FS, AFRC Homestead AFB FL",flight
+MAKO,F18H,(FRCSE) NAS Jacksonville FL,flight
+MALA,C130,"16th SOS, Hurlburt Fld FL",mission
+MALAN,C130,"23rd Wing, Moody AFB GA",mission
+MALE,B703,"552nd ACW, Tinker AFB, OK",mission
+MALIBU,C30J,CA ANG 146AW/115AS NAS Point Mugu CA,mission
+MALIBU,F16,309th FS Luke AFB AZ,flight
+MALTY,B703,"552nd ACW, Tinker AFB, OK",mission
+MAMBA,A10,23rd GFW Moody AFB GA,flight
+MAMBA,F16,"183rd FG, IL ANG Springfield OH",flight
+MAMBA,F22,27th/94th FS Joint Base Langley-Eustis,flight
+MAMBO,C30J,Australian AF 37th Sqdn Richmond AFB NSW,mission
+MANDY,B2,509th Bomb Wing; Whiteman AFB MO,mission
+MANGO,B737,15WG/65th AS Joint Base Hickam-Pearl Harbor HI,mission
+MANIAC,A10,52 FW / 81st FS Spangdahlem GE,flight
+MANIAC,F16,"46th TW, Eglin AFB, FL",flight
+MANNA,T38,435th FTS RANDOLPH AFB TX,flight
+MANTA,C130,"7th Wing, Dyess AFB, TX",mission
+MANTA,T38,"71st FTW; Vance AFB; Enid, OK",flight
+MANU,C17,15th AW/204th AS Joint Base Hickam-Pearl Harbor HI,mission
+MARIO,C30J,Italy 50GRUPPO,mission
+MARLIN,P8,"VP-40,""Fighting Marlins"" NAS Whidbey Is, WA",mission
+MARLIN,T38,7th FTs Joint Base Langley-Eustis VA,flight
+MARTA,C130,"314th AW, Little Rock AFB, AR",mission
+MASH,F22,27th FTs Joint Base Langley-Eustis VA,flight
+MASH,K35R,"434th ARW, AFRC Grissom ARB, IN",mission
+MAST,B703,"552nd ACW, Tinker AFB, OK",mission
+MASTA,F15,104th FW MA ANG Barnes ANGB MA,flight
+MATCOM,LJ35,CINC MATERIALS COMMAND,mission
+MATH,C130,"403rd Wing, Keesler AFB, MS",mission
+MATRA,C130,"16th SOW, Hurlburt Field AFB, FL",mission
+MAUL,A10,23rd AW Moody AFB GA,flight
+MAUL,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+MAXIE,C130,"7th Wing, Dyess AFB, TX",mission
+MAXIM,F22,71st FS Joint Base Langley-Eustis VA,flight
+MAXIM,T38,Tyndall AFB FL,flight
+MAYO,C130,"302nd AW, Peterson AFB, CO",mission
+MAYTAG,C130,AFRC 440AW/95AS Pope AFB NC,mission
+MAZDA,F16,22nd FS Spangdahlem AB GE,flight
+MCGRAW,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+MEAT,F16,55 FS/20 FW Shaw AFB SC,flight
+MEDUSA,B762,McConnell AFB KS,mission
+MEDUSA,F16,78th FS Shaw AFB SC,flight
+MEEK,C30J,"67thSOS RAF Mildenhall, UK",mission
+MEGA,F22,27th FTs Joint Base Langley-Eustis VA,flight
+MELD,C130,"16th SOW, Hurlburt Field AFB, FL",mission
+MELD,C130,67st SOS,mission
+MELON,C130,"934th AMW, Minn-St Paul, MN",mission
+MERL,C130,"440th AW, Milwaukee, WI",mission
+MESQUITE,F15,"366th Wing, Mt Home AFB, ID",flight
+METEOR,F15,"SEYMOUR JOHNSON AFB, NC",flight
+MEXICO,F22,27th FTs Joint Base Langley-Eustis VA,flight
+MIAMI,F15,325th FW Tyndall AFB FL,flight
+MIC,F15,"131ST FW/ 110TH FS MO - A.N.G. LAMBERT INTNL. AIRPORT, ST. LOUIS MO",flight
+MICAH,F15,325th FW Tyndall AFB FL,flight
+MICRO,F22,27th FS Joint Base Langley-Eustis VA,flight
+MICRO,T38,7th FTs Joint Base Langley-Eustis VA,flight
+MIDAS,F22,94th FS FS Joint Base Langley-Eustis VA,flight
+MIG,F15,USAFE 48FW 492FS LN Lakenheath UK,flight
+MIG,F16,"414th CTS, Nellis AFB, NV (agressors)",flight
+MIG,F18H,"VF-102, ""Diamondbacks"" NAS OCEANA VA",flight
+MIG,T38,7th FTs Joint Base Langley-Eustis VA,flight
+MIGHTEE,B52,2nd BW Barksdale AFB LA,mission
+MILER,B703,"552nd ACW, Tinker AFB, OK",mission
+MILESTONE,F18S,"VAQ-144, NAS Whidbey Island, WA",flight
+MILKY,C130,23 Wing / 347 RG Moody AFB GA,mission
+MILL,C130,"7th Wing, Dyess AFB, TX",mission
+MILLER,C130,440th AS Milwaukee WI,mission
+MILLER,T38,560th FTS Randolph AFB TX,flight
+MILLER,T38,71st FS Joint Base Langley-Eustis VA,flight
+MILO,F22,94th FS Joint Base Langley-Eustis VA,flight
+MINE,C130,"314th AW, Little Rock AFB, AR",mission
+MINE,K35R,"55th Wing, Offutt AFB, NE",mission
+MINGO,F16,31st FW Aviano AB Italy,flight
+MINTY,C130,"94th AW, Dobbins ARB, GA",mission
+MINX,BE20,14Sqdn RAF Wadington UK,mission
+MIRAGE,F16,77 FS/20 FW Shaw AFB SC,flight
+MISER,F15,"104th FG, MA ANG, Barnes ANGB MA",flight
+MISFIT,F16,Luke AFB AZ,flight
+MISTY,A10,25TH FS OSAN AB KOREA,flight
+MISTY,A10,355TH FS DAVIS-MONTHAN,flight
+MISTY,A10,A-10C 107th FTs MI ANG Selfridge ANGB MI,flight
+MISTY,B2,131 BW/110th BS Whiteman AFB MO,mission
+MISTY,F15,"110th FS, St. Louis ANGB, MO",flight
+MISTY,F15,"131ST FW/ 110TH FS MO - A.N.G. LAMBERT INTNL. AIRPORT, ST. LOUIS MO",flight
+MISTY,F16,55 FS/20 FW Shaw AFB SC,flight
+MISTY,F18H,"VX-9, ""Vampires"" NAWS China Lake CA",flight
+MITE,C130,"146th AW, CA ANG at Channel Islands ANGS CA",mission
+MOCK,F15,104th FW MA ANG Barnes ANGB MA,flight
+MOHAWK,A10,23 FG Moody AFB GA,flight
+MOHAWK,BE20,A/2-228 AVN,mission
+MOHAWK,F15,"4th FW SEYMOUR JOHNSON AFB, NC",flight
+MOHO,C130,"934th AMW, Minn-St Paul, MN",mission
+MOJO,BE20,"374AW Yokota,JA",mission
+MOJO,F16,55 FS Shaw AFB SC,flight
+MOJO,F22,71st FS Joint Base Langley-Eustis VA,flight
+MOLSON,K35R,TN ANG 134ARW 151ARS McGhee Tyson TN,mission
+MONARCH,BE20,VIP ferry aircraft,mission
+MONEY,F15,173rd FW OR ANG Kingley ANGB Klamath Falls OR,flight
+MONSTER,F15,104th FW MA ANG Barnes ANGB MA,flight
+MONSTER,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+MONTY,F15,104th FW MA ANG Barnes ANGB MA,flight
+MONU,C130,"204th AS HI ANG Joint Base Hickam-Pearl Harbor AFB, HI",mission
+MOOCH,B703,"552nd ACW, Tinker AFB, OK",mission
+MOOD,K35R,22ARW McConnell AFB KS,mission
+MOOKIE,F22,90th FS Elmendorf AFB AK,flight
+MOOLA,A10,"Selfridge ANGB, MI",flight
+MOON,F15,104FW Westfield-Barnes ANGB MA,flight
+MOON,F18S,"VMAQ-3 MOON DOGS, MCAS Cherry Pt NC",flight
+MOOR,C130,"146th AW, CA ANG at Channel Islands ANGS",mission
+MOOSE,C17,"315TH AMW, AFRC CHARLESTON AFB SC",mission
+MOOSE,C17,62nd AW McChord AFB WA,mission
+MOOSE,F15,OR-ANG,flight
+MOOSE,F16,18th FS Eielson AFB AK,flight
+MOOSE,K35R,"168th ARG, AK ANG Eielson AFB AK",mission
+MOP,F16,"115th FW, Madison, WI",flight
+MOPE,C130,"7th Wing, Dyess AFB, TX",mission
+MOPED,F16,183RD FW IL ANG SPRINGFIELD IL,flight
+MOPUP,T38,435th FTS RANDOLPH AFB TX,flight
+MORTY,K35R,United States 55W/38RS Offutt AFB NE,mission
+MOSA,LJ35,119thWing/ND-ANG Fargo ND,mission
+MOSEL,F16,23rd FS Spangdahlem AB GE,flight
+MOSES,A10,303rd FS/442nd FW Whiteman AFB MO,flight
+MOSS,F15,333rd FS Seymour-Johnson AFB NC,flight
+MOTHER,F15,325th FW Tyndall AFB FL,flight
+MOTIF,C130,352 SOG Mildenhall UK,mission
+MOTLEY,F15,131st FS MA ANG BARNES ANGB MA,flight
+MOULD,C130,"352nd SOG, RAF Mildenhall, UK",mission
+MOUSE,F15,MA ANG BARNES ANGB MA,flight
+MOVER,DC10,305th AMW Joint Base-McGuire-Dix-Lakehurst NJ (KWRI),mission
+MOXIE,C130,352 SOG Mildenhall UK,mission
+MUD,F16,"180th FW, Ohio ANG, Toledo OH",flight
+MUD,F16,55 FS Shaw AFB SC,flight
+MUDDY,B2,Whiteman AFB MO,mission
+MUDDY,F15,114th FS OR ANG Portland,flight
+MUDDY,F15,"131ST FW/110TH FS MO - A.N.G. LAMBERT INTNL. AIRPORT, ST. LOUIS MO",flight
+MUDDY,F16,112th FS OH ANG Toledo OH,flight
+MUDDY,T38,560th FTS Randolph AFB TX,flight
+MUFF,F15,2nd TFTS Tyndall AFB FL,flight
+MUGGER,A10,23rd Wing Moody AFB GA,flight
+MUGGER,F15,494th FS Lakenheath UK,flight
+MUGGER,F16,310th FS Luke AFB AZ,flight
+MULEY,K35R,22ARW McConnell AFB KS [KIAB],mission
+MULL,C130,"352nd SOG, RAF Mildenhall, UK",mission
+MULLIE,A10,"303rd Fighter Sqdn, 442nd FW; Whiteman AFB MO",flight
+MUNG,A10,23rd Wing Moody AFB GA,flight
+MURK,C130,"355th Wing, Davis-Monthan AFB, AZ",mission
+MURKY,B703,"552nd ACW, Tinker AFB, OK",mission
+MURKY,K35R,"55th Wing, Offutt AFB, NE",mission
+MUROC,C17,"412th TW, Edwards AFB, CA",mission
+MUSIC,C130,"105th AS, TN ANG at Nashville TN",mission
+MUSKET,A10,357th FTs DAVIS-MONTHAN AZ,flight
+MUSKET,F16,"138th Fighter Wing, Oklahoma Air National Guard, Tulsa, OK",flight
+MUSTANG,F16,35th FS Osan AB Korea,flight
+MUSTANG,F16,457th FTs TX ANG JRB Fort Worth TX,flight
+MUSTANG,F16,79TH FS SHAW AFB SC,flight
+MUTT,C30J,15 SOS/522 SOS Hurlburt Field FL,mission
+MYSTIC,BE20,RDECOM-CERDEC,mission
+MYSTIC,C17,assoc w/POTUS support flts,mission
+MYTEE,B52,B-2 special acty callsign,mission
+MYTEE,F15,"104th FG, MA ANG, Barnes ANGB MA",flight
+NACHO,F16,308th FS Luke AFB AZ,flight
+NACHO,F22,27th FTs Joint Base Langley-Eustis VA,flight
+NAIL,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+NAIL,A10,23rd FW Moody AFB GA,flight
+NAIL,A10,"355th Wing, Davis-Monthan AFB, AZ",flight
+NAIL,F15,493rd FS RAF Lakenheath UK,flight
+NAIL,F22,27th FTs Joint Base Langley-Eustis VA,flight
+NANCY,C17,"62nd AW, McChord AFB, WA",mission
+NANNO,C130,"43rd OG, Pope AFB NC",mission
+NANO,A10,23rd FW Moody AFB GA,flight
+NAPPER,A10,52 FW/81st FS Spangdahlem GE,flight
+NAPPY,C130,"7th Wing, Dyess AFB, TX",mission
+NARL,C130,WY ANG | 153AW | 187AS Cheyenne WY,mission
+NARLY,F16,194th FS CA ANG Fresno,flight
+NASTY,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+NASTY,F15,104FW Westfield-Barnes ANGB MA,flight
+NATHE,B703,"552nd ACW, Tinker AFB, OK",mission
+NATHE,C130,"7th Wing, Dyess AFB, TX",mission
+NATRO,C130,"23rd Wing, Moody AFB GA",mission
+NAWT,C130,"8th SOS, Hurlburt Fld, FL",mission
+NEPTUNE,C130,37th AS,mission
+NEPTUNE,C130,CGAS Elizabeth City NC,mission
+NEPTUNE,P3,VP-8 (LC) NAS Jacksonville FL,mission
+NEVIN,K35R,"55th Wing, Offutt AFB, NE",mission
+NEWLY,K35R,"55th Wing, Offutt AFB, NE",mission
+NICE,F22,94th FS Joint Base Langley-Eustis VA,flight
+NICKEL,F16,555th FS Aviano Italy,flight
+NICKEL,F16,55th FS Shaw AFB SC,flight
+NICKEL,F18H,"VMFA-122, MCAS BEAUFORT SC",flight
+NICKEL,F18S,"VF-211,CVW-1 NAS OCEANA VA",flight
+NICKEL,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+NIKE,BE20,586Th TSS Holloman AFB NM,mission
+NIKE,BE20,White Sands Missle Range NM,mission
+NINJA,A10,"23rd FW, Moody AFB GA",flight
+NINJA,A10,"Selfridge ANGB, MI",flight
+NINJA,F16,"115th FW, Madison, WI",flight
+NINJA,F16,"134th FS, VT ANG Burlington VT",flight
+NINJA,T38,T-38C 49th FTW/50th FTS Columbus AFB MS,flight
+NIOBE,B703,"552nd ACW, Tinker AFB, OK",mission
+NITRO,A10,52 FW / 81st FS Spangdahlem GE,flight
+NITRO,C130,43rd OG Pope AFB NC,mission
+NITRO,F15,"33rd FW, Eglin AFB FL",flight
+NITRO,F16,35th FS Kunsan Korea,flight
+NITRO,K35R,"92ARW Fairchild AFB Spokane, WA",mission
+NOAH,A10,23 FG Moody AFB GA,flight
+NOBLE,B52,5th BW Minot AFB ND,mission
+NOBLE,F16,113TH FW/121ST FS DC ANG Joint Base Joint Base Andrews MD,flight
+NOBLE,F22,94th FS Joint Base Langley-Ft Eustis VA,flight
+NODAK,LJ35,"177th AS/119th AW, ND ANG Fargo ND",mission
+NODE,B52,BARKSDALE AFB LA,mission
+NOGS,C17,"97th AMW Altus AFB, OK",mission
+NOLE,T38,435th FTS RANDOLPH AFB TX,flight
+NOMAD,A10,163rd FS IN ANG Ft Wayne ANGB IN,flight
+NOMAD,C130,"VR-62 ""Nomads"" NAS Jacksonville FL",mission
+NOMAD,F15,"104th FG, MA ANG at Barnes ANGB MA",flight
+NOMAD,F15,"33rd FW, Eglin AFB, FL",flight
+NOMAD,F22,94th FS Joint Base Eustis-Langley VA,flight
+NOMEX,F15,104th FW MA ANG Barnes ANGB MA,flight
+NOMEX,F15,"366th Wing, Mt Home AFB, ID",flight
+NOMEX,F22,43 FS Tyndall AFB FL,flight
+NOOSE,F15,2nd TFTS Tyndall AFB FL,flight
+NORMAN,F18H,Finnish Airforce,flight
+NORTH,K35R,"55th Wing, Offutt AFB, NE",mission
+NOSTER,B52,BARKSDALE AFB LA,mission
+NOTCH,A10,163rd FS IN ANG Ft Wayne ANGB IN,flight
+NOTE,C130,"16th SOS, Hurlburt Fld FL",mission
+NOVAR,C130,"7th Wing, Dyess AFB, TX",mission
+NUGGET,F16,77 FS Shaw AFB SC,flight
+NUKE,F16,"178th FW/162nd FS OH ANG Springfield ANGB, Springfield OH",flight
+NUKE,F16,70th FS IL ANG Springfield IL,flight
+NUMA,C130,43rd OG Pope AFB NC,mission
+OAK,A10,"355th Wing, Davis-Monthan AFB, AZ",flight
+OBI,F15,"104th FG, MA ANG, Barnes ANGB MA",flight
+OCEAN,C30J,115TH AS CA ANG NAS PT MUGU CA,mission
+ODIN,BE20,USAF 9RW/489RS Beale AFB CA,mission
+ODIN,C130,"40AS/317AG Dyess AFB, TX",mission
+OGRE,C130,"HURLBURT FIELD, FL",mission
+OHIO,A10,"23rd Wing, Moody AFB GA",flight
+OILER,C130,"17 WG, 435 TRS, CFB Winnipeg, Manitoba",mission
+OILER,C130,8WG CFB Trenton ON,mission
+OKIE,K35R,465th ARS Tinker AFB OK,mission
+OKRA,K35R,465th ARS AFRC Tinker AFB,mission
+OKRO,C30J,"67thSOS RAF Mildenhall, UK",mission
+OLD,C130,"314th AW, Little Rock AFB, AR",mission
+OLDS,A10,52FW/81FS Spangdahlem GE,flight
+OLDS,F15,4th FW Seymour-Johnson AFB NC,flight
+OLIVE,K35R,OFFUTT NE,mission
+OLSON,C130,"403rd Wing, Keesler AFB, MS",mission
+OMAR,F18H,"VFC-12, NAS OCEANA VA",flight
+OMNI,A10,"Selfridge ANGB, MI",flight
+OMNI,P3,deployed to El Salvador-working w/Blue Star on JIATF-South missions,mission
+ONYX,C130,"7th Wing, Dyess AFB, TX",mission
+OPEC,B762,2nd/32nd ARS Joint Base-McGuire-Dix-Lakehurst NJ,mission
+OPIE,F22,43 FS Tyndall AFB FL,flight
+OPUS,C130,"550th SOS, KIRTLAND AFB NM",mission
+ORCA,B762,70th ARS/60th AMW AFRC Travis AFB CA,mission
+ORCA,F15,494th FS RAF Lakenheath UK,flight
+OREO,K35R,22ARW McConnell AFB KS,mission
+ORIOLE,A10,303rd FS/442nd FW Whiteman AFB MO,flight
+ORION,P3,Portuguese AF 601 Sqdn Beja AB,mission
+ORKIN,K35R,"55th Wing, Offutt AFB, NE",mission
+ORTOL,K35R,22ARW McConnell AFB KS,mission
+OSAGE,F16,125th FS OK ANG Tulsa OK,flight
+OSCAR,C130,"314th AW, Little Rock AFB AR",mission
+OTIS,C30J,"VMGR-252, MCAS Cherry Point, NC",mission
+OUTDO,B703,"552nd ACW, Tinker AFB, OK",mission
+OUTGUN,A10,52FW/81FS Spangdahlem GE,flight
+OUTLAW,A10,47th FTs / 924th Fighter Group (AFRS) Davis Monthan AFB AZ,flight
+OUTLAW,A10,"Selfridge ANGB, MI",flight
+OUTLAW,C130,180TH AS MO ANG ST JOSEPH MO,mission
+OUTLAW,F18S,VAQ-141 WHIDBEY ISLAND WA,flight
+OUTLAW,T34P,"Navy Strike Ftr Wpn Sch Pac,NAS Lemoore, Ca",flight
+OUZO,C130,USAF/15th SOS,mission
+OXEN,F22,94th FS Joint Base Langley-Eustis VA,flight
+OZARK,A10,180th FS AR ANG Ft Smith AR,flight
+PABLO,A10,23rd FW Moody AFB GA,flight
+PABLO,C130,"Compass Call, 355th Wing, Davis-Monthan AFB, AZ",mission
+PABST,T38,435th FTS RANDOLPH AFB TX,flight
+PACER,LJ35,"89th AW, Joint Base Joint Base Andrews MD, MD (also C-12)",mission
+PACK,B762,"133rd ARS, NH ANG Pease ANGB NH",mission
+PACK,T38,435th FTS Randolph AFB TX,flight
+PACKER,A10,"Selfridge ANGB, MI",flight
+PACKER,C130,96th AS MN ANG Minneapolis-Saint Paul IAP MN,mission
+PACKERS,C130,"23 AW, Pope AFB NC",mission
+PACOS,T38,7th FTs Joint Base Langley-Eustis VA,flight
+PAGAN,C130,Hurlburt,mission
+PAGUS,C130,"355th Wing, Davis-Monthan AFB, AZ",mission
+PALM,C17,"437 AW, Charleston AFB SC",mission
+PALMS,F16,20th FW Shaw AFB SC,flight
+PANAMA,T38,7th FTs Joint Base Langley-Eustis VA,flight
+PANFRY,T38,435th FTS RANDOLPH AFB TX,flight
+PANSY,B703,"552nd ACW, Tinker AFB, OK",mission
+PANT,K35R,22nd ARW McConnel AFB KS,mission
+PANTHER,A10,81ST FS SPANGDAHLEM AB GE,flight
+PANTHER,F15,"494thFS RAF Lakenheath, UK",flight
+PANTHER,F16,13th FS Misawa Japan,flight
+PANTHER,F16,63rd FS Luke AFB AZ,flight
+PANTHER,F16,C/D 132FW/124FS IA ANG Des Moines IA,flight
+PANTON,F16,35th FS Kunsan Korea,flight
+PANTS,C130,"7th Wing, Dyess AFB, TX",mission
+PAOLA,C130,"934th AMW, Minn-St Paul, MN",mission
+PARDO,B703,"552nd ACW, Tinker AFB, OK",mission
+PARRY,K35R,55 Wing/38 RS Offutt AFB NE,mission
+PART,C130,"4th SOS, Hurlburt Fld FL",mission
+PART,K35R,"161st ARG, AZ ANG Phoenix AZ",mission
+PARTY,F18H,"VFA-87, CVW-8 NAS OCEANA VA",flight
+PASEO,T38,435th FTS RANDOLPH AFB TX,flight
+PASH,K35R,"927th ARW, MacDill AFB FL",mission
+PASHA,C130,"934th AMW, Minn-St Paul, MN",mission
+PATCH,C130,"52nd SOG, RAF Mildenhall, UK",mission
+PATIO,C130,"16th SOW, Hurlburt Field AFB, FL",mission
+PATIO,K35R,"55th Wing, Offutt AFB, NE",mission
+PATLO,K35R,"121st ARW, OH ANG at Rickenbacker ANGB OH",mission
+PATSY,K35R,"55th Wing, Offutt AFB, NE",mission
+PATTY,K35R,/V/W 55 Wing / 38RS Offutt AFB NE,mission
+PAUNCH,A10,303rd FS/442nd FW; Whiteman AFB MO,flight
+PAWN,K35R,97AMW/55ARS Altus AFB OK,mission
+PEACE,F16,Luke AFB AZ,flight
+PEAK,F16,77 FS/20 FW Shaw AFB SC,flight
+PEAK,F16,Buckley ANGB CO,flight
+PEARL,K35R,"121st ARW, OH ANG at Rickenbacker ANGB",mission
+PECOS,T38,435th FTS RANDOLPH AFB TX,flight
+PECOS,T38,7th FTs Joint Base Langley-Eustis VA,flight
+PEEWEE,C130,"16th SOW, Hurlburt Field AFB, FL",mission
+PELA,B703,"552nd ACW, Tinker AFB, OK",mission
+PELICAN,C17,437th AMW/14th AS Charleston AFB SC,mission
+PELICAN,P8,"Poseidon VP-45, NAS Jacksonville, FL",mission
+PELT,F16,77 FS Shaw AFB SC,flight
+PENCE,K35R,"1 21st ARW, OH ANG Rickenbacker ANGB OH",mission
+PEPSI,C130,"118th AW, TN ANG Nashville TN",mission
+PERCO,B2,Whiteman AFB MO,mission
+PERCY,C130,"94th AW, Dobbins ARB, GA",mission
+PERK,C130,"133rd AW, MN ANG Minneapolis MN",mission
+PERK,C30J,352 SOW RAF MILDENHALL,mission
+PERK,T38,435th FTS Randolph AFB TX,flight
+PERM,B703,"552nd ACW, Tinker AFB, OK",mission
+PERM,C130,"118th AW, TN ANG Nashville TN",mission
+PERM,C130,"934th AMW, Minn-St Paul, MN",mission
+PERMA,K35R,"55th Wing, Offutt AFB, NE",mission
+PETIT,C130,"16th SOW, Hurlburt Field AFB, FL",mission
+PHANTOM,F16,"388th FW, Hill AFB, UT",flight
+PHANTOM,T38,T-38C 49th FTW/50th FTS Columbus AFB MS,flight
+PHARO,B52,5th BW Minot AFB ND,mission
+PHASER,A10,104th FS MD ANG MARTIN STATE MD,flight
+PHAT,F15,144th FW CA ANG Fresno CA,flight
+PHEONIX,F18S,"VAQ-129, NAS Whidbey Island, WA",flight
+PHILANDER,T34P,"VT-2, NAS Whiting Field, FL",flight
+PHOBIA,F16,"115th FW, Madison, WI",flight
+PHONY,C130,"146th AW, CA ANG at Channel Islands ANGS CA",mission
+PHOTON,F15,33rd FW Eglin AFB FL,flight
+PICO,K35R,22nd AMW McConnell AFB KS,mission
+PIG,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+PIG,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+PIG,A10,A-10C 107th FTs MI ANG Selfridge ANGB MI,flight
+PIKE,C130,7th SOS Mildenhall UK,mission
+PINBALL,F15,"104th FG, MA ANG at Barnes ANGB MA",flight
+PINION,F16,77 FS Shaw AFB SC,flight
+PINKY,C130,"ANG/PR/156AW/198AS Luis Mu oz Marin IAP, PR",mission
+PINTO,A10,52FW/81FS Spangdahlem GE,flight
+PINTO,C130,Pakistan Pakistan Air Force,mission
+PINTO,C30J,314AW/48AS Little Rock AFB AR,mission
+PINTO,C30J,"352SOW / 67SOS RAF Mildenhall, UK",mission
+PINTO,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+PIRANA,GLF4,VR-1 Joint Base Joint Base Andrews MD,mission
+PIRATE,F15,Mass ANG BARNES MA,flight
+PIRATE,K35R,63rd ARS / 927th ARW (USAFR) MacDill AFB FL,mission
+PISTOL,F15,123rd FS OR ANG Portland IAP OR,flight
+PISTOL,F16,55 FS/20 FW Shaw AFB SC,flight
+PISTOL,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+PISTOL,T34P,NAS OCEANA VA,flight
+PISTOL,T38,T-38C 49th FTW/50th FTS Columbus AFB MS,flight
+PISTON,K35R,63rd ARS AFRC MacDill AFB FL,mission
+PIT,A10,"442nd FW, Whiteman AFB, MO",flight
+PIT,A10,"Selfridge ANGB, MI",flight
+PIT,K35R,"126th ARW, IL ANG Scott AFB IL",mission
+PITMAN,F16,20 FW SHAW AFB SC,flight
+PITT,C17,"911th AW/758th AS AFRC, PITTSBURGH PA",mission
+PITTS,K35R,"55th Wing, Offutt AFB, NE",mission
+PITY,C130,352 SOG Mildenhall UK,mission
+PIXIE,C130,"302nd AW, Peterson AFB, CO",mission
+PLASMA,F16,"56th FW, LUKE AFB AZ",flight
+PLATE,C130,130th AS WVA ANG Charleston WVA,mission
+PLATE,F15,"104th FG, MA ANG at Barnes ANGB MA",flight
+PLOD,C130,"23rd Wing, Moody AFB GA",mission
+PLOW,F16,Luke AFB AZ,flight
+PLUG,F15,14th FS OR ANG Portland OR,flight
+PLUME,T38,435th FTS RANDOLPH AFB TX,flight
+PLUNDER,B52,"5thBW MINOT AFB, ND",mission
+PLUSH,B703,"552nd ACW, Tinker AFB, OK",mission
+PLUTO,P3,"DUTCH NAVY, DEPLOYED TO CARIBBEAN",mission
+POD,C30J,USMC | VMGR-252 MCAS Cherry Point NC,mission
+POISON,T38,"50th Fts,14Th Ftw Columbus AFB MS",flight
+POKE,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+POKER,A10,"Selfridge ANGB, MI",flight
+POKER,C560,"US ARMY 2-228th AVN JOINT BASE MCGUIRE-LAKEHURST, N.J",mission
+POKER,F16,77th FTs Shaw AFB SC,flight
+POKER,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+POKER,K35R,55Wing Offutt AFB NE,mission
+POLAR,F16,"Det-1 of Duluth, MN-ANG F-16's based at Tyndall FL",flight
+POLE,C130,"43rd OG, Pope AFB NC",mission
+POLECAT,F15,"104th FG, MA ANG at Barnes ANGB MA",flight
+POLO,C17,"137TH AS NY ANG, STEWART NY",mission
+PONCA,F16,"138th FW, OK-ANG, Tulsa, OK",flight
+PONDER,C30J,used in Mid-East,mission
+POOK,K35R,"55th Wing, Offutt AFB, NE",mission
+POPPER,TEX2,559th FTS RANDOLPH AFB TX,flight
+POPPY,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+POPPYA,F16,"31st FW, Aviano, Italy",flight
+POPS,A10,23rd Wing Moody AFB GA,flight
+PORK,A10,23rd FW Moody AFB GA,flight
+PORK,A10,"Selfridge ANGB, MI",flight
+POSEY,C130,"43rd OG, Moody AFB GA",mission
+POSSE,C130,"120th AW MT ANG Great Falls ANGB, Great Falls MT",mission
+POSSUM,A10,"303rd Fighter Sqdn, 442nd FW; Whiteman AFB MO",flight
+POUNCE,F16,79th FS Shaw AFB SC,flight
+POWER,K35R,128th ARW WI ANG Milwaukee WI,mission
+PRANG,T38,435th FTS Randolph AFB TX,flight
+PREY,TEX2,559th FTS RANDOLPH AFB TX,flight
+PRIDE,F18H,"VFA-15, NAS OCEANAVA",flight
+PRIDE,K35R,92nd ARW Fairchild AFB WA,mission
+PRIME,C130,"440th AW, Milwaukee, WI",mission
+PRIME,C17,315th AMW/317th AS USAFRC Charleston AFB SC,mission
+PRIME,K35R,United States 38th RS./55th Wing Offutt AFB NE,mission
+PRIMETIME,P3,NAS Whidbey Island WA,mission
+PRIMO,B762,"722nd ARW, Travis AFB, CA",mission
+PRIMO,F22,199th FS Joint Base Pearl Harbor-Hickam HI,flight
+PRIMUS,C17,437th AMW/701st AS USAFRC Charleston AFB SC,mission
+PRIUS,K35R,United States USAFE |100ARW | 351ARS RAF Mildenhall UK,mission
+PRO,B762,"722nd ARW, Travis AFB, CA",mission
+PRO,K35R,"154th GP, HI ANG at Joint Base Hickam-Pearl Harbor AFB HI",mission
+PRO,P8,"Poseidon, VP-30 NAS Jacksonville FL",mission
+PRODY,C130,"43rd OG, Pope AFB NC",mission
+PRONG,F16,"56th FW, Luke AFB, AZ",flight
+PROPS,C130,154TH TAS AR ANG Little Rock AR,mission
+PROPS,C17,729th AS/AFRC March AB CA,mission
+PROSE,C130,"23rd Wing, Moody AFB GA",mission
+PROTO,B762,22nd ARW McConnell AFB KS,mission
+PROTON,F15,95 FS Tyndall AFB FL,flight
+PROWL,F16,20th FW Shaw AFB SC,flight
+PSYCHO,A10,23rd Wing Moody AFB GA,flight
+PSYCHO,F15,104th FW MA ANG Barnes ANGB MA,flight
+PSYCHO,F15,3rd FW Eglin AFB FL,flight
+PSYCHO,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+PUDGY,B762,305th AMW Joint Base McGuire-Dix-Lakehurst NJ,mission
+PUEBLO,F15,4 FW Seymour-Johnson AFB NC,flight
+PUFF,C130,"711th SOS, Duke Fld FL",mission
+PUGET,F18S,"VAQ-129 Whidbey Is., WA",flight
+PULAR,F22,71st FS Joint Base Langley-Eustis VA,flight
+PULPY,F18S,NAS Whidbey Island WA,flight
+PULSAR,F16,"115th FW, Madison, WI",flight
+PUMA,C30J,"41st AS Little Rock AFB, AR",mission
+PURE,K35R,"552nd ACW, Tinker AFB, OK",mission
+PURSUIT,A10,23rd FW Moody AFB GA,flight
+PUSH,C130,"94th AW, Dobbins ARB, GA",mission
+PUSHER,A10,442nd FW Whiteman AFB MO,flight
+PUTT,C130,352 SOG Mildenhall UK,mission
+PYREX,F16,56th FW Luke AFB AZ,flight
+PYRO,F15,RAF Lakenheath UK,flight
+PYTHON,A10,23rd FW Moody AFB GA,flight
+PYTHON,F15,"104th FG, MA ANG at Barnes ANGB MA",flight
+PYTHON,F16,"100th FS/187th FW, AL ANG Montgomery AL",flight
+PYTHON,F16,23rd FS Spangdahlem AB GE,flight
+PYTHON,F16,"57th FW Weapons School, Nellis AFB NV",flight
+PYTHON,K35R,55th Wing Offutt AFB NE,mission
+QUAKE,B762,60th AMW Travis AFB CA,mission
+QUAKE,DC10,305AMW Joint Base-McGuire-Dix-Lakehurst NJ (KWRI),mission
+QUAKIE,F16,Luke AFB AZ,flight
+QUARTET,P3,poss VP-26 NAS JACKSONVILLE FL,mission
+QUATRO,T38,560th FTS Randolph AFB TX,flight
+QUEST,B762,"60th AMW, Travis AFB CA",mission
+QUICK,A10,"Selfridge ANGB, MI",flight
+QUID,K35R,100th ARW RAF MILDENHALL UK,mission
+QUINT,C30J,"67thSOS RAF Mildenhall, UK",mission
+QUIZ,B52,5th BW Minot AFB ND,mission
+QUOTE,B703,"552nd ACW, Tinker AFB, OK",mission
+RABBLE,F15,"144th FW, CA ANG Fresno ANGB CA",flight
+RACE,F16,"388th FW, Hill AFB, UT",flight
+RACER,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+RACER,B737,(VR-58) Jacksonville FL,mission
+RACER,F16,"113th FS, IN ANG Hulman Field Terre Haute IN",flight
+RACER,F16,85th TES Eglin AFB FL,flight
+RACER,GLF4,(VR-48) Joint Base Joint Base Andrews MD,mission
+RACER,GLF4,(VR-51) Kaneohe Bay HI,mission
+RACER,GLF4,OSACOM/PAT,mission
+RACK,F15,USAFE 48FW / 494FS LN Lakenheath UK,flight
+RACK,F22,1stFW/94th FS Joint Base Langley-Eustis VA,flight
+RACK,F22,43 FS Tyndall AFB FL,flight
+RAGE,F15,"104 FW, (training) Westfield Barnes ANGB MA",flight
+RAGE,F15,123rd FS OR ANG Portland IAP OR,flight
+RAGE,F15,123rd FS OR ANG Portland OR,flight
+RAGE,F18H,"VF-24, ""Fighting Renegades"" NAS Miramar, CA",flight
+RAGE,F22,Eglin AFB FL,flight
+RAGE,K35R,"319th Wing, Grand Forks AFB, ND",mission
+RAGIN,F18H,VFA-37 BLUE BLASTERS NAS OCEANA VA,flight
+RAGS,A10,303RD FS AFRES WHITEMAN AFB MO,flight
+RAGS,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+RAGS,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+RAGU,K35R,"55th Wing, Offutt AFB, NE",mission
+RAID,C30J,27SOW 524SOS Cannon AFB NM,mission
+RAID,K35R,"/T 319th Wing, Grand Forks AFB, ND",mission
+RAIDER,C130,VMGR-352 MCAS Miramar CA,mission
+RAIDER,F15,"494th FS, RAF Lakenheath, UK",flight
+RAIL,BE20,Beale AFB CA,mission
+RAIL,BE20,Ft Hood TX,mission
+RAIL,BE20,"Hunter AAF, Savannah GA",mission
+RAIN,A10,"23rd Wing, Moody AFB GA",flight
+RAINY,B703,"552nd ACW, Tinker AFB, OK",mission
+RAINY,K35R,"552nd ACW, Tinker AFB, OK",mission
+RAKE,T38,"47th FTW, Laughlin AFB, TX",flight
+RALEIGH,C17,"62nd AW, McChord AFB, WA",mission
+RALLY,T38,435th FTS RANDOLPH AFB TX,flight
+RALPH,A10,"23rd Wing, Moody AFB GA",flight
+RAM,F16,"115th FW, Madison, WI",flight
+RAM,F16,"34th FS, HILL AFB",flight
+RAM,F18H,VFA-83 CVW-17 NAS OCEANA VA,flight
+RAMBO,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+RAMBO,F15,57th FW Nellis AFB NV,flight
+RAMBO,F16,"31st FW, Aviano, Italy",flight
+RAMBO,F22,94th FS Joint Base Langley-Eustis VA,flight
+RAMPAGE,F18S,VAQ-138 WHIDBEY ISLAND WA,flight
+RAMROD,F15,4th FW Seymour-Johnson AFB NC,flight
+RANCHO,T38,560th FTS Randolph AFB TX,flight
+RANCHO,T38,7th FTs Joint Base Langley-Eustis VA,flight
+RANCID,F16,23rd FS Spangdahlem AB GE,flight
+RANDY,B762,AFRC/916ARW/77ARS Seymour Johnson AFB NC,mission
+RANDY,T38,56oth FTS Randolph AFB TX,flight
+RANGER,BE20,VIP ferry aircraft,mission
+RANGER,C130,"VMGR-234, Ft Worth NAS TX",mission
+RANGER,C30J,"VMGR-352,MCAS Miramar, CA",mission
+RANGER,P3,"VQ-1, NAS Whidbey Island WA",mission
+RANK,F16,"194th FS, CA ANG Fresno ANGB CA",flight
+RAPID,F16,308th FS Luke AFB AZ,flight
+RAPID,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+RAPTOR,F22,71st FS Joint Base Langley-Eustis VA,flight
+RASCA,K35R,"552nd ACW, Tinker AFB, OK",mission
+RASCAL,A10,"Selfridge ANGB, MI",flight
+RASTER,T38,7th FTS Joint Base Langley-Eustis VA,flight
+RATCH,F15,USAFE 48FW / 492FS LN Lakenheath UK,flight
+RATCH,T38,7th FTS Joint Base Langley-Eustis VA,flight
+RATS,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+RATS,K35R,"452nd AMW (AFRC), 336th Air Refueling Sqdn March ARB Ca",mission
+RATS,K35R,USAF 97AMW/55ARS Altus AFB OK,mission
+RATTLER,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+RATTLER,F15,125th FW FL ANG Jacksonville IAP FL,flight
+RATTLESNAKE,C130,192nd AS NV-ANG,mission
+RATTY,C130,"934th AMW, Minn-St Paul, MN",mission
+RAUNCH,F15,173rd FW OR ANG Kingley ANGB Klamath Falls OR,flight
+RAVAGE,F16,"115th FW, Madison, WI",flight
+RAVAGE,F16,121ST FS DC ANG Joint Base Joint Base Andrews MD,flight
+RAVAGE,F16,Luke AFB AZ,flight
+RAVE,F16,56th FW Luke AFB AZ,flight
+RAVEN,A10,"104th FS, MD ANG, MARTIN STATE MD",flight
+RAVEN,C130,328th AS AFRC Niagara Falls IAP NY,mission
+RAVEN,C130,"61ST AS, LITTLE ROCK AFB AR",mission
+RAVEN,F16,55th FS Shaw AFB SC,flight
+RAVEN,F18S,"VAQ-135, NAS Whidbey Island, WA",flight
+RAVEN,K35R,"4th Wing, SEYMOUR JOHNSON AFB, NC",mission
+RAWLY,C17,"62nd AW, McChord AFB, WA (ALSO RALEIGH)",mission
+RAYGUN,F18S,"VAQ-133, Whidbey Island",flight
+RAYMOND,A10,23rd Wing Moddy AFB GA,flight
+RAZOR,A10,23rd FG Moody AFB GA,flight
+RAZOR,A10,"Selfridge ANGB, MI",flight
+RAZOR,F15,144th FW GA ANG Fresno ANGB CA,flight
+RAZOR,F15,"194th fighter squadron, CA ANG Fresno ANGB, CA",flight
+RAZOR,F16,"55 FS/20 FW, Shaw AFB SC",flight
+RAZZ,C130,"314th AW, Little Rock AFB, AR",mission
+RAZZ,F18S,Mercury USN VQ-4,flight
+RAZZLE,T38,7th FTS Joint Base Langley-Eustis VA,flight
+READY,T38,7th FTS Joint Base Langley-Eustis VA,flight
+REAL,A10,223rd FW Moody AFB GA,flight
+REALM,K35R,132nd ARS ME ANG Bangor ME,mission
+REAPER,B2,509th BW Whiteman AFB MO,mission
+REAPER,F15,48th FW RAF Lakenheath UK,flight
+REBEL,BE20,204th MIB Biggs AAF Ft Bliss TX,mission
+REBEL,BE20,US Army Europe,mission
+REBEL,C130,435th Transport/Rescue Sqdn CFB Winnepeg,mission
+REBEL,F15,104th FW MA ANG Barnes ANGB MA,flight
+REBEL,F16,31st FW Aviano AB Italy,flight
+REBEL,F16,"56th FW, Luke AFB, AZ",flight
+REBEL,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+RECAP,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+RECOIL,C130,27SOW/73SOS Kirtland AFB NM,mission
+RED,F15,123rd FS OR ANG Portland OR,flight
+RED,F15,"333FS, SEYMOUR JOHNSON AFB, NC",flight
+RED,F16,120th FS CO ANG Buckley ANGB CO,flight
+RED,F16,22nd FS Spangdahlem AB GE,flight
+RED,P3,NAS Whidbey Island WA RIMPAC exercise 2014,mission
+RED,P3,POSS NAS Jacksonville FL,mission
+RED,P3,VP-16 NAS Jacksonville FL (JIATF callsign),mission
+RED,T34P,"VT-3/TAW-5, NAS Whiting Field FL",flight
+REDEYE,F16,"140th FW, CO ANG at Buckley AFB CO",flight
+REEF,F16,482ND FW/93rd FS HOMESTEAD ARB FL,flight
+REFIT,T38,560th FTS Randolph AFB TX,flight
+REGAL,B762,916th ARW Seymour-Johnson AFB NC,mission
+REGAL,F16,77 FS Shaw AFB SC,flight
+REHEAT,F15,104th FW MA ANG Barnes ANGB MA,flight
+REHEAT,F15,USAFE 48FW / 492FS LN Lakenheath UK,flight
+REIGN,K35R,22nd ARW McConnell AFB KS,mission
+RELAX,F16,"180th FG, OH ANG at Toledo OH",flight
+REMIT,C130,"302nd AW, Peterson AFB, CO",mission
+REMUS,K35R,"55th Wing, Offutt AFB, NE",mission
+RENEGADE,F18H,"VF-24, NAS Miramar, CA",flight
+RENO,F16,77th FTs Shaw AFB SC,flight
+RENO,T38,560th FTS Randolph AFB TX,flight
+REO,A10,"303rd Fighter Sqdn, 442nd FW Whiteman AFB MO",flight
+REPACK,F16,Luke AFB AZ,flight
+REPAT,C17,535th AS Joint Base Hickam-Pearl Harbor AFB HI,mission
+REPO,A10,52FW/81FS Spangdahlem GE,flight
+RESIST,F15,334 FS Seymour-Johnson AFB NC,flight
+RESIST,F15,492nd FS RAF Lakenheath UK,flight
+REVEAL,C130,"142nd AS, DE ANG New Castle DE",mission
+REVELER,C130,VR-54 JRB New Orleans LA,mission
+REX,F15,"159th FW, LA ANG New Orleans JRB LA",flight
+REY,BE20,(2) HQ &HQS MCAS Yuma Ca,mission
+REY,BE20,U.S. Navy,mission
+RHINO,A10,303RD FS AFRES WHITEMAN AFB MO,flight
+RHINO,C17,"89th AS/445th AW AFRC, Wright-Patterson AFB OH",mission
+RHINO,C30J,193rd SOG PA ANG Harrisburg PA,mission
+RHINO,F15,123rd FS OR ANG Portland IAP OR,flight
+RHINO,F18S,"VF-31, CVW-14, NAS OCEANA VA",flight
+RHODY,C30J,"143rd AS, RI ANG Quonset State Aprt RI",mission
+RIBBY,F16,"85th TES, Eglin AFB FL",flight
+RIBEYE,T38,509th BW Whiteman AFB MO,flight
+RICAN,C130,198th AS PR ANG San Juan PR,mission
+RICARDO,P8,VX-20 NAS Patuxent River MD,mission
+RICEBIRD,C130,601st Sqdn Thai Air Force,mission
+RICO,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+RICO,F15,USAFE 48FW/494FS LN Lakenheath UK,flight
+RIDDLER,A10,"303rd FS, 442nd FW; Whiteman AFB MO",flight
+RIDER,C17,3rd AS/436th AW Dover AFB DE,mission
+RIDER,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+RIDGE,C130,"3rd Wing, Moody AFB GA",mission
+RIFLE,A10,414TH CTS NELLIS AFB NV,flight
+RILEY,C130,"355th Wing, Davis-Monthan AFB, AZ",mission
+RIM,F16,34FS/388FW HILL AFB UT,flight
+RINGO,F15,422nd TES Nellis AFB NV,flight
+RINGO,F15,"494th FS, RAF Lakenheath UK",flight
+RINGO,F15,"4FW Seymour Johnson AFB, NC",flight
+RINGO,F16,56th FW/21st FS Luke AFB AZ,flight
+RINGO,F22,27th FTs Joint Base Langley-Eustis VA,flight
+RINGO,T38,435th FTS Randolph AFB TX,flight
+RINGY,K35R,"55th Wing, Offutt AFB, NE",mission
+RIO,A10,303RD FS AFRES WHITEMAN AFB MO,flight
+RIPLEY,K35R,"434th ARW, Grissom ARB, IN",mission
+RIPPA,F15,104th FW MA ANG Barnes ANGB MA,flight
+RIPPER,F18H,"VF-11, CVW-7 NAS OCEANA VA",flight
+RIPSAW,A10,23rd FW Moody AFB GA,flight
+RISCO,C130,"934th AMW, Minn-St Paul, MN",mission
+RISER,C130,"16th SOS, Hurlburt Fld FL",mission
+RISK,C130,352 Sog / 7th SOS Mildenhall UK,mission
+RISKY,F22,94th FS Joint Base Langley-Eustis VA,flight
+RITZ,K35R,"55th Wing, Offutt AFB, NE",mission
+RITZY,C130,EGLIN AFB FL,mission
+RIVAL,F16,120th FS CO ANG Buckley AFB,flight
+RIVET,K35R,55th Wing Offutt AFB NE,mission
+ROACH,C130,NC ANG 145AW/156AS Charlotte NC,mission
+ROACH,F15,OREGON ANG,flight
+ROACH,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+ROACH,K35R,108th ARW March AFB CA,mission
+ROACH,T38,7th FTs Joint Base Langley-Eustis VA,flight
+ROCCO,K35R,"141st ARS, NJ ANG Joint Base-McGuire-Dix-Lakehurst NJ",mission
+ROCK,C130,50th AS/463rd AG Little Rock AFB AR,mission
+ROCK,F15,123rd FS OR ANG Portland IAP OR (real world scramble),flight
+ROCK,F15,"336TH FS SEYMOUR JOHNSON AFB, NC",flight
+ROCK,F16,"176th FS WI ANG Truax Fld, Madison, WI",flight
+ROCK,F16,"31st FW, Aviano, Italy",flight
+ROCKET,F15,"336th FS SEYMOUR JOHNSON AFB, NC",flight
+ROCKET,F22,71st FS Joint Base Langley-Eustis VA,flight
+ROCKET,F22,94th FS Joint Base Langley-Eustis VA,flight
+ROCKY,A10,52FW/81FS Spangdahlem GE,flight
+ROCKY,B2,"509th Operational Support Sqdn, Whiteman AFB MO",mission
+ROCKY,F16,"120th FS, CO ANG at Buckley AFB CO",flight
+ROCKY,F22,1st FW 94th FS Joint Base Langley-Eustis VA,flight
+RODEO,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+RODEO,GLF4,99th AS Joint Base Joint Base Andrews MD,mission
+ROGUE,B52,"2nd BW/11th BS, Flying Training Unit Barksdale AFB LA",mission
+ROGUE,C130,165th AS/123rd AW KY-ANG,mission
+ROGUE,C130,328th Airlift Squadron Niagara Falls IAP NY,mission
+ROGUE,C130,"347th Wing, Moody AFB, GA",mission
+ROGUE,C130,43rd OG Pope AFB NC,mission
+ROGUE,F15,"142nd FG, OR ANG Portland ANGB OR",flight
+ROGUE,F22,7th FTs Holloman AFB NM,flight
+ROGUE,F22,94th FS Joint Base Langley-Eustis VA,flight
+ROGUE,T38,14th FTW Columbus AFB MS,flight
+ROLER,C130,"192nd AS, Nevada ANG, Reno/Tahoe NV",mission
+ROLER,C130,WY ANG 153AW/187AS Cheyenne WY,mission
+ROLL,B703,"552nd ACW, Tinker AFB, OK",mission
+ROLLER,F16,Luke AFB AZ,flight
+ROMAN,A10,"Selfridge ANGB, MI",flight
+ROMAN,F18S,"VFA-106, NAS OCEANA VA",flight
+ROMEO,B737,"VR-57 NAS North Island, CA ROMEO-XRAY (tailcode said phonetically)",mission
+RONIN,B703,552ACW OK Tinker AFB OK,mission
+RONIN,BE20,"/W, 224 MI Bn Hunter AAF GA",mission
+RONIN,BE20,S3 US Army EMARSS program,mission
+RONIN,K35R,92ARW Fairchild AFB WA,mission
+RONNY,C17,3rd AD Dover AFB DE,mission
+ROOF,K35R,"552nd ACW, Tinker AFB, OK",mission
+ROOK,F18S,VAQ-136 NAS Whidbey Island WA,flight
+ROOK,K35R,"552nd ACW, Tinker AFB, OK",mission
+ROOK,K35R,92nd ARW Fairchild AFB WA,mission
+ROOKIE,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+ROOSTER,F15,104FW MA ANG WESTFIELD-BARNES ANGB MA,flight
+ROOSTER,K35R,"151st ARS McGhee Tyson ANGB, Knoxville, TN",mission
+ROPE,B52,5th BW Minot AFB ND,mission
+ROPE,F15,"142nd FG, OREGON ANG Kingsley Field OR",flight
+ROPER,C130,"136th AW/181st AS, TX ANG, JRB Fort Worth TX",mission
+ROPER,T38,"9th RW, Beale AFB, CA",flight
+ROSCOE,A10,"Selfridge ANGB, MI",flight
+ROSCOE,C17,"437TH AMW, CHARLESTON AFB SC",mission
+ROSE,C130,67th SOS Mildenhall UK,mission
+ROSE,K35R,"55th Wing, Offutt AFB, NE",mission
+ROTT,A10,23rd FW Moody AFB GA,flight
+ROUGE,C17,McCHORD AFB WA,mission
+ROUGE,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+ROUGH,F16,23rd FS Spangdahlem AB GE,flight
+ROUGH,TEX2,559th FTS RANDOLPH AFB TX,flight
+ROULETTE,F16,77 FS/20 FW Shaw AFB SC,flight
+ROUNDER,F16,77 FS Shaw AFB SC,flight
+ROUST,A10,"23rd Wing, Moody AFB GA",flight
+ROVING,B762,NORAD CAP/Alert tankers,mission
+ROVING,K35R,756th ARS Joint Base Joint Base Andrews MD,mission
+ROYAL,A10,"442nd FW, Whiteman AFB, MO",flight
+ROYAL,C17,"3rd AS/436th AW, Dover DE",mission
+ROYAL,C30J,23rd Wing/171st RQS Moody AFB GA,mission
+ROYAL,F16,77th FTs Shaw AFB SC,flight
+RUBBENS,F16,"31st FW, Aviano, Italy",flight
+RUBBER,P3,"VP-47,""Golden Swordsmen"" NAS KANEOHE BAY,HI",mission
+RUBY,F22,94th FS Joint Base Langley-Eustis VA,flight
+RUBY,K35R,336thARS March ARB CA,mission
+RUCKUS,A10,47th FTs Barksdale AFB LA,flight
+RUCKUS,F15,4 FW Seymour Johnson AFB NC,flight
+RUCKUS,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+RUDE,F16,"34th FS, HILL AFB",flight
+RUDE,F16,77th FTs SHAW AFB,flight
+RUDY,C130,CA ANG,mission
+RUDY,F15,104FW WESTFIELD-BARNES MA ANG,flight
+RUGER,F16,55th FS Shaw AFB SC,flight
+RUGG,F15,104FW WESTFIELD-BARNES ANG MA,flight
+RUIN,K35R,"552nd ACW, Tinker AFB, OK",mission
+RULE,K35R,"55th Wing, Offutt AFB, NE",mission
+RULER,C17,"172AW/183RD AS, MS ANG Jackson MS",mission
+RUMBLE,F15,"33rd FW, Eglin AFB, FL",flight
+RUMBLE,F15,"494th FS, Lakenheath UK",flight
+RUMBLE,F22,1st FW 94TH FS Joint Base Langley-Eustis VA,flight
+RUMMY,K35R,"151st ARS TN ANG McGhee/Tyson ANGB, Knoxville TN",mission
+RUNNY,K35R,"55th Wing, Offutt AFB, NE",mission
+RUPEE,C130,"34th AG, Minn-St Paul, MN",mission
+RUPEE,C17,437AW Charleston AFB SC,mission
+RUSSO,F15,Mountain Home AFB ID,flight
+RUST,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+RUSTIC,A10,23rd FW Moody AFB GA,flight
+RUSTLE,F15,Mountain Home AFB ID,flight
+RUSTY,A10,23rd AW Moody AFB GA,flight
+RUSTY,TEX2,14th FTW/41st FTS Columbus AFB MS,flight
+RYAN,C130,"86th AW, Ramstein AB, GE",mission
+RYE,T38,"55th Wing, Offutt AFB, NE",flight
+SABER,F16,"162nd FS, OH ANG Springfield OH",flight
+SABER,F22,71st FS Joint Base Langley-Eustis,flight
+SABRE,B762,NH ANG Pease ANGB Portsmouth NH,mission
+SABRE,F15,"4th FW SEYMOUR JOHNSON AFB, NC",flight
+SABRE,F16,"178th FW/162nd FS OH ANG Springfield ANGB, Springfield OH",flight
+SABRE,F16,"180th FG, OH ANG at Toledo",flight
+SABRE,F16,22nd FS Spangdahlem AB GE,flight
+SAFETY,F18H,MAG-31 MCAS Beaufort SC,flight
+SAGA,A10,23rd FG Moody AFB GA,flight
+SAGA,F16,63RD FS LUKE AFB AZ,flight
+SAGGY,C30J,"53rd WRS AFRC, Keesler AFB, MS",mission
+SAID,C130,43rd OG Pope AFB NC,mission
+SAIL,C130,"1 46th AW, CA ANG at Channel Islands ANGS",mission
+SAIL,C130,"9th SOS, Hurlburt Fld, FL",mission
+SAINT,P8,"333Sqn Norwegian Airforce, Andoya Air Station, Norway",mission
+SAJAN,F16,176th FS WI ANG Truax Fld WI,flight
+SALEM,F18H,Beaufort MCAS MDTC,flight
+SALT,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+SALTY,F15,333 FS Seymour-Johnson AFB NC,flight
+SALTY,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+SAME,K35R,USAF | 55WG | 38RS Offutt AFB NE,mission
+SAMMY,C130,"146th AW, CA ANG Channel Islands ANGS CA",mission
+SAMMY,K35R,NH ANG | 157ARW | 133ARS Pease ANGB NH,mission
+SANDIE,A10,303RD FS AFRES WHITEMAN AFB MO,flight
+SANDMAN,F18H,USMC,flight
+SANDY,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+SANDY,A10,"Selfridge ANGB, MI",flight
+SANDY,K35R,/T 319th ARW Grand Forks AFB ND,mission
+SANTEE,F16,20th FW 55th FS Shaw AFB SC,flight
+SAPPER,F15,USAFE 48FW Lakenheath UK,flight
+SARGE,B2,Whiteman AFB MO,mission
+SARO,B2,509th Bomb Wing; Whiteman AFB MO,mission
+SATAN,B762,"133rd ARS, NH ANG Pease ANGB NH",mission
+SATAN,F16,177th FW/119th FS NJ ANG Atlantic City NJ,flight
+SATAN,F16,412TW Edwards AFB CA,flight
+SATAN,F16,52nd FW Spangdahlem AB GE,flight
+SATAN,F22,71st FS Joint Base Langley-Eustis VA,flight
+SATEL,C130,"352nd SOG, RAF Mildenhall, UK",mission
+SAUCER,A10,"303RD FS AFRES, Whiteman AFB, MO",flight
+SAUCY,C130,"43rd OG, Moody AFB GA",mission
+SAUL,B703,"552nd ACW, Tinker AFB, OK",mission
+SAUSAGE,A10,23rd FW Moody AFB GA,flight
+SAVAGE,F15,"104th FG, MA ANG, Barnes ANGB MA",flight
+SAVAGE,F15,110th FS MO ANG St Louis MO,flight
+SAVAGE,F15,OREGON ANG,flight
+SAVAGE,F18H,VFA-131 USS Eisenhower,flight
+SAVAGE,F22,71st FS Joint Base Langley-Eustis VA,flight
+SAVOR,C130,"314th AW, Little Rock AFB, AR",mission
+SAVOY,K35R,"55th Wing, Offutt AFB, NE",mission
+SAVVY,B703,"552nd ACW, Tinker AFB, OK",mission
+SAXON,C130,"43rd OG, Moody AFB GA",mission
+SCALP,B52,"917th BW/93rd BS,11th Flying Training Unit Barksdale AFB, LA",mission
+SCAM,F15,60 FS Eglin AFB FL,flight
+SCANDAL,F15,Mass ANG BARNES ANGB MA,flight
+SCAR,A10,"303rd Fighter Sqdn, 442nd Fighter Wing, Whiteman AFB MO",flight
+SCAR,F16,79 FS/20 FW Shaw AFB SC,flight
+SCAR,T38,7th FTS Joint Base Langley-Eustis VA,flight
+SCARF,F15,19th FS Elmendorf AFB AK,flight
+SCARS,C130,"176th WING, 144TH AS AK ANG, ANCHORAGE AK",mission
+SCARY,B762,305th AMW Joint Base-McGuire-Dix-Lakehurst NJ,mission
+SCARY,F16,"113TH FW, 121ST FS DC ANG Joint Base Joint Base Andrews MD",flight
+SCARY,TEX2,559th FTS RANDOLPH AFB TX,flight
+SCATTER,A10,"Selfridge ANGB, MI",flight
+SCENT,K35R,"55th Wing, Offutt AFB, NE",mission
+SCEPTER,C130,USAFRC/347RQW/71RQS Moody AFB GA,mission
+SCOFF,F15,Mountain Home AFB ID,flight
+SCORE,C130,"7th Wing, Dyess AFB, TX",mission
+SCORP,F18S,VAQ-132 NAS Whidbey Island WA,flight
+SCORPION,P3,DRUG INTERDICTION OPS,mission
+SCORPON,F18S,"US Navy VAQ-132, Whidbey Island WA",flight
+SCOTCH,T38,7th FTs Joint Base Langley-Eustis VA,flight
+SCOUT,A10,303RD FS AFRES WHITEMAN AFB MO,flight
+SCOUT,B703,AWACS 513th ACG USAFR Tinker AFB OK,mission
+SCOUT,F15,"19 FS/3rd Wing SEYMOUR JOHNSON AFB, NC",flight
+SCOUT,F22,"1st FW, 27th/94th FS Joint Base Langley-Eustis VA",flight
+SCOUT,LJ35,457th AS Joint Base Joint Base Andrews MD,mission
+SCRAPPER,F18H,VMFA-533 MCAS Beaufort SC,flight
+SCREAM,T38,7th FTs Joint Base Langley-Eustis VA,flight
+SCRON,C130,"302nd AW, Peterson AFB, CO",mission
+SCROW,K35R,"55th Wing, Offutt AFB, NE",mission
+SCUBA,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+SCUBA,T38,435th FTS RANDOLPH AFB TX,flight
+SCUBA,TEX2,559th FTS RANDOLPH AFB TX,flight
+SEAGULL,P3,NAS Jacksonville FL,mission
+SEAHAWK,F18S,"VMAQ-4, MCAS Cherry Point, NC",flight
+SEAT,K35R,"55th Wing, Offutt AFB, NE",mission
+SEEDY,T38,435th FTS RANDOLPH AFB TX,flight
+SEIGE,F15,333rd FS Seymour-Johnson AFB NC,flight
+SELMA,K35R,"927th ARW, MacDill AFB FL",mission
+SEMI,A10,303rd FS/442nd FW Whiteman AFB MO,flight
+SEMI,C130,"23rd Wing, Moody AFB GA",mission
+SENSOR,B703,"964th AACS/ 552nd ACW Tinker AFB, OK-FRONT END CREW",mission
+SENTRY,B703,"964th AACS/ 552nd ACW Tinker AFB, OK-FRONT END CREW",mission
+SEPTR,C30J,23 Wing/71RQS Moody AFB GA,mission
+SETUP,C130,"440th AW, Milwaukee, WI",mission
+SHACK,F16,162nd FS OH ANG Springfield OH,flight
+SHADO,C130,"550th SOS, Kirtland AFB, NM",mission
+SHADOW,C130,"67th SOS, RAF Mildenhall UK",mission
+SHADOW,C130,"9th SOS, Hurlburt Field FL",mission
+SHADY,BE20,"/W, 224 MI Bn Hunter AAF GA",mission
+SHAFT,LJ35,118th AS CT ANG Bradley ANGB CT,mission
+SHAGGY,C130,"154TH TRS, AR ANG Little Rock AFB AR",mission
+SHAKA,F16,"'s 61 FS Luke AFB, AZ",flight
+SHAKE,C130,164th AS/ OH-ANG,mission
+SHAKE,K35R,"171st ARW, PA ANG Pittsburgh PA",mission
+SHAKU,F16,56th FW Luke AFB AZ,flight
+SHALL,C130,43rd OG Pope AFB NC,mission
+SHAM,A10,23rd FG Moody AFB GA,flight
+SHAMROCK,F16,20 FW/55th FS Shaw AFB SC,flight
+SHAMU,B762,"60th AMW, Travis AFB CA",mission
+SHANE,F15,2nd TFTS Tyndall AFB FL,flight
+SHARK,A10,"23RD Wing, Moody AFB GA",flight
+SHARK,C130,"130th AS, WVA ANG Charleston WVA",mission
+SHARK,C130,198th AS PR ANG San Juan PR,mission
+SHARK,C130,"731st AS AFRC, Peterson AFB, CO",mission
+SHARK,C130,USAF/95AS --USSOUTHCOM,mission
+SHARK,C30J,"815th AS AFRC, Keesler AFB MS",mission
+SHARK,F15,"144th FW, CA ANG Fresno ANGB CA",flight
+SHARK,F15,Mass ANG BARNES ANGB MA,flight
+SHARK,F16,"57th FW Weapons School, Nellis AFB NV",flight
+SHARK,F16,93rd FS AFRC Homestead FL,flight
+SHARK,F16,93rd FS FL ANG Homestgead ARB FL,flight
+SHAWL,C130,"23rd Wing, Moody AFB GA",mission
+SHEENA,K35R,168th ARS AK ANG Eielson AFB,mission
+SHELL,B762,tasked to/from the Middle East (also KC-135R),mission
+SHELL,K35R,"6th ARW, RAF Mildenhall UK",mission
+SHERRY,B2,Whiteman AFB MO,mission
+SHIFTY,A10,23rd Wing Moody AFB GA,flight
+SHIFTY,C560,United States USA B/2-228 AVN (TA) Dobbins JRB GA,mission
+SHIFTY,F15,USAFE 48FW / 494FS LN Lakenheath UK,flight
+SHILL,C17,United Arab Emirates Airforce,mission
+SHINER,A10,"303rd Fighter Sqdn, 442nd FW; Whiteman AFB MO",flight
+SHINER,P8,VX-20 NAS Patuxent River MD,mission
+SHIV,T38,435th FTS RANDOLPH AFB TX,flight
+SHIVA,C30J,USMC in Middle East,mission
+SHOCK,F15,"104th FW, MA ANG, Barnes ANGB MA",flight
+SHOCKER,F15,336th FW Mountain Home AFB ID,flight
+SHOCKER,F15,366 FW / Mountain Home AFB ID,flight
+SHOCKER,F16,Luke AFB AZ,flight
+SHOCKER,F18S,"?, VX-9 China Lake CA",flight
+SHOCKER,K35R,"22nd ARW, McConnell AFB, KS",mission
+SHOE,C130,"118th AW, TN ANG Nashville TN",mission
+SHOE,C130,"355th Wing, Davis-Monthan AFB, AZ",mission
+SHOGUN,A10,303RD FS AFRES WHITEMAN AFB MO,flight
+SHOGUN,F15,"12th FS, Kadena AB, Okinawa, Japan",flight
+SHOGUN,F16,"35th FW, Misawa AB, Japan",flight
+SHOGUN,LJ35,/C-37 USAFE 86AW / 76AS Ramstein GE,mission
+SHOOTER,F15,"494th FS, RAF Lakenheath UK",flight
+SHOOTER,F16,20th FW Shaw AFB SC,flight
+SHOOTER,F16,56th FW Luke AFB AZ,flight
+SHOOTER,F18H,Unid unit NAS OCEANA VA,flight
+SHOOTER,F18H,"VMFAT-101, MCAS Miramar",flight
+SHOOTER,T34P,"VT-6/TAW-5, NAS Whiting Field FL",flight
+SHOTGUN,F15,Mass ANG BARNES MA,flight
+SHOWBIZ,F16,"115th FW, Madison, WI",flight
+SHOWTIME,F16,NAWDC NAS Fallon NV,flight
+SHOWTIME,F18H,F-16N Naval Strike and Air Warfare Center Det MCAS Beaufort SC,flight
+SHOWTIME,F18H,VFA-83 NAS OCEANA VA,flight
+SHUCK,B703,"552nd ACW, Tinker AFB, OK",mission
+SHUN,K35R,22ARW McConnell AFB KS,mission
+SHUT,K35R,"126th ARW, IL ANG Scott AFB IL",mission
+SHUTR,F16,55 FS/20 FW Shaw AFB SC,flight
+SHY,C130,"314th AW, Little Rock AFB, AR",mission
+SHY,C130,43rd OG Pope AFB NC,mission
+SICK,A10,23 FG Moody AFB GA,flight
+SIDE,F18H,VFA-82 MARAUDERS NAS OCEANA VA,flight
+SIEGE,F15,4 FW/334th FS Seymour-Johnson AFB NC,flight
+SIERRA,B762,"60th AMW, TRAVIS AFB CA",mission
+SIJAN,F16,115th FW WI ANG Madison WI,flight
+SILKY,K35R,"97th AMW, Altus AFB, OK",mission
+SILVA,B762,60AMW Travis AFN CA,mission
+SILVA,C130,"911th AG, Pittsburgh, PA",mission
+SILVER,F18H,"VMFA-115, MCAS Beaufort, SC",flight
+SIMBA,C130,"8th SOS, Hurlburt Fld FL",mission
+SIMBA,F15,Mountain Home AFB ID,flight
+SINNER,F15,131st FS MA ANG BARNES ANGB MA,flight
+SINNER,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+SITE,C130,43rd OG Pope AFB NC,mission
+SITKA,C17,517th AS Alaska ANG Elmendorf AFB AK,mission
+SKAGIT,C17,"62ND AMW, MCCHORD AFB WA",mission
+SKATE,F15,85th TES Eglin AFB FL,flight
+SKEE,T38,435th FTS RANDOLPH AFB TX,flight
+SKEET,F15,336th FS Seymour-Johnson AFB NC,flight
+SKEET,F16,Luke AFB AZ,flight
+SKI,F16,Luke AFB AZ,flight
+SKID,A10,23rd FG Moody AFB GA,flight
+SKIER,C130,139TH AS NY ANG SCHENECTEDY NY,mission
+SKIM,K35R,"434th ARW, Grissom ARB, IN",mission
+SKULL,A10,81ST FS SPANGDAHLEM AB GE,flight
+SKULL,B52,"2nd BW/20th BS, Barksdale AFB, LA",mission
+SKULL,C130,179th AMW/164th AS OH ANG Mansfield OH,mission
+SKULL,C130,314thAW/62nd AS Little Rock AFB AR,mission
+SKULL,F15,104th FW MA ANG Barnes ANGB MA,flight
+SKULL,F15,54rd TEG Eglin AFB FL,flight
+SKULL,F16,80th FS Kunsan Korea,flight
+SKUNK,A10,23rd FW Moody AFB GA,flight
+SKYBOLT,F18S,VAQ-131 NAS Whidbey Island WA,flight
+SKYCAP,F16,77 FS/20 FW Shaw AFB SC,flight
+SKYWAY,C17,3rd AS Dover AFB DE (prob maintenance check flt call),mission
+SLAG,K35R,"55th Wing, Offutt AFB, NE",mission
+SLAM,A10,"Selfridge ANGB, MI",flight
+SLAM,C17,437AW Charleston AFB SC,mission
+SLAM,C17,"452nd AMW (AFRC), 729th Airlift Sqd March ARB Ca",mission
+SLAM,F15,104 FW (alert aircraft) Westfield Barnes ANGB MA,flight
+SLAM,F15,173rd FW OR ANG Kingley ANGB Klamath Falls OR,flight
+SLAM,F15,493rd FS Lakenheath UK,flight
+SLAM,F16,"115th FW, Madison, WI",flight
+SLAM,F22,192nd FW/149th FS VA ANG Joint Base Langley-Eustis VA,flight
+SLANG,A10,52FW/81FS Spangdahlem GE,flight
+SLASH,F16,76TH FS SHAW AFB SC,flight
+SLASH,TEX2,14th FTW/41st FTS Columbus AFB MS,flight
+SLASHER,C130,Hurlburt Field FL,mission
+SLATE,T38,Beale AFB CA,flight
+SLAY,F15,104 FW Westfield Barnes ANGB MA,flight
+SLAYER,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+SLAYER,B2,"509th BW, Whiteman AFB MO",mission
+SLAYER,B52,Barksdale AFB LA,mission
+SLAYER,PC12,319th SOS,mission
+SLAYER,PC12,"319th SOS/1st SOW, Hurlburt Field FL",mission
+SLED,C130,"146th AW, CA ANG at Channel Islands ANGS CA",mission
+SLEEK,F15,199th FS HI ANG Joint Base Hickam-Pearl Harbor,flight
+SLEW,C17,15WG/535AS Joint Base Hickam-Pearl Harbor AFB HI,mission
+SLICK,A10,184th FS AR ANG Ft Smith AR,flight
+SLICK,BE20,"/C-26 Fixed Wing Army Aviation Training Site (FWAATS), North Central West Virginia Airport",mission
+SLOG,B762,305th AMW Joint Base McGuire-lakehurst NJ,mission
+SLOG,K35R,"55th Wing, Offutt AFB, NE",mission
+SLOPE,C130,"352nd SOG, RAF Mildenhall, UK",mission
+SLOT,F16,77th FTs Shaw AFB SC,flight
+SLOTH,B703,"552nd ACW, Tinker AFB, OK",mission
+SLUFF,K35R,121ST ARG OH ANG RICKENBACKER OH,mission
+SLUG,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+SLUGGER,F18S,VFA-103 NAS OCEANA VA,flight
+SLUGGO,F16,"115th FW, Madison, WI",flight
+SLUGGO,T38,T-38C 49th FTW/50th FTS Columbus AFB MS,flight
+SLUMP,C130,"314th OG, Little Rock AFB, AR",mission
+SLUMP,K35R,"552nd ACW, Tinker AFB, OK",mission
+SMART,F22,94th FS Joint Base Langley-Eustis VA,flight
+SMASH,F16,"119th FS, NJ ANG Atlantic City NJ",flight
+SMASH,F16,Luke AFB AZ,flight
+SMILER,T38,435th FTS RANDOLPH AFB TX,flight
+SMITE,F22,71st FS Joint Base Langley-Eustis VA,flight
+SMOG,C130,"43rd OG, Moody AFB GA",mission
+SMOKE,F18H,"VMFA-134, MCAS MIRAMAR",flight
+SMOKEY,LJ35,375AW/311AS PETERSEN AFB COLORADO SPGS CO,mission
+SMURF,T38,435th FTS RANDOLPH AFB TX,flight
+SNAG,K35R,MCGUIRE AFB-NJ ANG CMDR S ACFT,mission
+SNAKE,A10,104th FS MD ANG Martin Strate Airport MD-special use callsign in CAS training,flight
+SNAKE,A10,163rd FS IN ANG Baer Fld FT WAYNE IN,flight
+SNAKE,F15,125th FW FL ANG Jacksonville ANGB Jacksonville FL,flight
+SNAKE,F16,100th FS AL ANG Dannelly Fld AL,flight
+SNAKE,F16,111th FS TX ANG Ellington ANGB TX,flight
+SNAKE,F16,119TH FS NJ ANG ATLANTIC CITY NJ,flight
+SNAKE,F16,"140th FW, CO ANG at Buckley AFB CO",flight
+SNAKE,F16,"414th CTS, Nellis AFB NV",flight
+SNAKE,F16,78th FS Shaw AFB SC,flight
+SNAKE,F16,"C/D - 124 FS/132 FW - IA ANG, Des Moines IA",flight
+SNAKE,F18H,"VF-102, ""Diamondbacks"" CVW-1 NAS OCEANA VA",flight
+SNAKE,F18H,"VFA-204, RIVER RATTLERS NAS New Orleans LA",flight
+SNAKE,F18H,VMFA-323 MCAS MIRAMAR,flight
+SNAKE,T38,T-38C 49th FTW/50th FTS Columbus AFB SC,flight
+SNAP,K35R,22nd ARW McConnell AFB KS,mission
+SNAP,K35R,"4th Wing, SEYMOUR JOHNSON AFB, NC",mission
+SNARL,F15,493rd FS Lakenheath UK,flight
+SNEAKY,F16,20th FW 79th FS Shaw AFB SC,flight
+SNICK,C130,"352nd SOG, RAF Mildenhall, UK",mission
+SNIFF,F15,104nd FW Barnes ANGB MA,flight
+SNIP,F15,104th FW MA ANG Barnes ANGB MA,flight
+SNIPER,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+SNIPER,A10,"442nd FW, Whiteman AFB, MO",flight
+SNIPER,A10,81ST FS SPANGDAHLEM AB GE,flight
+SNIPER,A10,"Selfridge ANGB, MI",flight
+SNIPER,F16,23rd FS Spangdahlem AB GE,flight
+SNIPER,F16,80th FS Kunsan Korea,flight
+SNIPER,F22,94th FS Joint Base Langley-Eustis VA,flight
+SNOOP,K35R,"55th Wing, Offutt AFB, NE",mission
+SNOOPY,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+SNOOPY,A10,23rd Wing MOODY AFB GA,flight
+SNOOPY,F16,Luke AFB AZ,flight
+SNOOPY,F18H,USMC,flight
+SNORT,F16,77 FS Shaw AFB SC,flight
+SNOW,F16,175th FS SD ANG Sioux Falls SD,flight
+SNOW,F16,179th FS MN ANG Duluth MN,flight
+SOCK,F15,334 FS Seymour-Johnson AFB NC,flight
+SOCK,F16,CO ANG Buckley AB CO,flight
+SOCKS,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+SODA,K35R,"134th ARW, TN ANG McGhee Tyson Knoxville TN",mission
+SOHO,T38,560th FTS RANDOLPH AFB TX,flight
+SOMBRERO,F16,"31st FW, Aviano, Italy",flight
+SONIC,C17,"62ND AMW, MCCHORD AFB WA",mission
+SONIC,F15,USAF 48FW Lakenheath UK,flight
+SONIC,F16,Luke AFB AZ,flight
+SONIC,F22,27th FTs Joint Base Langley-Eustis VA,flight
+SOOEY,T38,435th FTS RANDOLPH AFB TX,flight
+SOONER,BE20,"OK ANG, 137th SOW, Oklahoma City OK",mission
+SOONER,K35R,"OK ANG, Will Rogers OK",mission
+SOOTY,B703,"552nd ACW, Tinker AFB, OK",mission
+SOOTY,K35R,"434th ARW, Grissom ARB, IN",mission
+SOSA,LJ35,| 375AW | 457AS Joint Base Joint Base Andrews MD,mission
+SOUL,F22,71st FS Joint Base Langley-Eustis VA,flight
+SOUPY,F16,"31st FW, Aviano, Italy",flight
+SOUR,C130,"46th AW, CA ANG Channel Islands ANGS CA",mission
+SOUR,F15,391ST FS MO ANG,flight
+SPACE,LJ35,"311th Airlift Flight Peterson AFB CO, US Space Command Acft",mission
+SPAD,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+SPAD,A10,23 Wing Moody AFB GA,flight
+SPAD,C130,/W 1st SOW Hurlburt Field FL,mission
+SPAD,F16,"179th FS, MN ANG at Duluth",flight
+SPAD,F16,"457th FTs, AFRC Ft. Worth, TX",flight
+SPAD,F22,"1st FW/94th FS, Joint Base Langley-Eustis VA",flight
+SPAD,F22,90th FS Elmendorf AFB AK,flight
+SPAD,K35R,"141st ARG, WA ANG Fairchild AFB WA",mission
+SPADE,F16,77th FTs Shaw AFB SC,flight
+SPADE,F16,Luke AFB AZ,flight
+SPADE,F22,Tyndall AFB FL 43rd,flight
+SPANK,F16,"USAF 31FW / 510FS Aviano AFB, Italy",flight
+SPAR,B737,# 02-0042 86AW | 76AS Ramstein AB GE,mission
+SPAR,F16,Luke AFB AZ,flight
+SPARKY,BE20,"CECOM Flt ACT, poss Ft Monmouth NJ",mission
+SPARROW,P3,"DUTCH NAVY ACFT, DEPLOYED TO CARIBBEAN",mission
+SPARTA,A10,23rd FG Moody AFB GA,flight
+SPARTA,BE20,Beale AFB CA,mission
+SPAWN,F16,119th FS NJ ANG Atlantic City NJ,flight
+SPEAR,F15,"33rd FW, Eglin AFB, FL",flight
+SPECTRE,C130,"4th SOS, HURLBURT FLD",mission
+SPEED,F16,21 FS Shaw AFB SC,flight
+SPEED,F16,Luke AFB AZ,flight
+SPEED,K35R,"97th AMW, Altus AFB, OK",mission
+SPEED,T38,T-38C 49th FTW/50th FTS Columbus AFB MS,flight
+SPEEDO,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+SPEEDY,A10,23rd FW Moody AFB GA,flight
+SPEEDY,T38,435th FTS RANDOLPH AFB TX,flight
+SPICA,C130,"731st AS AFRC, Peterson AFB, CO",mission
+SPICY,K35R,22ARW McConnell AFB KS [KIAB],mission
+SPIDER,F16,23rd FS Spangdahlem AB GE,flight
+SPIDER,F16,"421st FS, Hill AFB, UT",flight
+SPIDER,F16,425th FS Luke AFB AZ,flight
+SPIKE,F16,31st FW Aviano Italy,flight
+SPIKE,K35R,6AMW/91ARS MacDill AFB FL,mission
+SPIN,C130,"96th AS, AFRC Minn-St Paul, MN",mission
+SPIRIT,B2,"509th BW, Whiteman AFB, MO",mission
+SPIRIT,C130,"16th SOS, Hurlburt Fld, FL",mission
+SPIT,C130,"352nd SOG, RAF Mildenhall, UK",mission
+SPITFIRE,F16,79 FS/20 FW Shaw AFB SC,flight
+SPOCK,A10,"Selfridge ANGB, MI",flight
+SPONGY,F16,Luke AFB AZ,flight
+SPOOK,F16,22nd FS Spangdahlem AB GE,flight
+SPOOKY,A10,"Selfridge ANGB, MI",flight
+SPOOKY,C130,"4th SOS, Hurlburt Fld FL",mission
+SPORT,A10,104th FS MD ANG MARTIN STATE-TRANSIT CALLSIGN,flight
+SPOT,F18H,NAS OCEANA VA,flight
+SPOT,P3,"VP-11, NAS Jacksonville FL, ME",mission
+SPRAY,C130,910th AW/757th AS Youngstown OH,mission
+SPRAY,C130,"AFRC/910AW/757th AS Youngstown Air Reserve Station, OH",mission
+SPRIG,B762,305th AMW Joint Base-McGuire-Lakehurst,mission
+SPRINT,LJ35,457th AS Joint Base Joint Base Andrews MD,mission
+SPRY,K35R,"55th Wing, Offutt AFB, NE",mission
+SPUN,B703,"552nd ACW, Tinker AFB, OK",mission
+SPUNK,F15,Mass ANG BARNES MA,flight
+SPUR,B762,USAF 60AMW Travis AFB CA,mission
+SPUR,C130,"4th SOS, Hurlburt Fld FL",mission
+SPUR,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+SPUR,K35R,"22ARW/351st ARS McConnell AFB, KS",mission
+SPUR,LJ35,457thAS Joint Base Joint Base Andrews MD,mission
+SPUR,LJ35,"AETC Commanders acft, Randolph AFB TX",mission
+SPUR,T38,560th FTS RANDOLPH AFB TX,flight
+SPUR,TEX2,559th FTS RANDOLPH AFB TX,flight
+SPURT,C130,HURLBURT FIELD FL,mission
+SPY,F16,"57th FW Weapons School, Nellis AFB NV",flight
+STAGS,F15,1st TFTS Tyndall AFB FL,flight
+STAKE,F15,494th FS Lakenheath UK,flight
+STALK,C130,"355th Wing, Davis-Monthan AFB, AZ",mission
+STALK,F16,169th FW McEntire ANGB SC,flight
+STALK,F16,56th FW Luke AFB AZ,flight
+STAR,A10,232rd FW Moody AFB GA,flight
+START,K35R,18th ARW Kadena AB Okinawa,mission
+STARTREK,C130,RAF LTW Brize Norton,mission
+STASH,F16,"61st FS, Luke AFB, AZ",flight
+STASH,T38,7th FTs Joint base Langley-Eustis VA VA,flight
+STAVE,F15,85th TES Eglin AFB FL,flight
+STEAK,T38,7th FTS Joint Base Langley-Eustis VA,flight
+STEAM,T38,7th FTS Joint Base Langley-Eustis VA,flight
+STEEK,F22,199th FS Joint Base Pearl Harbor-Hickam HI,flight
+STEEL,A10,23rd AW Moody AFB GA,flight
+STEEL,A10,52FW/ 81FS Spangdahlem GE,flight
+STEEL,K35R,"147th ARS, PA ANG Pittsburgh PA",mission
+STEER,F22,94th FS Joint Base Langley-Eustis VA,flight
+STEIN,TEX2,14th FTW/41st FTS Columbus AFB MS,flight
+STEP,C130,"355th Wing, Davis-Monthan AFB, AZ",mission
+STICK,A10,52FW/81FS Spangdahlem GE,flight
+STIFF,C130,"314th OG, Little Rock AFB, AR",mission
+STIFF,T38,71st FTS Joint Base Langley-Eustis VA,flight
+STIGMA,BE20,ARMS USARC 339 MI CO JRB Ft Worth TX,mission
+STIGMA,BE20,USARC 339 MI CO JRB Ft Worth TX,mission
+STINE,TEX2,"37th FTW/41st FTS, Columbus AFB MS",flight
+STING,F15,"144th FW, CA ANG Fresno ANGB CA",flight
+STING,F15,333 FS Seymour Johnson AFB NC,flight
+STING,F16,"112th FS, OH ANG at Toledo",flight
+STING,F16,22nd FS Spangdahlem AB GE,flight
+STING,F18H,"VFA-113, CVW-14 NAS NORTH ISLAND, CA",flight
+STING,K35R,22rnd ARW McConnell AFB KS,mission
+STINGER,F15,"144th FW, CA ANG Fresno ANGB CA",flight
+STINGER,F16,22nd FS Spangdahlem AB GE,flight
+STINGER,F18H,VFA-113 (NK) NAS Lemoore CA,flight
+STINGER,F18S,"VAQ-140, NAS Whidbey Island WA",flight
+STINGER,F22,71st FS Joint Base Langley-Eustis VA,flight
+STINGRAY,P8,POSEIDON MRA.1 54Sqn/120 Sqn RAF LOSSIEMOUTH UK,mission
+STINT,K35R,"55th Wing, Offutt AFB, NE",mission
+STIPE,F16,119TH FS NJ ANG ATLANTIC CITY NJ,flight
+STITCH,A10,"Selfridge ANGB, MI",flight
+STOB,K35R,"55th Wing, Offutt AFB, NE",mission
+STOKER,T38,435th FTS RANDOLPH AFB TX,flight
+STOMP,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+STOMP,T38,7th FTs Joint Base Langley-Eustis VA,flight
+STONER,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+STORK,C17,62 AW Travis AFB CA,mission
+STORK,C17,"62nd AW, McChord AFB, WA",mission
+STORM,B52,"2ndBW Barksdale AFB, LA",mission
+STORM,C130,"352nd SOG, RAF Mildenhall, UK",mission
+STORM,F15,"494th FS, Lakenheath UK",flight
+STORM,F18S,"VMAQ-3 Moondogs Cherry Point MCAS, NC",flight
+STORMY,A10,"25TH FS, OSAN AB KOREA",flight
+STORMY,F16,79 FS/20 FW Shaw AFB SC,flight
+STOUT,F15,USAFE 48FW/492FS LN Lakenheath UK,flight
+STOUT,K35R,939th ARW Beale AFB CA,mission
+STRAIGHT,P3,"VP-65, NAS PT MUGU CA",mission
+STRAY,C130,"23rd Wing, Moody AFB GA",mission
+STRIKE,F15,104th FW MA ANG Barnes ANGB MA,flight
+STRIKE,F15,"4th Wing, SEYMOUR JOHNSON AFB, NC",flight
+STRIKE,F18H,"NSATS, Patuxent River NAS MD",flight
+STRIKE,F18H,"VFA-94, NAS Lemoore CA",flight
+STRIKER,C30J,"47Sqn RAF Brize Norton, UK",mission
+STRIX,C30J,352 SOW RAF MILDENHALL UK,mission
+STROBE,T38,435th FTS RANDOLPH AFB TX,flight
+STRUCK,F16,22nd FS Spangdahlem AB GE,flight
+STRUT,F16,55 FS/20 FW Shaw AFB SC,flight
+STUD,F16,140th FW CO-ANG Buckley ANGB Aurora CO,flight
+STUD,F22,27th FTs Joint Base Langley-Eustis VA,flight
+STUKA,A10,107th FTs MI ANG Selfridge ANGB MI,flight
+STUMP,C130,"43rd OG, Moody AFB GA",mission
+STUMP,F22,1st FW 94TH FS Joint Base Langley-Eustis VA,flight
+SULLY,T38,435th FTS RANDOLPH AFB TX,flight
+SULPHUR,F16,56th FW Luke AFB AZ,flight
+SUMMIT,C130,"731st AS AFRC, Peterson AFB, CO",mission
+SUMO,BE20,9th RW/489th RS Beale AFB CA,mission
+SUMO,C30J,VMGR-152 Futenma JA,mission
+SUN,B737,VR-62 NAS Jacksonville FL,mission
+SUNDOG,T38,7th FTs Joint Base Langley-Eustis VA,flight
+SUNLINER,F18H,"US Navy VFA-81, USS Eisenhower",flight
+SUNNY,BE20,224th Military Intelligence Bn Hunter AAF Savannah GA,mission
+SUNNY,BE20,MCAS Beaufort SC,mission
+SUNNY,F16,180th FW OH ANG Toledo OH,flight
+SUNTAN,F16,77 FS/20 FW Shaw AFB SC,flight
+SUPER,A10,25TH FS OSAN AB KOREA,flight
+SUPRA,T38,435th FTS Randolph AFB TX,flight
+SURF,F15,144th Fighter Wing (CA ANG) 194th FS March ARB CA,flight
+SWAM,C17,"62nd AMW, MCCHORD AFB WA",mission
+SWAMIE,F16,Luke AFB AZ,flight
+SWAMP,T38,7th FTs Joint base Langley-Eustis VA VA,flight
+SWANK,F15,4 FW/334th FS Seymour-Johnson AFB NC,flight
+SWAP,C130,43rd OG Pope AFB NC,mission
+SWAT,A10,"Selfridge ANGB, MI",flight
+SWATH,B762,305AMW Joint Base-McGuire-Dix-Lakehurst NJ,mission
+SWATH,B762,USAF AFRC/916ARW/77ARS Seymour Johnson AFB NC,mission
+SWEAT,C130,"440TH AW, MILWAUKEE WI",mission
+SWEAT,LJ35,"""SAM"" aircraft (Special Air Mission)",mission
+SWEEP,F18H,VMFA-312 MCAS Beaufort SC,flight
+SWEET,C130,"95th AS, AFRC Milwaukee, WI",mission
+SWEET,T38,435th FTS RANDOLPH AFB TX,flight
+SWIFT,K35R,Meta/Cass Professional Services (USN contractor),mission
+SWIFT,LJ35,"458th AS/375th AW, Scott AFB IL",mission
+SWIG,A10,23rd FW Moody AFB GA,flight
+SWIG,F16,100th FS AL ANG Dannelly Fld AL,flight
+SWINE,A10,122nd FW/163rd FS IN ANG Ft Wayne IN,flight
+SWINE,A10,47th FTs / 924th Fighter Group (AFRS) Davis Monthan AFB AZ,flight
+SWINE,A10,"47th FTs AFRES, Barksdale AFB, LA",flight
+SWINE,F15,Eglin AFB FL,flight
+SWIRLY,T38,435th FTS RANDOLPH AFB TX,flight
+SWITCH,F18S,"VFA-151,NAS Leemoore CA",flight
+SWORD,F18H,VMFA-323 MCAS MIRAMAR CA,flight
+SWORD,P3,VP-47 NAS Whidbey Island WA,mission
+SWORD,P8,Poseidon VP-47 NAS Whidbey Island WA,mission
+TABOR,BE20,Europe,mission
+TABOR,F16,169th FW SC ANG McEntire AFB SC,flight
+TABOR,F16,31st FW Aviano AB Italy,flight
+TACIT,K35R,92nd ARW Fairchild AFB WA,mission
+TACK,K35R,"552nd ACW, Tinker AFB, OK",mission
+TACK,T38,435th FTS Randolph AFB TX,flight
+TACKY,F15,"4th FW SEYMOUR JOHNSON AFB, NC",flight
+TACO,A10,52FW/81FS Spangdahlem GE,flight
+TACO,F15,"104th FG, MA ANG, Barnes ANGB MA",flight
+TACO,F15,"19th Fighter Squadron at Elmendorf AFB, AK",flight
+TACO,F15,"4 92nd FS Lakenheath, UK",flight
+TACO,F16,"124th FS, IA ANG at Des Moines IA",flight
+TACO,F16,188th FS NM ANG Kirtland AFB NM,flight
+TACO,F22,94th FS Joint Base Langley-Eustis VA,flight
+TAFFY,C130,"403rd Wing, Keesler AFB, MS",mission
+TAHOE,TEX2,559th FTS RANDOLPH AFB TX,flight
+TAKE,K35R,"55th Wing, Offutt AFB, NE",mission
+TALLY,C130,"43rd OG, Moody AFB GA",mission
+TALLY,K35R,"55th Wing, Offutt AFB, NE",mission
+TALON,C130,"16th SOS, Hurlburt Field FL",mission
+TALON,C130,"7th SOS, RAF Mildenhall UK",mission
+TALON,F18H,"VFA-115, CVW-14 NAS Lemoore CA",flight
+TALON,K35R,"552nd ACW, Tinker AFB, OK",mission
+TALON,P8,VP-16 NAS Jacksonville FL,mission
+TALON,T38,7th FTs joint Base Langley-Eustis VA,flight
+TALON,T38,generic T-38 callsign,flight
+TANG,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+TANGO,A10,"303rd Fighter Sqdn, 442nd Fighter Wing, Whiteman AFB MO",flight
+TANGO,F16,Luke AFB AZ,flight
+TANGO,F18H,"VMFA(AW)-224, ""Bengals"" MCAS Beaufort, SC",flight
+TANK,A10,81ST FS SPANGDAHLEM AB GE,flight
+TAPE,K35R,"55th Wing, Offutt AFB, NE",mission
+TAPER,K35R,"552nd ACW, Tinker AFB, OK",mission
+TAPROOM,F18S,VFA-143 NAS OCEANA VA,flight
+TARBOX,F18H,VFA-136 NAS OCEANA VA,flight
+TASTE,C30J,193rdSOS/193rdSOW PA-ANG Harrisburg PA,mission
+TASTIER,C130,AFRC 93rd AW/96th AS Minneapolis-St Paul MN,mission
+TATER,F16,"119th FG, NJ ANG Atlantic City NJ",flight
+TATER,T38,435th FTS Randolph AFB TX,flight
+TAZZ,F15,173rd FW OR ANG Kingley ANGB Klamath Falls OR,flight
+TAZZ,K35R,121ST ARG OH ANG RICKENBACKER ANGB OH,mission
+TBOLT,F18H,"VMFA-251, MCAS BEAUFORT SC",flight
+TBOLT,F22,192nd FW/149th FS VA ANG Joint Base Langley-Eustis VA,flight
+TBONE,A10,75th FS Moody AFB GA,flight
+TBONE,C30J,VMGR234 Ft Worth NAS TX,mission
+TEAL,C30J,"53rd WRS, Keesler AFB, Biloxi, MS",mission
+TEAM,B762,305th AMW Joint Base-McGuire-Dix-Lakehurst NJ,mission
+TEAR,T38,435th FTS RANDOLPH AFB TX,flight
+TECATE,TEX2,559th FTS Randolph AFB TX,flight
+TEEPEE,F15,4th FW/334th FS Seymour-Johnson AFB NC,flight
+TEMPO,K35R,"117th ARS, KS ANG Topeka KS",mission
+TERN,F15,4th FW Seymour-Johnson AFB NC,flight
+TERRA,B752,150th SOS NJ ANG Joint Base-McGuire-Dix-Lakehurst NJ,mission
+TERRA,B752,"486 FLTS, Eglin AFB, used by State Dept. FEST missions",mission
+TESTLINE,F18H,"USN NARF, North Island, CA",flight
+TETON,C130,187th AS/153rd AW WY-ANG Cheyenne WY,mission
+TEX,F16,"111th FS, TX ANG Ellington ANGB TX",flight
+TEXACO,B762,tasked to/from the Middle East (also KC-135R),mission
+TEXACO,K35R,121st ARW OH ANG Rickenbacker ANGB OH,mission
+TEXAN,K35R,22ARW McConnell AFB KS,mission
+TEXAS,F16,182nd FS TX ANG Joint Base San Antonio-Lackland TX,flight
+TEXMEX,T38,435th FTS RANDOLPH AFB TX,flight
+TEXON,C17,"58th AS/97th AMW, Altus AFB OK",mission
+THICK,C30J,"352SOW / 67SOS RAF Mildenhall, UK",mission
+THING,T38,435th FTS RANDOLPH AFB TX,flight
+THIRST,C17,437th AMW Charleston AFB SC,mission
+THREAD,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+THROW,F16,Luke AFB AZ,flight
+THUD,A10,74th FS Moody AFB,flight
+THUD,F16,"466th FW, AFRC Hill AFB, UT",flight
+THUG,A10,303RD FS AFRES WHITEMAN AFB MO,flight
+THUG,C17,"437th AW Charleston AFB, SC",mission
+THUMPER,B703,"970th AWACS, Tinker AFB OK",mission
+THUMPER,F22,94th FS Joint Base Langley-Eustis VA,flight
+THUNDER,A10,23rd FW Moody AFB GA,flight
+THUNDER,A10,81ST FS SPANGDAHLEM AB GE,flight
+THUNDER,F18H,CVW-9 VFA-154,flight
+THUNDER,F18S,VAQ-135 WHIDBEY ISLAND WA,flight
+THUNDERBIRD,F16,"AF Demo Team, Nellis AFB, NV",flight
+TICA,C17,62nd AW McChord AFB WA,mission
+TIER,C130,"352nd SOG, RAF Mildenhall, UK",mission
+TIGER,A10,355TH FS EILSON AFB AK,flight
+TIGER,A10,74TH FS Moody AFB GA,flight
+TIGER,A10,Demo Team,flight
+TIGER,B2,"509th BW, Whiteman AFB MO",mission
+TIGER,C130,"23rd Wing, Moody AFB GA",mission
+TIGER,C130,"403rd Wing, Keesler AFB, MS",mission
+TIGER,F15,391st FS Mountain Home ID,flight
+TIGER,F16,"115th FW, Madison, WI",flight
+TIGER,F16,35th FS Osan AB Korea,flight
+TIGER,F16,79th FS Shaw AFB SC,flight
+TIGER,K35R,108th AW Joint Base McGuire-Dix-Lakehurst,mission
+TIGER,P8,"Poseidon, VP-8 NAS Jacksonville FL",mission
+TIGER,T38,71st FTS Joint Base Langley-Eustis VA,flight
+TIGERTAIL,F18S,"VMAQ-2, MCAS Cherry Point, NC",flight
+TIGRE,F16,"162nd FW, AZ ANG Tucson AZ",flight
+TIGRE,F16,AZ-ANG,flight
+TIMBER,F18S,VAQ-142 WHIDBEY ISLAND WA,flight
+TIME,C130,"314th AW, Little Rock AFB, AR",mission
+TIMON,C130,"16th SOW, Hurlburt Field AFB, FL",mission
+TIN,C17,437th AW Charleston AFB SC,mission
+TIN,C17,62ndAW McChord AFB WA,mission
+TINA,K35R,168th ARW Eielson AFB AK,mission
+TINCUP,C130,"40TH AS, DYESS AFB TX",mission
+TINMAN,A10,23rd FW Moody AFB GA,flight
+TIPPLE,C130,"43rd OG, Pope AFB NC NC",mission
+TIRE,B703,"552nd ACW, Tinker AFB, OK",mission
+TITAN,F15,Lakenheath UK,flight
+TITO,T38,7th FTs Joint Base Lanlgley-Eustis VA,flight
+TITUS,BE20,DEFENSE SECURITY COOPERATION AGENCY Joint Base Joint Base Andrews MD,mission
+TOBY,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+TOGA,B762,"79th ARS, Travis AFB, CA",mission
+TOGO,C17,"517th AS/3rd WNG, Elmendorf AFB AK",mission
+TOIL,C130,357th AS AFRC MAXWELL AFB AL,mission
+TOILER,C560,VMR-1 MCAS Cherry Point NC,mission
+TOLER,C130,"731st AS AFRC, Peterson AFB, CO",mission
+TOLL,K35R,"55th Wing, Offutt AFB, NE",mission
+TOMB,F22,95th FS Tyndall AFB FL,flight
+TOMMY,F16,"31st FW, Aviano, Italy",flight
+TONER,C130,"403rd Wing, Keesler AFB, MS",mission
+TONG,C17,"62nd AW, McChord AFB, WA",mission
+TONGA,T38,7th FTs Joint Base Langley-Eustis VA,flight
+TONGA,TEX2,559th FTS RANDOLPH AFB TX,flight
+TONKA,F16,"138th Fighter Wing, Oklahoma Air National Guard, Tulsa, OK",flight
+TONTO,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+TONUS,K35R,"55th Wing, Offutt AFB, NE",mission
+TOP,F16,61st FS Luke AFB AZ,flight
+TOP,F16,79TH FS SHAW AFB SC,flight
+TOP,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+TOPCAT,F16,79 FS Shaw AFB SC,flight
+TOPCAT,K35R,108ARW/141ARS NJ ANG Joint Base-McGuire-Dix-Lakehurst NJ,mission
+TOPCAT,K35R,Offutt AFB NE,mission
+TOPDOG,F22,27th/94th FS Joint base Langley-Eustis VA VA,flight
+TOPHAT,F16,"310th FS, Luke AFB, AZ",flight
+TORA,K35R,55th WG Offutt AFB NE,mission
+TORA,K35R,909th ARS Kadena AB Okinawa,mission
+TORCH,A10,"Selfridge ANGB, MI",flight
+TORCH,B2,509th BW Whiteman AFB,mission
+TORCH,C130,169TH AS IL ANG PEORIA IL,mission
+TORCH,F22,27th FTs Joint Base Langley-Eustis VA,flight
+TORCH,T38,49th FTS/14th FTW Columbus AFB MS,flight
+TORCO,B703,"552nd ACW, Tinker AFB, OK",mission
+TORF,C130,"94th AW, Dobbins ARB, GA",mission
+TORI,C560,VMR DET MCAS MIRAMAR CA,mission
+TORO,A10,"Selfridge ANGB, MI",flight
+TORO,K35R,/T 319th ARW Grand Forks AFB,mission
+TORO,T38,459th FTS Sheppard AFB TX,flight
+TORQE,C130,WY ANG 153AW 187AS Cheyenne AP WY,mission
+TORQUE,A10,"Selfridge ANGB, MI",flight
+TORQUE,C130,130AW/130AS WVA ANG Charleston WVA,mission
+TORQUE,C130,9th SOS Mildenhall UK,mission
+TORQUE,C130,TX ANG 181st AS FT Worth JRB TX,mission
+TORQUE,C130,USAF/39th AS,mission
+TORY,C560,"USMC, VMC-2, NAS MIRAMAR CA",mission
+TOTAL,F15,"33rd FW, Eglin AFB, FL",flight
+TOTAL,K35R,"22ARW/351st ARS McConnell AFB, KS",mission
+TOTEM,C130,517TH AS Elmendorf AFB AK,mission
+TOTEM,F22,94th FS Joint Base Langley-Eustis VA,flight
+TOTEM,P3,VP-69 NAS Whidbey Island WA,mission
+TOTTY,K35R,"55th Wing, Offutt AFB, NE",mission
+TOXI,C130,"7th Wing, Dyess AFB, TX",mission
+TOXIC,BE20,# 96-00112 US Army Chemical & Biological Command Phillips AAF Aberdeen Proving Grounds MD,mission
+TOXIC,C130,"43rd OG, Pope AFB NC",mission
+TOXIC,C130,55th W/42nd ECS Davis Monthan AFB AZ,mission
+TOXIC,K35R,"55th Wing, Offutt AFB, NE",mission
+TRACER,T38,435th FTS RANDOLPH AFB TX,flight
+TRACTOR,C130,VR-54 NAS JRB New Orleans LA,mission
+TRACTOR,C130,VR-55 NAS Point Mugu CA,mission
+TRAIN,C130,187th AS WY-ANG,mission
+TRAIN,T38,560th FTS RANDOLPH AFB TX,flight
+TRAIN,T38,71st FTS Joint Base Langley-Eustis VA,flight
+TRAMP,F16,Netherlands 1(NL)TF,flight
+TRANS,LJ35,458th AS Scott AFB IL,mission
+TRAP,F22,94th FS Joint Base Langley-Eustis VA,flight
+TRASH,C30J,"""Raiders"", VMGR-352,MCAS Miramar, Ca",mission
+TRAW,F15,"33rd FW, Eglin AFB, FL",flight
+TREK,C130,DE ANG 166AW/142AS New Castle DE,mission
+TREK,C17,USAF / PACAF 517AS Elmendorf AK,mission
+TREK,C17,USAF PACAF 15AW/535AS Joint Base Hickam-Pearl Harbor AFB HI,mission
+TREK,F15,494th FS RAF Lakenheath UK,flight
+TREK,T38,435th FTS RANDOLPH AFB TX,flight
+TREKKER,C130,8th Wing/436th Sqdn CFB Trenton,mission
+TRIAL,K35R,"55th Wing, Offutt AFB, NE",mission
+TRIAL,P8,NAS Jacksonville FL,mission
+TRIBE,B52,5th BW Minot AFB ND,mission
+TRIBE,C17,97AMW Altus AFB OK,mission
+TRIBE,F16,138th FW/125th FS OK ANG Tulsa ANGB OK,flight
+TRICKER,F18H,"VFA-34, NAS OCEANA VA",flight
+TRICKY,F15,4th FW Seymour-Johnson AFB NC,flight
+TRIDENT,P8,"VP-26 TRIDENTS , NAS Jacksonville FL",mission
+TRIGGER,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+TRILL,F15,"104th FG, MA ANG at Barnes ANGB MA",flight
+TRIM,C130,"355th Wing, Davis-Monthan AFB, AZ",mission
+TRIST,K35R,"4th Wing, SEYMOUR JOHNSON AFB, NC",mission
+TRITON,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+TROCH,B703,"552nd ACW, Tinker AFB, OK",mission
+TROJAN,F15,"104th FG, MA ANG, Barnes ANGB MA",flight
+TROJAN,F18H,NAS OCEANA VA,flight
+TROJAN,F22,94th FS Joint Base Langley-Eustis VA,flight
+TROLL,A10,23 FG Moody AFB GA,flight
+TRON,A10,104th FS MD ANG Martin State Airport MD-special use callsign in CAS training,flight
+TRON,F16,"115th FW, Madison, WI",flight
+TRON,F18S,VAQ-209 NAS Whidbey Island WA,flight
+TROUT,GLF4,"# 97-0139, unid unit, Joint Base Joint Base Andrews MD",mission
+TROY,TEX2,559th FTS RANDOLPH AFB TX,flight
+TRUAX,F16,"115th FW, Madison, WI",flight
+TRUCE,K35R,117th ARW AL ANG Birmingham AL,mission
+TRUCK,C17,62AW McChord AFB WA,mission
+TRUDY,C130,"156th AS, NC ANG Charlotte NC",mission
+TRUDY,C130,"731st AS AFRC, Peterson AFB, CO",mission
+TRUMP,F16,77 FS Shaw AFB SC,flight
+TRYST,K35R,"55th Wing, Offutt AFB, NE",mission
+TUFF,B52,"93rd Bomb Sqdn/11th Flying Training Unit Barksdale AFB, LA",mission
+TUFFY,K35R,22nd ARW McConnell AFB KS,mission
+TUG,LJ35,"375th AW, Scott AFB, IL",mission
+TULLY,B703,"552nd ACW, Tinker AFB, OK",mission
+TULLY,B752,United States NJ ANG 108WG 150SOS Joint Base-McGuire-Dix-Lakehurst NJ,mission
+TULLY,C130,55 Wing/55 ECG Davis-Monthan AFB AZ,mission
+TULSA,A10,23rd FG Moody AFB GA,flight
+TULSA,F16,"125th FS, OK ANG Tulsa OK",flight
+TUNDRA,TEX2,559th FTS RANDOLPH AFB TX,flight
+TUNE,F16,"388th FW, Hill AFB, UT",flight
+TUPAC,C130,NC ANG 145AW/156AS Charlotte NC,mission
+TUPPY,K35R,"92nd Wing, Fairchild AFB, WA",mission
+TURBAN,F16,55 FS/20 FW SHAW AFB SC,flight
+TURBO,A10,"Selfridge ANGB, MI",flight
+TURBO,K35R,"22nd ARW, McConnell AFB, KS",mission
+TURF,B52,Minot AFB SD,mission
+TURF,C130,"16th SOS, Hurlburt Fld FL",mission
+TURF,C130,"314th OG, Little Rock AFB, AR",mission
+TURTLE,C17,3215th AMW/701st AS USAFRC Charleston AFB SC,mission
+TUSK,A10,184th FS AR ANG Ft Smith AR,flight
+TUSK,A10,47th FTs/924th Fighter Group (AFRS) Davis Monthan AFB AZ,flight
+TUSK,A10,"Selfridge ANGB, MI",flight
+TUSK,C130,"302nd AW, Peterson AFB, CO",mission
+TUSK,C130,AFRC 94AW/700AS Dobbins ARB GA,mission
+TUSK,C30J,Litttle Rock AFB AR,mission
+TUSKER,C130,8th Wing/436th Sqdn CFB Trenton,mission
+TUTTY,C130,"934th AMW, Minn-St Paul, MN",mission
+TWIG,C130,352 SOG Mildenhall UK,mission
+TYROL,C130,"43rd OG, Pope AFB NC",mission
+TYSON,B52,"5thBW MINOT AFB, ND",mission
+UGH,F16,111th FS TX ANG Ellington ANGB,flight
+UGLY,F18H,VFA-151 NAS Lemoore CA,flight
+UNIVERSAL,B762,"9th ARS, Travis",mission
+UNRULY,F16,79 FS/20 FW Shaw AFB SC,flight
+UNSEW,B703,"552nd ACW, Tinker AFB, OK",mission
+UPSET,K35R,"128th ARG, WI ANG Milwaukee, WI",mission
+UTAH,K35R,"191st ARS, UT ANG Salt Lake City Int'l UT",mission
+VADER,A10,"Selfridge ANGB, MI",flight
+VADER,C130,"914th OG, OH ANG, YOUNGSTOWN OH",mission
+VADER,F15,"493rd FS, Lakenheath UK",flight
+VADER,F18S,VAQ-209 Whidbey Island WA,flight
+VAGUE,F15,"33rd FW, Eglin AFB, FL",flight
+VALOR,F18H,NAS OCEANA VA,flight
+VALOR,GLF5,86th AW Ramstein AB GE,mission
+VALOR,GLF5,99th AS Joint Base Joint Base Andrews MD,mission
+VALOR,LJ35,"177th AS/119th AW, ND ANG Fargo ND",mission
+VALOR,T38,"49th FW, Holloman AFB, NM",flight
+VALOR,TEX2,"37th FTW/41st FTS, Columbus AFB MS",flight
+VALVO,K35R,"55th Wing, Offutt AFB, NE",mission
+VAMPIRE,F15,44th FS Kadena Japan,flight
+VANDAL,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+VANDY,F18H,VX-9 NAWS China Lake CA,flight
+VANGUARD,A10,23rf FW Moody AFB GA,flight
+VANGUARD,B703,"552nd ACW, Tinker AFB, OK",mission
+VAPOR,F22,43 FS Tyndall AFB FL,flight
+VAPOR,F22,94th FS Joint Base Langley-Eustis VA,flight
+VEDA,F15,"SEYMOUR JOHNSON AFB, NC",flight
+VEDA,F15,Seymour-Johnson AFB NC,flight
+VEGA,A10,"303rd Fighter Sqdn, 442nd FW; Whiteman AFB MO",flight
+VEGA,T38,435th FTS RANDOLPH AFB TX,flight
+VEGAS,F15,422nd TES Nellis AFB NV,flight
+VEGAS,F15,90th FS Elmendorf AFB AK,flight
+VEGAS,F16,"57th FW Weapons School, Nellis AFB NV",flight
+VEGAS,F16,77th FTs Shaw AFB SC,flight
+VEGAS,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+VEIL,C130,"43rd OG, Pope AFB NC",mission
+VEIN,K35R,"55th Wing, Offutt AFB, NE",mission
+VELA,C17,6th AS Joint Base McGuire-Lakehurst NJ,mission
+VELA,K35R,55th Wing Offutt AFB NE,mission
+VELCRO,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+VELVA,K35R,"552nd ACW, Tinker AFB, OK",mission
+VENGER,B52,"/917th BW, 343rd BS, AFRC Barksdale AFB, LA",mission
+VENOM,F16,"100th FS/187th FW, Montgomery AL",flight
+VENOM,F16,125th FW/159th FS FL ANG Jacksonville FL,flight
+VENOM,F16,"31stFW, Aviano Airbase, Italy",flight
+VENOM,F16,"421st FS, Hill AFB UT",flight
+VENOM,F16,"422nd Test Sqdn, Eglin AFB FL",flight
+VENOM,F16,78th FS Shaw AFB SC,flight
+VENT,A10,23rd FG Moody AFB GA,flight
+VENUE,K35R,"927th ARW, Selfridge ANGB, MI",mission
+VERGA,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+VERSE,F15,"366th Wing, Mt Home AFB, ID",flight
+VESPA,C130,317th AWG Dyess AFB TX,mission
+VESTY,F15,"SEYMOUR JOHNSON AFB, NC",flight
+VETCH,K35R,"55th Wing, Offutt AFB, NE",mission
+VETO,C130,USAFE/7th SOS,mission
+VETTE,F16,"115th FW, Madison, WI",flight
+VETTE,T38,435th FTS Randolph AFB TX,flight
+VICE,C130,NY ANG 106RQW 102RQS Gabresksi Airport NY,mission
+VICE,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+VICTORY,F18H,"US Navy VF-103, CVW-17 NAS OCEANA VA",flight
+VIEW,GLF5,C-20H 86AW/76AS Ramstein GE,mission
+VIEW,LJ35,OSACOM Joint Base Joint Base Andrews AFB MD,mission
+VIKING,A10,23rd FW Moody AFB GA,flight
+VIKING,A10,"Selfridge ANGB, MI",flight
+VIKING,C130,934th AW Minneapolis-St Paul MN,mission
+VIKING,F18S,VAQ-129 Whidbey Island WA,flight
+VIKING,F18S,"VFA-122 NAS Lemoore, CA",flight
+VIKING,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+VIKING,K35R,"92nd Wing, Fairchild AFB, WA",mission
+VINAL,B703,"552nd ACW, Tinker AFB, OK",mission
+VINE,K35R,"552nd ACW, Tinker AFB, OK",mission
+VINE,K35R,"55th Wing, Offutt AFB, NE",mission
+VINNY,T38,"7th FTs, Joint Base Langley-Eustis VA",flight
+VINYL,B762,"133rd ARS, NH ANG Pease ANGB NH",mission
+VINYL,B762,60th AMW Travis AFB CA,mission
+VINYL,C17,assoc w/POTUS support flts,mission
+VIPER,C130,"118th AW, TN ANG Nashville TN",mission
+VIPER,C130,158th AS GA-ANG,mission
+VIPER,F15,"104th FG, MA ANG Barnes ANGB MA",flight
+VIPER,F16,111th FS TX ANG Ellington ANGB TX,flight
+VIPER,F16,"120th FS, CO ANG at Buckley AFB CO",flight
+VIPER,F16,124th FS IA ANG Des Moines IA,flight
+VIPER,F16,125th FS OK ANG Tulsa OK,flight
+VIPER,F16,157 FS/169 FW SC ANG McEntire ANGB SC,flight
+VIPER,F16,"388th FW, Hill AFB, UT",flight
+VIPER,F16,"422nd Test Sqd, Eglin AFB FL",flight
+VIPER,F16,555th FS Aviano Italy,flight
+VIPER,F16,"56th FW, Luke AFB, AZ",flight
+VIPER,F16,"57th FW Weapons School, Nellis AFB NV",flight
+VIPER,F16,78th FS Shaw AFB SC,flight
+VIPER,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+VISOR,F16,55 FS/20 FW Shaw AFB SC,flight
+VODKA,T38,7th FTs Joint Base Langley-Eustis VA,flight
+VOID,C130,"16th SOW, Hurlburt Field AFB, FL",mission
+VOLT,C130,55th ECG Davis Monthan AFB AZ,mission
+VOLT,C17,"437TH AMW, CHARLESTON AFB SC",mission
+VOLVE,C130,"th Wing, Dyess AFB, TX",mission
+VOLVO,C130,"118th AW, TN ANG Nashville TN",mission
+VOODOO,F15,"159th FW, LA ANG New Orleans JRB LA",flight
+VOODOO,F15,19th FS Elmendorf AFB AK,flight
+VOODOO,F16,22nd FS Spangdahlem AB GE,flight
+VOODOO,F16,310th FS Luke AFB AZ,flight
+VOODOO,F22,71st FS Joint Base Langley-Eustis VA,flight
+VOODOO,F22,"94th FS, Joint Base Langley-Eustis VA",flight
+VOODOO,P8,NAS Jacksonville FL,mission
+VUDU,P8,VX-1 NAS Patuxent River MD,mission
+VULCAN,K35R,51 Sqdn RAF Waddington UK,mission
+VULCAN,K35R,AL ANG Dannelly Field Birmingham AL,mission
+VULTURE,F18H,VMFA-224 MCAS Beaufort SC,flight
+WACO,F15,4th FW Seymour-Johnson AFB NC,flight
+WAFER,P3,"VP-10 MINUTEMEN , NAS Jacksonville FL (JIATF callsign)",mission
+WAG,T38,435th FTS Randolph AFB TX,flight
+WAGER,C130,352SOG/67SOS RAF Mildenhall UK,mission
+WAGER,K35R,"434th ARW, Grissom ARB, IN",mission
+WAGON,F18H,VF-31 NAS OCEANA VA,flight
+WALDO,K35R,NJ ANG 108W/141ARS Joint Base McGuire-Dix-Lakehurst NJ,mission
+WANG,F15,OR-ANG,flight
+WANT,C130,"86th AW, Ramstein AB, GE",mission
+WAPPO,F15,"SEYMOUR JOHNSON AFB, NC",flight
+WAR,F18H,"VFA-87, CVW-8 NAS OCEANA VA",flight
+WAR,F18H,"VFA-97, ""War Hawks"" NAS Lemoore, CA",flight
+WAR,F18S,VAQ-139 WHIDBEY ISLAND WA,flight
+WARBIRD,B52,5th BW 23rd BS Minot AFB ND,mission
+WARBONNET,F18H,"US Navy VFA-83, USS Eisenhower",flight
+WARDOG,A10,"104th FS, MD ANG MARTIN STATE MD (FAC mission)",flight
+WARM,K35R,"319th Wing, Grand Forks AFB, ND",mission
+WARTHOG,A10,358TH FS DAVIS-MONTHAN,flight
+WARTHOG,A10,81ST FS SPANGDAHLEM AB GE,flight
+WASHOE,C130,"NV ANG 152AW/192AS Reno-Tahoe IAP, NV",mission
+WASP,F15,493rd FS RAF Lakenheath,flight
+WASP,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+WASP,F22,43 FS Tyndall AFB FL,flight
+WATT,K35R,"55th Wing, Offutt AFB, NE",mission
+WAVE,P8,VP-69 NAS Whidbey Island WA,mission
+WAYLAY,F16,"115th FW, Madison, WI",flight
+WEAR,C130,"96th AS, AFRC Minn-St Paul, MN",mission
+WEASEL,A10,81ST FS SPANGDAHLEM AB GE,flight
+WEASEL,F16,119th FS NJ ANG Atlantic City NJ,flight
+WEASEL,F16,"480FS Spangdahlem AFB, Germany",flight
+WEE,F16,77th FTs Shaw AFB SC,flight
+WEEDY,T38,435th FTS RANDOLPH AFB TX,flight
+WEPT,C130,"146th AW, CA ANG at Channel Islands ANGS CA",mission
+WHICKED,F15,"104th FG, MA ANG, Barnes ANGB MA",flight
+WHISK,C130,"16th SOW, Hurlburt Field AFB, FL",mission
+WHISKEY,F15,104th FW MA ANG Barnes ANGB MA,flight
+WHISKEY,F16,Hill AFB UT,flight
+WHISKY,T38,435th FTS RANDOLPH AFB TX,flight
+WHISTLER,B703,552ACW Tinker AFB OK,mission
+WHISTLER,B762,305th AMW Joint Base-McGuire-Dix-Lakehurst NJ,mission
+WHISTLER,B762,60th AMW Travis AFB CA,mission
+WHITE,P3,NAS Jacksonville FL,mission
+WHIZZO,T38,435th FTS RANDOLPH AFB TX,flight
+WICK,T38,435th FTS RANDOLPH AFB TX,flight
+WICKED,F15,104th FW MA ANG Barnes ANGB MA,flight
+WIDGET,F15,104th FW MA ANG Barnes ANGB MA,flight
+WIDOW,A10,107th FTs MI ANG Selfridge ANGB MI,flight
+WIDOW,F16,425th FS Luke AFB AZ,flight
+WIGAN,C130,"86th AW, Ramstein AB, GE",mission
+WIKI,C17,15AW / 535AS Joint Base Hickam-Pearl Harbor AFB HI,mission
+WILD,F15,Lakenheath UK,flight
+WILD,F16,"114th FW SDANG; Sioux Falls, SD",flight
+WILD,F16,"121st FS, DC ANG Joint Base Joint Base Andrews MD",flight
+WILDCAT,F18H,"VFA-131, CVW-7 NAS OCEANA VA",flight
+WILEY,K35R,117th ARS KS ANG Topeka KS,mission
+WILLOW,C130,POSS DELAWARE ANG New Castle DE,mission
+WILLOW,P3,VX-20 NAS Patuxent River MD,mission
+WILLY,T38,435th FTS RANDOLPH AFB TX,flight
+WIMPY,K35R,"434th ARW, Grissom ARB, IN",mission
+WINDER,F18S,"VFA-86, CVW-1 NAS Lemoore, CA",flight
+WING,BE20,/UC-35 USARC A/2-228 AVN (TA) Joint Base-McGuire-Dix-Lakehurst NJ,mission
+WINK,A10,"303rd Fighter Sqdn, 442nd FW; Whiteman AFB MO",flight
+WINK,C17,347th AMW Travis AFB CA,mission
+WINK,K35R,18WG/909ARS Kadena Air Base Okinawa,mission
+WINK,K35R,MI ANG 171ARS/127WG Selfridge MI,mission
+WINTER,F18S,"VAQ-142, Whidbey Island WA",flight
+WIRE,F22,27th FS Joint Base Langley-Eustis VA,flight
+WISE,C130,"16th SOS, Hurlburt Field , FL",mission
+WISE,C130,"711th SOS, Duke Fld FL",mission
+WISE,F22,71st FS Joint Base Langley-Eustis VA,flight
+WIZARD,P8,VPU-2 NAS Jacksonville FL,mission
+WODAN,A10,"303RD FS AFRES, Whiteman AFB, MO",flight
+WOLF,A10,"303rd Fighter Sqdn, 442nd FW; Whiteman AFB MO",flight
+WOLF,F15,"19th Fighter Squadron at Elmendorf AFB, AK",flight
+WOLF,F15,325th FW Tyndall AFB FL,flight
+WOLF,F16,148th FW MN ANG Duluth MN,flight
+WOLF,F16,23rd FS Spangdahlem AB GE,flight
+WOLF,F16,"57th FW Weapons School, Nellis AFB NV",flight
+WOLF,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+WOMBAT,C130,USAF 27SOW/73SOS Cannon AFB NM,mission
+WOMBAT,T38,7th FTs Joint Base Langley-Eustis VA,flight
+WONDA,B2,"509th BW, Whiteman AFB MO",mission
+WOODY,K35R,92nd ARW Fairchild AFB WA,mission
+WORN,C130,"7th Wing, Dyess AFB, TX",mission
+WORTH,K35R,"55th Wing, Offutt AFB, NE",mission
+WRANGLER,P3,NAS Jacksonville FL,mission
+WRAP,T38,435th FTS RANDOLPH AFB TX,flight
+WRESTLER,B762,305th AMW Joint Base-McGuire-Dix-Lakehurst NJ,mission
+WRESTLER,F18S,"NAS Whidbey Island, WA",flight
+WYATT,A10,"Selfridge ANGB, MI",flight
+WYLIE,K35R,117Th ARS 190th ARW KS ANG Topeka KS,mission
+XRAY,B737,"VR-57 NAS North Island, CA",mission
+YALTA,A10,107th FTs MI ANG Selfridge ANGB MI,flight
+YAMAHA,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+YANKEE,C130,"'s CT ANG, 103rd AW Bradley ANGB CT",mission
+YANKEE,F16,Luke AFB AZ,flight
+YANKY,C30J,"VMGR-452, Stewart ANGB, NY",mission
+YETI,A10,303rd FS/442nd FW Whiteman AFB MO,flight
+YETI,F22,27th FTs Joint Base Langley-Eustis VA,flight
+YETI,K35R,McConnell AFB KS,mission
+YODA,F22,27th/94th FS Joint Base Langley-Eustis VA,flight
+YOGA,C17,437Th AW Charleston AFB SC,mission
+YOGI,A10,"Selfridge ANGB, MI",flight
+YORKER,T38,435th FTS RANDOLPH AFB TX,flight
+YOWL,F15,"SEYMOUR JOHNSON AFB, NC",flight
+YUCCA,F16,388th FW Hill AFB UT,flight
+YUKLA,B703,"962 AACS, Elmendorf or Tinker AFB",mission
+YUKON,A10,"Selfridge ANGB, MI",flight
+YUKON,F15,325th FW Tyndall AFB FL,flight
+YUKON,F16,18th FS Eielson AFB AK,flight
+YULE,C130,"187th AS, WY ANG at Cheyenne WY",mission
+YUMA,BE20,US Navy,mission
+ZAGGS,K35R,"92ARW, Fairchild AFB, WA",mission
+ZAMA,T38,T-38C 49th FTW/50th FTS Columbus AFB SC,flight
+ZAMBONI,C130,8th Wing/436th Sqdn CFB Trenton,mission
+ZAMM,A10,"303rd Fighter Sqdn, 442nd FW; Whiteman AFB MO",flight
+ZAPPER,C130,"355th Wing, Davis-Monthan AFB, AZ",mission
+ZAPPER,F18H,VFA-81 CVW-17 NAS OCEANA VA,flight
+ZAPPER,F18S,"VAQ-130, NAS Whidbey Island, WA",flight
+ZEKE,F15,104th FW MA ANG Barnes ANGB MA,flight
+ZEPEL,K35R,"55th Wing, Offutt AFB, NE",mission
+ZESTY,F15,MA ANG Barnes ANGB MA,flight
+ZETA,B2,509 BW/393 BS Whiteman AFB MO,mission
+ZEUS,B52,"5thBW MINOT AFB, N",mission
+ZEUS,B703,552ACW Tinker AFB OK,mission
+ZINGER,F16,79TH FS SHAW AFB SC,flight
+ZIPGUN,F15,333 FS Seymour Johnson AFB NC,flight
+ZIPGUN,F16,"179 FS/148 FW - MN ANG Duluth, MN",flight
+ZIPPO,A10,"303rd Sqdn, 442nd FW; Whiteman AFB MO",flight
+ZIPPY,B703,"552nd ACW, Tinker AFB, OK",mission
+ZIPPY,K35R,"55th Wing, Offutt AFB, NE",mission
+ZOLA,C130,"7th Wing, Dyess AFB, TX",mission
+ZOMBIE,B762,305th AMW Joint Base McGuire-Dix-Lakehurst,mission
+ZOMBIE,K35R,/T 319th ARW Grand Forks AFB,mission
+ZONAL,C130,"302nd AW, Peterson AFB, CO",mission
+ZONE,K35R,22nd ARW McConnell AFB KS,mission
+ZOOM,B52,Barksdale AFB LA,mission
+ZOOM,F15,53rd TEG Eglin AFB FL,flight
+ZOOM,F16,"416th FLTS, Edwards AFB, CA test support",flight
+ZORBA,F15,104th FW MA ANG Barnes ANGB MA,flight
+ZORBA,T38,435th FTS RANDOLPH AFB TX,flight
+ZORRO,F16,119th FS NJ ANG Atlatntic City International Airport NJ,flight

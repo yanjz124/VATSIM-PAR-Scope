@@ -11,14 +11,14 @@ public static class Units
     public static double DegToRad(double deg) => deg * Math.PI / 180.0;
     public static double RadToDeg(double rad) => rad * 180.0 / Math.PI;
 
-    /// <summary>Normalises to [0, 360).</summary>
+    /// <summary>Normalizes to [0, 360).</summary>
     public static double Norm360(double deg)
     {
         deg %= 360.0;
         return deg < 0 ? deg + 360.0 : deg;
     }
 
-    /// <summary>Normalises to (-180, 180].</summary>
+    /// <summary>Normalizes to (-180, 180].</summary>
     public static double Norm180(double deg)
     {
         deg = Norm360(deg);

@@ -58,6 +58,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         Difficulty = settings.TrainingDifficulty;
         Engine.Training.Difficulty = Difficulty;
         Engine.Training.ReturnForAnotherApproach = settings.TrainingReturnForAnother;
+        settings.MaxCallsignLength = Math.Clamp(settings.MaxCallsignLength, 5, 6);
+        Engine.Training.MaxCallsignLength = settings.MaxCallsignLength;
         ShowScan = settings.ShowScan;
         ShowCompassRose = settings.ShowCompassRose ?? SelectedPreset.AsrCompassRose;
         ShowAdvisories = settings.ShowAdvisories;
@@ -95,6 +97,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     private void ApplyLiveWind() => Engine.Training.SurfaceWind = _settings.TrainingLiveWind ? _liveWind : null;
+
+    /// <summary>Longest training callsign on the radar (Settings › Training).</summary>
+    public IReadOnlyList<int> CallsignLengths { get; } = [5, 6];
+    public int MaxCallsignLength
+    {
+        get => _settings.MaxCallsignLength;
+        set { _settings.MaxCallsignLength = value; Engine.Training.MaxCallsignLength = value; OnPropertyChanged(); }
+    }
 
     public bool SpeechGpu
     {
@@ -632,7 +642,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>"(Callsign) radar contact [initials]" accepts approach's handoff; the pilot then checks in.</summary>
     private bool TryAcceptHandoff(string text, string via)
     {
-        if (_approach.Pending.Count == 0 || !Phraseology.Normalise(text).Contains(" radar contact")) return false;
+        if (_approach.Pending.Count == 0 || !Phraseology.Normalize(text).Contains(" radar contact")) return false;
         var offered = Engine.Training.Aircraft.Where(a => _approach.IsPending(a.Callsign)).ToList();
         var ac = Interphone.FindAircraft(text, offered) ?? (offered.Count == 1 ? offered[0] : null);
         Log("FINAL", $"(approach line) {text.Trim()}");
@@ -760,6 +770,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (t.ContactApproach) parts.Add("contact approach");
         if (t.ContactTower) parts.Add("contact tower after landing");
         if (t.ConditionalMissedApproach) parts.Add("(conditional: if runway not in sight)");
+        if (t.ApproachBrief) parts.Add("approach brief");
+        if (t.NoGyroTurn != 0) parts.Add($"no-gyro turn {(t.NoGyroTurn < 0 ? "left" : "right")}");
+        if (t.StopTurn) parts.Add("stop turn");
+        if (t.HalfStandardRate is bool half) parts.Add(half ? "half standard rate turns" : "standard rate turns");
+        if (t.NoGyroBrief) parts.Add("no-gyro approach");
+        if (t.RangeInfo) parts.Add("range information");
         if (t.ClimbToFt is double climb) parts.Add($"climb {climb:0}");
         return parts.Count == 0 ? "NOTHING (not understood)" : string.Join("; ", parts);
     }
@@ -802,13 +818,18 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     private bool _voiceStarted;
 
-    /// <summary>Starts the speech recogniser (microphone) the first time training mode is on.</summary>
+    /// <summary>Starts the speech recognizer (microphone) the first time training mode is on.</summary>
     public void StartVoice()
     {
         if (!TrainingMode || _voiceStarted) return;
         _voiceStarted = true;
         _speech.StateChanged += s => App.Current.Dispatcher.BeginInvoke(() => VoiceState = s);
         _speech.Heard += text => App.Current.Dispatcher.BeginInvoke(() => ProcessTransmission(text, "voice, " + (SelectedRecognizer?.Name ?? "speech")));
+        _speech.HeardAfter += (_, sec) => App.Current.Dispatcher.BeginInvoke(() =>
+        {
+            _session.Write($"          recognized {sec:0.0} s after release");
+            if (sec > 4) StatusMessage = $"Speech recognition took {sec:0} s: in Settings › Audio, try a smaller Whisper model or the graphics card";
+        });
         _speech.MicrophoneId = _settings.MicrophoneId;
         _speech.PttKeyName = PttKeyText;
         _ = _speech.UseRecognizerAsync(_settings.RecognizerId);
@@ -1141,11 +1162,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         var t = Phraseology.Parse(text);
         var target = to ?? CallTarget;
-        if (target is { InPattern: true })
+        if (target is { InPattern: true } || (target != null && _approach.IsPending(target.Callsign)))
         {
-            // On approach's frequency until handed off again.
-            Log("FINAL", text.ToUpperInvariant() + "  (no reply: with approach)");
-            StatusMessage = $"{target.Callsign} is with approach in the pattern";
+            // On approach's frequency: in the pattern, or offered but not yet accepted ("radar contact").
+            Log("FINAL", text.ToUpperInvariant() + "  (no reply: still with approach)");
+            StatusMessage = target.InPattern ? $"{target.Callsign} is with approach in the pattern"
+                : $"{target.Callsign} is still with approach: accept the handoff first ({KeyOf("approach_step")})";
             return;
         }
         Log("FINAL", text.ToUpperInvariant() + (t.IsEmpty ? "  (not understood)" : ""));
@@ -1247,7 +1269,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         return null;
     }
 
-    /// <summary>D: "begin descent", sent like any other call so the pilot reads it back and a level-off is cancelled.</summary>
+    /// <summary>D: "begin descent", sent like any other call so the pilot reads it back and a level-off is canceled.</summary>
     public void BeginDescent()
     {
         if (KeyTarget() is null) return;

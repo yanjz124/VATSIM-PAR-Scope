@@ -3,11 +3,11 @@
 This is the reference behind the radar model, display and phraseology in PAR Scope. Values marked
 *unverified* could not be confirmed from a primary source.
 
-## Real systems modelled
+## Real systems modeled
 
 | Preset | Service / role | Scan | Coverage | Range | Update | Display |
 |---|---|---|---|---|---|---|
-| AN/FPN-68 (L3Harris PAR-2020) | USN/USMC, replacing FPN-63 | AESA | 30° az, −1° to +7° el | 20 NM (15 rain) | < 1 s | colour, tracks, data blocks |
+| AN/FPN-68 (L3Harris PAR-2020) | USN/USMC, replacing FPN-63 | AESA | 30° az, −1° to +7° el | 20 NM (15 rain) | < 1 s | color, tracks, data blocks |
 | AN/FPN-63 | USN/USMC shore PAR (1978–) | two mechanical antennas | 20° × 8° | 10/20 NM | ~1 s *unverified* | analog AZ-EL indicator, bright 5-mile marks, DH marker, no tracker |
 | AN/GPN-22 Hi-PAR | USAF fixed base | phased-array feed, electronic both axes | 20° × 8° | 15 NM | ~1 s | tracks six aircraft |
 | AN/FPN-67 FBPAR | US Army fixed base | electronic | ±10° az, −1° to +6° el | 15 NM | < 1 s | track-while-scan |
@@ -22,7 +22,7 @@ Navy NRTC 14089 ch. 2; DTIC ADA228798 (1989 DoD PAR assessment); ICAO Annex 10 V
 * Azimuth: ≤ 0.6 % of antenna range + 10 % of deviation, or 30 ft. Resolution 1.2°.
 * Elevation: ≤ 0.4 % of antenna range + 10 % of deviation, or 20 ft. Resolution 0.6°.
 * Range: ≤ 100 ft + 3 % of distance from touchdown. Resolution 400 ft.
-* Siting: about 3,000 ft past touchdown and 400 ft from the centreline when scanning ±10°.
+* Siting: about 3,000 ft past touchdown and 400 ft from the centerline when scanning ±10°.
 
 The simulator uses one third of this budget as 1σ noise, scaled per preset. It adds ground-reflection
 multipath on elevation within two beamwidths of the horizon, which is the reason PAR elevation sectors
@@ -50,7 +50,7 @@ The digital style is copied from two sources:
 
 * **Frames of a current USMC expeditionary PAR screen** (DVIDS video 780898, MCAS Iwakuni, 2021):
   * black background;
-  * full-height range lines, dashed green for each mile and solid pale green at 5 NM, labelled "1.00";
+  * full-height range lines, dashed green for each mile and solid pale green at 5 NM, labeled "1.00";
   * olive glidepath and course lines;
   * tan dashed coverage limits fanning from the antenna, asymmetric because of the antenna offset;
   * a white dotted line under the glidepath;
@@ -155,7 +155,7 @@ US services do not publish numeric bands for "slightly" and "well". The app uses
 * **Touchdown:** 668–1,051 ft from the approach end, which matches TCH / tan GPA.
 * **Final calls:**
   * "Over approach lights" at ½ mile.
-  * "Over landing threshold" as the aircraft passes the centreline reflector (§6-323).
+  * "Over landing threshold" as the aircraft passes the centerline reflector (§6-323).
 * **Waveoff phraseology:** "(call sign) tower directs waveoff, climb and maintain 1600…" (§6-316).
 * **Lost communications:** "…(five/fifteen) seconds on final approach…" (§6-320).
 
@@ -177,7 +177,7 @@ and downloads at files.flying-fox.de/forum/vatsim/vpar.
 * The analog Final display copies the Canadian Forces **503 PAR** at 14 Wing Greenwood: logarithmic
   range spacing (wider close in), a bright spot at the last hit and no trail.
 * Elevation field of view 7° (3.5° either side of the glidepath); a Low Altitude Warning line 0.5°
-  below the glidepath by default, levelling off at the DH; azimuth course limit lines at ±1.25°.
+  below the glidepath by default, leveling off at the DH; azimuth course limit lines at ±1.25°.
 * Approach setup: threshold lat/lon, touchdown zone elevation, final approach course (magnetic), GPA,
   ground point intercept displacement (~1,000 ft), radar control limit, DH, magnetic variation.
 * Transmit timer: yellow after 5 s (final), red after 30 s (traffic pattern) — the lost-communications

@@ -31,7 +31,7 @@ public sealed record DifficultyProfile(
 
     public static string Describe(TrainingDifficulty d) => d switch
     {
-        TrainingDifficulty.Easy => "Light wind, precise pilots, close to the centreline.",
+        TrainingDifficulty.Easy => "Light wind, precise pilots, close to the centerline.",
         TrainingDifficulty.Normal => "Moderate wind, average pilots.",
         TrainingDifficulty.Hard => "Strong wind that shifts on descent; pilots drift off heading and rate unless corrected.",
         _ => "Gusty wind with shear; sloppy, slow pilots who drift steadily. Expect constant corrections.",
@@ -94,6 +94,39 @@ public sealed class TrainingTraffic
         new("PAT", 3, ["BE20", "C560"]),
         new("CONVOY", 4, ["B737", "C30J"]),
     ];
+
+    /// <summary>Longest generated callsign, as shown on the radar (0 = no limit). Longer ones are abbreviated.</summary>
+    public int MaxCallsignLength { get; set; }
+
+    /// <summary>ICAO designators for mission callwords.</summary>
+    private static readonly Dictionary<string, string> KnownAbbreviations = new() { ["REACH"] = "RCH", ["CONVOY"] = "CNV" };
+
+    /// <summary>
+    /// The letters and number of digits of a generated callsign within <see cref="MaxCallsignLength"/>: mission
+    /// numbers shorten first (to two digits); formation numbers stay two digits; then the callword is
+    /// abbreviated, by its ICAO designator or to its first letter and consonants (BANSHEE → BNS), as in a
+    /// flight plan's seven-character callsign.
+    /// </summary>
+    private (string Prefix, int Digits) FitCallsign(string prefix, int digits, bool flight)
+    {
+        int max = MaxCallsignLength;
+        if (max <= 0 || prefix.Length + digits <= max) return (prefix, digits);
+        if (!flight) digits = Math.Max(2, max - prefix.Length);
+        if (prefix.Length + digits <= max) return (prefix, digits);
+        string abbr = Abbreviate(prefix, Math.Max(1, max - digits));
+        if (!flight) digits = Math.Clamp(max - abbr.Length, 2, digits);
+        return (abbr, digits);
+    }
+
+    public static string Abbreviate(string word, int letters)
+    {
+        if (word.Length <= letters) return word;
+        if (KnownAbbreviations.TryGetValue(word, out var known) && known.Length <= letters) return known;
+        var consonants = new System.Text.StringBuilder().Append(word[0]);
+        foreach (char c in word[1..])
+            if ("AEIOUY".IndexOf(c) < 0 && consonants[^1] != c) consonants.Append(c);
+        return consonants.Length >= letters ? consonants.ToString(0, letters) : word[..letters];
+    }
 
     /// <summary>Name of the field being worked; squadrons based there fly most of its traffic.</summary>
     public string? HomeAirportName
@@ -170,14 +203,17 @@ public sealed class TrainingTraffic
         var geo = Geometry ?? throw new InvalidOperationException("Select a runway before spawning training traffic.");
         var style = PickStyle();
         string cs = o.Callsign is { Length: > 0 } custom ? custom.Trim().ToUpperInvariant().Replace(" ", "") : "";
+        var (prefix, digits) = FitCallsign(style.Prefix, style.FlightNumbers ? 2 : style.Digits, style.FlightNumbers);
         while (cs.Length == 0 || _aircraft.Any(a => a.Callsign == cs))
         {
             // Fighter flights are numbered 11–14, 21–24, …; others use mission/tail-style numbers.
             int number = style.FlightNumbers
                 ? _rng.Next(1, 9) * 10 + _rng.Next(1, 5)
-                : _rng.Next((int)Math.Pow(10, style.Digits - 1), (int)Math.Pow(10, style.Digits));
-            cs = style.Prefix + number;
+                : _rng.Next((int)Math.Pow(10, digits - 1), (int)Math.Pow(10, digits));
+            cs = prefix + number;
         }
+        // An abbreviated callword is still spoken in full on the radio ("BNS21": "Banshee two one").
+        if (prefix != style.Prefix) RadioSpeech.RegisterSpokenCallword(cs, style.Prefix);
 
         // A custom callsign built on a listed callword ("BANSHEE21") flies that unit's aircraft unless a type is given.
         string word = new(cs.TakeWhile(char.IsLetter).ToArray());
@@ -382,8 +418,12 @@ public sealed class SimAircraft
             return belowCeiling && distNm <= Math.Min(visNm, 5) && (_wx.VisibilitySm ?? 10) >= 0.5;
         }
     }
+    /// <summary>No-gyro: turning left (−1) or right (+1) until "stop turn"; turns at half standard rate once told to.</summary>
+    private int _noGyroTurn;
+    private bool _halfRate;
+    public int NoGyroTurnDirection => _noGyroTurn;
     /// <summary>Told to level off; holds altitude until told to resume descent.</summary>
-    private bool _levelled;
+    private bool _leveled;
     private double _rollSec;
     /// <summary>Missed approach instructions given in advance: heading (relative to course) and height above threshold.</summary>
     public double? MissedHeadingRelDeg { get; private set; }
@@ -500,14 +540,14 @@ public sealed class SimAircraft
         }
         if (t.LevelOff)
         {
-            _pending.Enqueue((now + delay, () => { CommandedVsFpm = 0; _levelled = true; }));
-            actions.Add("levelling off");
-            readback.Add("levelling off");
+            _pending.Enqueue((now + delay, () => { CommandedVsFpm = 0; _leveled = true; }));
+            actions.Add("leveling off");
+            readback.Add("leveling off");
         }
         if (t.ResumeDescent && Descending)
         {
             double vs = NominalVs(recommendedFpm);
-            _pending.Enqueue((now + delay, () => { _levelled = false; CommandedVsFpm = vs; _vsBias = 0; }));
+            _pending.Enqueue((now + delay, () => { _leveled = false; CommandedVsFpm = vs; _vsBias = 0; }));
             actions.Add("normal rate of descent");
         }
         if (t.ApproachBrief)
@@ -537,16 +577,35 @@ public sealed class SimAircraft
         if (t.HeadingDeg is double hdg)
         {
             double rel = Units.Norm180(hdg - courseMagDeg);
-            _pending.Enqueue((now + delay, () => { CommandedHeadingRelDeg = rel; _headingBias = 0; }));
+            _pending.Enqueue((now + delay, () => { CommandedHeadingRelDeg = rel; _headingBias = 0; _noGyroTurn = 0; }));
             actions.Add($"heading {hdg:000}");
             readback.Add($"heading {RadioSpeech.Heading(hdg)}");
         }
         else if (t.CourseCall != null && Math.Abs(_headingBias) > 1)
         {
-            // Course information is not an instruction: the pilot does not turn toward the centreline, but
+            // Course information is not an instruction: the pilot does not turn toward the centerline, but
             // hearing they are off course they check the heading and stop drifting off the assigned one.
             _pending.Enqueue((now + delay, () => _headingBias = 0));
             actions.Add("back on assigned heading");
+        }
+        if (t.HalfStandardRate is bool half)
+        {
+            _pending.Enqueue((now + delay, () => _halfRate = half));
+            actions.Add(half ? "half standard rate turns" : "standard rate turns");
+            readback.Add(half ? "half standard rate" : "standard rate");
+        }
+        if (t.NoGyroBrief && t.HalfStandardRate is null) { actions.Add("no-gyro approach"); readback.Add("roger"); }
+        if (t.NoGyroTurn != 0)
+        {
+            int dir = t.NoGyroTurn;
+            _pending.Enqueue((now + delay, () => { _noGyroTurn = dir; _headingBias = 0; }));
+            actions.Add(dir < 0 ? "turning left" : "turning right");
+        }
+        if (t.StopTurn)
+        {
+            // Rolls out on whatever heading they have when they hear it.
+            _pending.Enqueue((now + delay, () => { _noGyroTurn = 0; CommandedHeadingRelDeg = HeadingRelDeg; _headingBias = 0; }));
+            actions.Add("stopping turn");
         }
         if (t.DoNotAcknowledge)
         {
@@ -555,15 +614,25 @@ public sealed class SimAircraft
         }
         if (t.BeginDescent)
         {
-            _pending.Enqueue((now + delay, () => { Descending = true; _levelled = false; CommandedVsFpm = NominalVs(recommendedFpm); }));
+            _pending.Enqueue((now + delay, () => { Descending = true; _leveled = false; CommandedVsFpm = NominalVs(recommendedFpm); }));
             actions.Add("descending");
             readback.Add("descending");
         }
-        else if (Descending && !_levelled && !t.LevelOff && t.Glidepath != GlidepathCall.None)
+        else if (Descending && !_leveled && !t.LevelOff && t.Glidepath != GlidepathCall.None)
         {
             double vs = GlidepathResponse(t.Glidepath, t.GlidepathTrend, NominalVs(recommendedFpm), CommandedVsFpm);
             _pending.Enqueue((now + delay, () => { CommandedVsFpm = vs; _vsBias *= 0.3; }));
             actions.Add($"{-vs:0} fpm");
+        }
+        else if (!Descending && !GoingAround && !_leveled && !t.LevelOff
+                 && t.Glidepath is GlidepathCall.On or GlidepathCall.SlightlyAbove or GlidepathCall.Above or GlidepathCall.WellAbove)
+        {
+            // Still level, told they are on or above the glidepath: they have reached it, so they start down
+            // (and correct if above). Told "below", they hold altitude until they meet it.
+            double nominal = NominalVs(recommendedFpm);
+            double vs = GlidepathResponse(t.Glidepath, t.GlidepathTrend, nominal, nominal);
+            _pending.Enqueue((now + delay, () => { Descending = true; CommandedVsFpm = vs; }));
+            actions.Add($"descending, {-vs:0} fpm");
         }
         LastReadback = string.Join(", ", actions);
 
@@ -581,7 +650,7 @@ public sealed class SimAircraft
         _pending.Enqueue((now + ReactionDelay, () =>
         {
             Descending = true;
-            _levelled = false;
+            _leveled = false;
             CommandedVsFpm = NominalVs(recommendedFpm);
         }));
     }
@@ -598,6 +667,7 @@ public sealed class SimAircraft
     {
         if (GoingAround) return;
         GoingAround = true;
+        _noGyroTurn = 0;
         ClimbToFt = climbToFt;
         CommandedHeadingRelDeg = headingRel ?? 0;
         _headingBias = 0;
@@ -644,7 +714,7 @@ public sealed class SimAircraft
     /// <summary>
     /// The pilot's decision at decision height: continue only with the runway environment in sight (ceiling
     /// and visibility against the DH and 1/2 SM), a landing clearance, the gear down, and a stabilized
-    /// approach (near the glidepath and centreline, sane rate of descent); otherwise go around and say why.
+    /// approach (near the glidepath and centerline, sane rate of descent); otherwise go around and say why.
     /// </summary>
     private void DecideAtMinimums(ParGeometry geo, (double? CeilingFt, double? VisibilitySm) wx)
     {
@@ -705,10 +775,20 @@ public sealed class SimAircraft
             CommandedVsFpm = 0;
         }
 
-        // Half-standard-rate turns for small corrections, standard rate otherwise.
-        double hdgErr = Units.Norm180(CommandedHeadingRelDeg + _headingWander + _headingBias - HeadingRelDeg);
-        double rate = Math.Abs(hdgErr) < 5 ? 1.5 : 3.0;
-        HeadingRelDeg += Math.Clamp(hdgErr, -rate * dt, rate * dt);
+        if (_noGyroTurn != 0 && !Visual)
+        {
+            // No-gyro: a steady turn (standard rate, or half standard rate when told) until "stop turn".
+            double ngRate = _halfRate ? 1.5 : 3.0;
+            HeadingRelDeg = Units.Norm180(HeadingRelDeg + _noGyroTurn * ngRate * dt);
+            CommandedHeadingRelDeg = HeadingRelDeg;
+        }
+        else
+        {
+            // Half-standard-rate turns for small corrections, standard rate otherwise.
+            double hdgErr = Units.Norm180(CommandedHeadingRelDeg + _headingWander + _headingBias - HeadingRelDeg);
+            double rate = Math.Abs(hdgErr) < 5 || _halfRate ? 1.5 : 3.0;
+            HeadingRelDeg += Math.Clamp(hdgErr, -rate * dt, rate * dt);
+        }
 
         double vsTarget = CommandedVsFpm + (Descending ? _vsWander + _vsBias : 0);
         VerticalSpeedFpm += Math.Clamp(vsTarget - VerticalSpeedFpm, -400 * dt, 400 * dt);
@@ -833,7 +913,7 @@ public sealed class SimAircraft
     /// <summary>Back on final from approach's pattern: a fresh approach with the same pilot and aircraft.</summary>
     internal void ResetForApproach()
     {
-        InPattern = PatternDone = GoingAround = HandedOff = Landed = Visual = _decided = _levelled = false;
+        InPattern = PatternDone = GoingAround = HandedOff = Landed = Visual = _decided = _leveled = false;
         NoAcknowledge = GearReportedDown = false;
         AnotherApproach = true;
         Clearance = Mode == PilotMode.SelfFlying ? LandingIntent.FullStop : null;
@@ -845,12 +925,14 @@ public sealed class SimAircraft
         CommandedVsFpm = 0;
         CommandedHeadingRelDeg = HeadingRelDeg;
         _headingBias = _vsBias = 0;
+        _noGyroTurn = 0;
+        _halfRate = false;
         _rollSec = 0;
         _spawnHeightFt = Math.Max(HeightFt, 1);
         _pending.Clear();
     }
 
-    /// <summary>Simple ILS-like pilot: intercept and track the centreline and glidepath with lag and error.</summary>
+    /// <summary>Simple ILS-like pilot: intercept and track the centerline and glidepath with lag and error.</summary>
     private void SelfFly(ParGeometry geo)
     {
         double rangeFt = Math.Max(RangeFt, 500);

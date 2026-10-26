@@ -77,7 +77,7 @@ public partial class MainWindow : FluentWindow
             RangeScaleNm = _vm.RangeScaleNm,
             LogRange = _vm.LogRange,
             LogStraightLines = _vm.SelectedPreset?.LogStraightLines ?? false,
-            AzimuthAntennaCentred = _vm.SelectedPreset?.AzimuthAntennaCentred ?? false,
+            AzimuthAntennaCentered = _vm.SelectedPreset?.AzimuthAntennaCentered ?? false,
             ShowSafetyLimits = _vm.ShowSafetyLimits,
             ShowCourseWedge = _vm.ShowCourseWedge,
             MtiEnabled = _vm.Mti,

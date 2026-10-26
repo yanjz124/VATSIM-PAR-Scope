@@ -25,18 +25,26 @@ public static class MilitaryCallsigns
         "MCAS", "NAS", "AFB", "ARB", "ANGB", "NAF", "OLF", "AAF", "RAF", "ANG", "ARS", "THE", "AND",
     };
 
+    private static readonly char[] WordBreaks = [' ', '(', ')', '/', '-', ',', '.', ';', ':', '"', '\''];
+
+    /// <summary>All tactical callwords, for speaking short ones ("CAT", "DOG") as words.</summary>
+    public static bool IsCallword(string word) => Words.Value.Contains(word);
+    private static readonly Lazy<HashSet<string>> Words = new(() => new HashSet<string>(All.Select(c => c.Callword), StringComparer.OrdinalIgnoreCase));
+
     /// <summary>
-    /// Units based at an airport, matched by its distinctive name words against the unit's base
-    /// ("MIRAMAR MCAS (JOSEPH J FOSS FLD)" finds "VMFA(AW)-242 MCAS Miramar CA").
+    /// Units based at an airport, matched by the first distinctive word of its name (outside any brackets,
+    /// which hold the field's dedication) against the words of the unit's base: "MIRAMAR MCAS (JOSEPH J FOSS
+    /// FLD)" finds "VMFA(AW)-242 MCAS Miramar CA" but not a unit at St Joseph MO.
     /// </summary>
     public static IReadOnlyList<TacticalCallsign> BasedAt(string? airportName)
     {
         if (string.IsNullOrWhiteSpace(airportName)) return [];
-        var words = airportName.Split([' ', '(', ')', '/', '-', ',', '.'], StringSplitOptions.RemoveEmptyEntries)
-            .Where(w => w.Length >= 4 && !GenericWords.Contains(w)).ToList();
-        if (words.Count == 0) return [];
-        return All.Where(c => c.Unit.Split([' ', '(', ')', '/', '-', ','], StringSplitOptions.RemoveEmptyEntries)
-            .Any(u => words.Contains(u, StringComparer.OrdinalIgnoreCase))).ToList();
+        string name = System.Text.RegularExpressions.Regex.Replace(airportName, @"\(.*?\)", " ");
+        string? key = name.Split(WordBreaks, StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault(w => w.Length >= 4 && !GenericWords.Contains(w));
+        if (key == null) return [];
+        return All.Where(c => c.Unit.Split(WordBreaks, StringSplitOptions.RemoveEmptyEntries)
+            .Any(u => u.Equals(key, StringComparison.OrdinalIgnoreCase))).ToList();
     }
 
     private static IReadOnlyList<TacticalCallsign> Load()

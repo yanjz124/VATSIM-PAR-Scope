@@ -110,7 +110,7 @@ public class RadioTests
         Assert.NotNull(t1.CourseCall);
         ac.Receive(t1, sim.SimTime, 243, 700);
         for (double t = 60.1; t <= 75; t += 0.1) sim.Step(t).ToList();
-        // Back on the assigned heading (the creep starts again from there), with no turn toward the centreline beyond it.
+        // Back on the assigned heading (the creep starts again from there), with no turn toward the centerline beyond it.
         Assert.InRange(ac.HeadingRelDeg, -2.5, 2.5);
         Assert.Equal(0, ac.CommandedHeadingRelDeg, 3);
     }
@@ -137,7 +137,7 @@ public class RadioTests
         for (double t = 0; t <= 120; t += 0.1) sim.Step(t).ToList();
         Assert.True(ac.GoingAround);
         Assert.Equal(-63, ac.CommandedHeadingRelDeg, 1);
-        Assert.InRange(ac.AltitudeAboveThresholdFt, 2300, 2450); // 2,500 MSL with a 100 ft threshold, levelling
+        Assert.InRange(ac.AltitudeAboveThresholdFt, 2300, 2450); // 2,500 MSL with a 100 ft threshold, leveling
 
         Assert.StartsWith("Switching", ac.Receive(Phraseology.Parse("contact approach"), sim.SimTime, 243, 700).Reply);
         for (double t = 120.1; t <= 130; t += 0.1) sim.Step(t).ToList();
@@ -281,7 +281,7 @@ public class RadioTests
         Assert.True(ac.VerticalSpeedFpm < -500);
 
         var r = ac.Receive(Phraseology.Parse("3 miles from touchdown - dangerously below the glidepath - level off your aircraft - acknowledge"), sim.SimTime, 243, 700);
-        Assert.StartsWith("Levelling off", r.Reply);
+        Assert.StartsWith("Leveling off", r.Reply);
         for (double t = 10.1; t <= 20; t += 0.1) sim.Step(t).ToList();
         Assert.InRange(ac.VerticalSpeedFpm, -60, 60);
 
@@ -436,6 +436,9 @@ public class RadioTests
     [InlineData("CONTACT APPROACH")]
     [InlineData("CONTACT TOWER AFTER LANDING")]
     [InlineData(CombinedBrief)]
+    [InlineData("TURN LEFT")]
+    [InlineData("TURN RIGHT")]
+    [InlineData("STOP TURN")]
     [InlineData("SLIGHTLY ABOVE GLIDEPATH")]
     [InlineData("WELL LEFT OF COURSE")]
     public void Every_hotkey_call_is_understood(string text)
@@ -554,12 +557,15 @@ public class AircraftPerformanceTests
         Assert.Contains(MilitaryCallsigns.BasedAt("MIRAMAR MCAS (JOSEPH J FOSS FLD)"), c => c.Callword == "BAT");
         var oceana = MilitaryCallsigns.BasedAt("OCEANA NAS (APOLLO SOUCEK FLD)");
         Assert.NotEmpty(oceana);
-        Assert.All(oceana, c => Assert.Contains("Oceana", c.Unit));
+        Assert.All(oceana, c => Assert.Contains("OCEANA", c.Unit.ToUpperInvariant()));
+        Assert.DoesNotContain(MilitaryCallsigns.BasedAt("MIRAMAR MCAS (JOSEPH J FOSS FLD)"), c => c.Unit.Contains("Joseph", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal("Cat one one", RadioSpeech.Callsign("CAT11")); // short callwords from the list are words
         Assert.Empty(MilitaryCallsigns.BasedAt("NAVAL AIR STATION"));
 
         // Most tactical arrivals at a field with based squadrons are theirs.
         var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site), HomeAirportName = "OCEANA NAS (APOLLO SOUCEK FLD)" };
-        var words = MilitaryCallsigns.All.Select(m => m.Callword).ToHashSet();
+        // Squadron callwords only (a service callsign such as "VV" or "PAT" is not a tactical arrival).
+        var words = MilitaryCallsigns.All.Select(m => m.Callword).Where(w => w is not ("VV" or "VM" or "R" or "AF" or "PAT")).ToHashSet();
         int home = 0, tactical = 0;
         for (int i = 0; i < 400; i++)
         {
@@ -579,6 +585,8 @@ public class AircraftPerformanceTests
         Assert.Equal("Banshee two one", RadioSpeech.Callsign("BANSHEE21"));
 
         var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
-        Assert.Equal("C30J", sim.SpawnRandom(PilotMode.ControllerDirected, "BRADY31").TypeCode);
+        // A custom callsign on a listed callword flies one of that callword's aircraft.
+        var brady = MilitaryCallsigns.All.Where(m => m.Callword == "BRADY").Select(m => m.TypeCode).ToList();
+        Assert.Contains(sim.SpawnRandom(PilotMode.ControllerDirected, "BRADY31").TypeCode, brady);
     }
 }

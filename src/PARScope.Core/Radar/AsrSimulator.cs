@@ -3,7 +3,7 @@ using PARScope.Core.Traffic;
 
 namespace PARScope.Core.Radar;
 
-/// <summary>A surveillance paint: position in the ASR's local frame (metres east/north) plus Mode C altitude.</summary>
+/// <summary>A surveillance paint: position in the ASR's local frame (meters east/north) plus Mode C altitude.</summary>
 public sealed record AsrPlot(string Callsign, double Time, double EastM, double NorthM, double AltFt);
 
 /// <summary>

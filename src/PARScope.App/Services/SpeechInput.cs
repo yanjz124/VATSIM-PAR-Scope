@@ -8,6 +8,8 @@ namespace PARScope.App.Services;
 /// each phrase is transcribed as soon as the controller pauses, while still talking, so on release only
 /// the last phrase is left; the pieces are joined into one transmission. The Windows grammar engine
 /// (already fast, and needing whole phrases) gets the full recording on release.
+/// Phrases are decoded on worker threads, several at once where the machine allows, each with a time limit
+/// so one bad phrase cannot hold up the next transmission; transmissions are still delivered in order.
 /// </summary>
 public sealed class SpeechInput : IDisposable
 {
@@ -16,9 +18,14 @@ public sealed class SpeechInput : IDisposable
     private string? _recognizerId;
     private CancellationTokenSource _cts = new();
     private bool _recording;
-    private readonly List<Task<string?>> _pieces = [];
-    private readonly SemaphoreSlim _gate = new(1, 1);
+    private List<Task<string?>> _pieces = [];
+    private SemaphoreSlim _gate = new(1, 1);
+    /// <summary>The previous transmission's delivery: each waits for the one before, so commands keep their order.</summary>
+    private Task _delivered = Task.CompletedTask;
     private int _sentSamples;
+
+    /// <summary>Time from releasing the key to the transmission being heard, for the session log.</summary>
+    public event Action<string, double>? HeardAfter;
     private CancellationTokenSource? _liveCts;
     private Task? _live;
 
@@ -63,6 +70,7 @@ public sealed class SpeechInput : IDisposable
             string status = await rec.PrepareAsync(new Progress<string>(SetState), ct);
             if (ct.IsCancellationRequested) { rec.Dispose(); return; }
             _recognizer = rec;
+            _gate = new SemaphoreSlim(rec is WhisperRecognizer w ? w.MaxParallel : 1);
             Ready = status.EndsWith("ready");
             SetState(Ready ? ReadyText + (rec is WhisperRecognizer { Backend: { } b } ? $" · Whisper on {b}" : "") : status);
         }
@@ -78,7 +86,7 @@ public sealed class SpeechInput : IDisposable
         if (!Ready || _recording) return;
         _recording = _recorder.Start();
         SetState(_recording ? "Transmitting…" : "Microphone unavailable");
-        _pieces.Clear();
+        _pieces = [];
         _sentSamples = 0;
         if (_recording && _recognizer is WhisperRecognizer)
         {
@@ -98,26 +106,33 @@ public sealed class SpeechInput : IDisposable
                 var samples = await Task.Run(_recorder.Snapshot, ct);
                 int cut = Vad.FindPause(samples, _sentSamples);
                 if (cut <= _sentSamples) continue;
-                _pieces.Add(RecognizePieceAsync(samples[_sentSamples..cut]));
+                _pieces.Add(RecognizePieceAsync(samples[_sentSamples..cut], _cts.Token));
                 _sentSamples = cut;
             }
         }
         catch (OperationCanceledException) { }
     }
 
-    /// <summary>Pieces are transcribed one at a time, in order.</summary>
-    private async Task<string?> RecognizePieceAsync(float[] piece)
+    /// <summary>
+    /// A phrase, transcribed on a worker thread once a decoder is free. A decode that runs far longer than the
+    /// audio (Whisper stuck on noise) is abandoned so it cannot hold up later transmissions.
+    /// </summary>
+    private async Task<string?> RecognizePieceAsync(float[] piece, CancellationToken ct)
     {
         var rec = _recognizer;
         if (rec == null || !Vad.HasSpeech(piece)) return null;
-        await _gate.WaitAsync();
+        var gate = _gate;
+        await gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            string? text = await rec.RecognizeAsync(piece, _cts.Token);
+            using var limit = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            limit.CancelAfter(TimeSpan.FromSeconds(Math.Max(8, piece.Length / 16000.0 * 4)));
+            string? text = await Task.Run(() => rec.RecognizeAsync(piece, limit.Token), limit.Token).ConfigureAwait(false);
             if (_recording && text is { Length: > 0 }) SetState($"Transmitting… {text}");
             return text;
         }
-        finally { _gate.Release(); }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return null; } // timed out: drop this phrase
+        finally { gate.Release(); }
     }
 
     public async void ReleaseToTalk()
@@ -131,25 +146,47 @@ public sealed class SpeechInput : IDisposable
         if (samples.Length < 16000 * 0.3) { SetState(ReadyText); return; } // under 0.3 s: a tap
         var rec = _recognizer;
         if (rec == null) return;
-        SetState("Recognising…");
-        try
+        SetState("Recognizing…");
+        var released = System.Diagnostics.Stopwatch.StartNew();
+        // This transmission's own pieces: the next one can start (and decode) while this one finishes.
+        var pieces = _pieces;
+        Task<string?> recognized;
+        if (rec is WhisperRecognizer)
         {
-            string? text;
-            if (rec is WhisperRecognizer)
-            {
-                // Only the part after the last pause is still to do; the rest was transcribed while talking.
-                if (_sentSamples < samples.Length) _pieces.Add(RecognizePieceAsync(samples[_sentSamples..]));
-                var parts = await Task.WhenAll(_pieces);
-                text = string.Join(" ", parts.Where(p => p is { Length: > 0 }));
-            }
-            else text = await rec.RecognizeAsync(samples, _cts.Token);
-            if (text is { Length: > 0 }) Heard?.Invoke(text);
-            SetState(text is { Length: > 0 } ? ReadyText : "Not understood, try again");
+            // Only the part after the last pause is still to do; the rest was transcribed while talking.
+            if (_sentSamples < samples.Length) pieces.Add(RecognizePieceAsync(samples[_sentSamples..], _cts.Token));
+            recognized = JoinAsync(pieces);
         }
+        else recognized = RecognizePieceAsync(samples, _cts.Token);
+
+        var previous = _delivered;
+        var delivery = DeliverAsync(previous, recognized, released);
+        _delivered = delivery;
+        await delivery;
+    }
+
+    private static async Task<string?> JoinAsync(List<Task<string?>> pieces)
+    {
+        var parts = await Task.WhenAll(pieces).ConfigureAwait(false);
+        return string.Join(" ", parts.Where(p => p is { Length: > 0 }));
+    }
+
+    /// <summary>Hands a transmission over once it is recognized and every earlier one has been delivered.</summary>
+    private async Task DeliverAsync(Task previous, Task<string?> recognized, System.Diagnostics.Stopwatch released)
+    {
+        string? text = null;
+        try { text = await recognized; }
         catch (Exception ex) when (ex is InvalidOperationException or OperationCanceledException)
         {
             SetState("Recognition failed: " + ex.Message);
         }
+        try { await previous; } catch { /* an earlier failure is already reported */ }
+        if (text is { Length: > 0 })
+        {
+            Heard?.Invoke(text);
+            HeardAfter?.Invoke(text, released.Elapsed.TotalSeconds);
+        }
+        if (!_recording) SetState(text is { Length: > 0 } ? ReadyText : "Not understood, try again");
     }
 
     private void SetState(string s)

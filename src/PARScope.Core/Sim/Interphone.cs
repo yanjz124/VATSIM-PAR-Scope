@@ -8,7 +8,7 @@ public enum Facility { Tower, Approach }
 public sealed record InterphoneCall(Facility To, string Text, LandingIntent? Intent, bool MissedApproach);
 
 /// <summary>
-/// Recognises coordination calls on the same push-to-talk as the final frequency: anything that opens by
+/// Recognizes coordination calls on the same push-to-talk as the final frequency: anything that opens by
 /// addressing another controller ("Tower, final…", "Local, …", "Approach, final, …", "Departure…").
 /// Wording is read loosely, so non-standard and abbreviated calls work: the landing intent, a missed
 /// approach and the aircraft (by callsign word or number) are picked out wherever they appear.
@@ -17,7 +17,7 @@ public static partial class Interphone
 {
     public static InterphoneCall? Parse(string text)
     {
-        string s = Phraseology.Normalise(text);
+        string s = Phraseology.Normalize(text);
         var m = AddresseeRx().Match(s);
         if (!m.Success) return null;
         var to = m.Groups["to"].Value is "tower" or "local" ? Facility.Tower : Facility.Approach;
@@ -36,7 +36,7 @@ public static partial class Interphone
     /// </summary>
     public static SimAircraft? FindAircraft(string text, IEnumerable<SimAircraft> aircraft)
     {
-        string s = Phraseology.Normalise(text);
+        string s = Phraseology.Normalize(text);
         var list = aircraft.ToList();
         var numbers = NumberRx().Matches(s).Select(x => x.Value).ToList();
         var byNumber = list.Where(a => Number(a.Callsign) is { Length: > 0 } n && numbers.Any(x => x == n || (n.Length >= 3 && x.EndsWith(n[^3..])))).ToList();

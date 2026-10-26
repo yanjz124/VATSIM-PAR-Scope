@@ -10,7 +10,7 @@ public class GeometryTests
     internal static readonly ParSiteConfig Site = new() { TchFt = 55 };
 
     [Fact]
-    public void Ecef_round_trip_is_sub_millimetre()
+    public void Ecef_round_trip_is_sub_millimeter()
     {
         var p = new GeoPoint(36.32, -119.94, 1234.5);
         var back = Wgs84.FromEcef(Wgs84.ToEcef(p));
@@ -79,11 +79,11 @@ public class GeometryTests
         Assert.Equal(p.CrossFt, back.CrossFt, 3);
         Assert.Equal(p.HeightFt, back.HeightFt, 3);
 
-        // With the boresight parallel to the runway, a centreline target is left of boresight (antenna is right).
+        // With the boresight parallel to the runway, a centerline target is left of boresight (antenna is right).
         var straight = new ParGeometry(Runway, Site with { AntennaAimDeg = 0 });
         Assert.True(straight.ToPolar(new ApproachPoint(3 * Units.FeetPerNm, 0, 1000)).AzimuthDeg < 0);
 
-        // Default ICAO 15°/5° siting: sector turned 5° toward the centreline, so the left edge reaches 15°.
+        // Default ICAO 15°/5° siting: sector turned 5° toward the centerline, so the left edge reaches 15°.
         Assert.Equal(-5, geo.BoresightAzDeg, 6);
         var farLeft = geo.ToPolar(new ApproachPoint(5 * Units.FeetPerNm, -5 * Units.FeetPerNm * Math.Tan(Units.DegToRad(12)), 1000));
         Assert.InRange(farLeft.AzimuthDeg, -10, -6);

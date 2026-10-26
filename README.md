@@ -2,7 +2,7 @@
 
 *Formerly VATSIM PAR Scope. Yes, it is vibe coded.*
 
-**A Precision Approach Radar scope for VATSIM controllers**, modelled on the US military GCA systems
+**A Precision Approach Radar scope for VATSIM controllers**, modeled on the US military GCA systems
 it imitates: AN/FPN-68, FPN-63, GPN-22, FPN-67, MPN-25 and TPN-31 ATNAVICS. It runs next to CRC, takes
 live traffic from vPilot (including VATSIM Velocity 5 Hz positions), and has a training mode where you
 talk simulated arrivals down by voice, with pilot, tower and approach on the other end.
@@ -20,11 +20,11 @@ Public information on these radars is scarce, so much of it is a best guess (see
 * Elevation and azimuth on one range axis, with glidepath, lower safe limit, decision height and
   lateral safe limits; linear or log range, as on the real indicators.
 * Seven radar models, each with its own coverage, scan rate, accuracy and display: from the analog
-  FPN-63 B-scope to the FPN-68's colour tracks and data blocks and the ATNAVICS expeditionary screen.
+  FPN-63 B-scope to the FPN-68's color tracks and data blocks and the ATNAVICS expeditionary screen.
 * Targets are painted when the simulated beam crosses them, with MTI; real antenna siting off the
   runway; per-runway glidepath, TCH and DH from the approach plate.
 * ASR surveillance picture as a flip view or a separate window, with the PAR coverage cone, extended
-  centreline and, where the real display had one, a compass rose.
+  centerline and, where the real display had one, a compass rose.
 * Live METAR, wind and altimeter on the scope.
 
 **Live VATSIM traffic**
@@ -96,7 +96,7 @@ Turn on **Training**, pick a **difficulty** and press **Spawn arrival**.
 
 | Difficulty | |
 |---|---|
-| Easy | Light wind, precise pilots, close to the centreline. |
+| Easy | Light wind, precise pilots, close to the centerline. |
 | Normal | Moderate wind, average pilots. |
 | Hard | Pilots drift off heading and descent rate until corrected; the wind shifts on descent. |
 | Expert | Gusts and shear, sloppy and slow pilots, steady drift. |
@@ -158,6 +158,7 @@ click one to change it.
 | X / C | On glidepath / on course |
 | hold Ctrl / Shift / Alt | "slightly…" / "well…" / "going…" on the six keys above |
 | Q / E (or ← / →) | Turn left / right 1° (Shift: 5°) |
+| Ctrl+Q / Ctrl+E, B | No-gyro: turn left / right (until told to stop), stop turn. "Make half standard rate turns" is understood by voice |
 | R, G, H | Range from touchdown, wheels should be down, how do you hear me |
 | 1 | Approach: radar contact on a handoff; after a missed approach, coordinate it, then "contact approach" |
 | 2 | Approach brief: PAR to the runway, missed approach and lost communications instructions in one call |
@@ -174,7 +175,7 @@ click one to change it.
 Chosen in **Settings › Audio**:
 
 * **Kokoro** (downloaded on first use, 330 MB): the most natural; about half real time on a CPU, and
-  each reply is synthesised while the pilot "thinks", so there is no extra wait.
+  each reply is synthesized while the pilot "thinks", so there is no extra wait.
 * **Piper LibriTTS-R** (78 MB): very quick, with hundreds of speakers for variety.
 * **Windows voices**: built in, robotic.
 
@@ -216,8 +217,8 @@ scan rates or beam widths. So:
 * **Procedures and phraseology** (7110.65, TERPS, minimums) come from published documents and are the
   most reliable part.
 * **What each display looks like** is an artistic reconstruction from a handful of photos and videos:
-  colours, symbols, fonts and layout are best guesses.
-* **Radar behaviour** (scan rates, beam widths, coverage, target size, pilot reactions) is partly
+  colors, symbols, fonts and layout are best guesses.
+* **Radar behavior** (scan rates, beam widths, coverage, target size, pilot reactions) is partly
   sourced and partly plausible numbers filled in to make it work. Some of those numbers and details
   were suggested by the AI that wrote most of this code, and some may simply be wrong.
 
@@ -254,7 +255,7 @@ dotnet test tests\PARScope.Core.Tests
 
 The plugin and scope talk NDJSON over UDP port 49090 (protocol v2, documented in `Plugin.cs`).
 
-## Licence
+## License
 
 MIT. Voices: [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) (Apache-2.0); Piper
 [LibriTTS-R](https://www.openslr.org/141/) voice (trained on LibriTTS-R by Koizumi et al., CC BY 4.0),

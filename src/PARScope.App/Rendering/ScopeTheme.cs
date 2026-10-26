@@ -4,7 +4,7 @@ using SkiaSharp;
 namespace PARScope.App.Rendering;
 
 /// <summary>
-/// Scope colour schemes, taken from reference imagery (see docs/PAR-RESEARCH.md, "Display reference"):
+/// Scope color schemes, taken from reference imagery (see docs/PAR-RESEARCH.md, "Display reference"):
 /// Digital follows a current USMC expeditionary PAR screen and the ITT GCA-2000 patent drawings:
 /// black, green range lines, olive cursors, tan coverage limits, white targets and text.
 /// The phosphor schemes imitate analog AZ-EL indicators: monochrome, glow, afterglow, no text.

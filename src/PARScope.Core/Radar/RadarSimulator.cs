@@ -191,7 +191,7 @@ public sealed class RadarSimulator
 
     /// <summary>
     /// Fixed ground returns built from what is actually around a runway threshold: the approach light
-    /// stations (every 200 ft along the centreline, from the published lighting type), the threshold
+    /// stations (every 200 ft along the centerline, from the published lighting type), the threshold
     /// light bar, and a few low terrain/structure returns. Real PAR video shows exactly this kind of
     /// clutter close to touchdown; MTI suppresses most of it because none of it moves.
     /// </summary>

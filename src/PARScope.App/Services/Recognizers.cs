@@ -62,7 +62,14 @@ public sealed class WhisperRecognizer(GgmlType model) : IPhraseRecognizer
     /// <summary>Spoken callsigns currently on frequency, e.g. "Bones six two, Navy one two three four".</summary>
     public string Vocabulary { get; set; } = "";
 
-    private static int Threads => Math.Clamp(Environment.ProcessorCount - 1, 1, 8);
+    /// <summary>
+    /// How many phrases may be decoded at once (each processor shares the loaded model): two on a graphics
+    /// card or a CPU with 8+ cores, otherwise one.
+    /// </summary>
+    public int MaxParallel => Backend == "GPU" || Environment.ProcessorCount >= 8 ? 2 : 1;
+
+    /// <summary>CPU threads per decode, leaving two cores for the scope, sim and audio so they never stall.</summary>
+    private int Threads => Math.Clamp((Environment.ProcessorCount - 2) / MaxParallel, 1, 8);
 
     private string ModelPath => Path.Combine(AppSettings.DataFolder, "models", $"ggml-{model.ToString().ToLowerInvariant()}.bin");
 
@@ -101,8 +108,11 @@ public sealed class WhisperRecognizer(GgmlType model) : IPhraseRecognizer
         // the GPU sees only a few sizes.
         int ctx = Math.Clamp(((int)Math.Ceiling(samples / 16000.0 * 50) + 64 + 127) / 128 * 128, 128, 1500);
         string prompt = Vocabulary.Length > 0 ? $"{BasePrompt} {Vocabulary}." : BasePrompt;
+        // A phrase is a few words a second; cap the tokens so a decoder stuck repeating itself on noise stops
+        // quickly, and decode once (no temperature fallback, which re-runs a hard phrase up to five more times).
+        int maxTokens = Math.Clamp((int)(samples / 16000.0 * 8) + 16, 32, 224);
         return _factory!.CreateBuilder().WithLanguage("en").WithPrompt(prompt).WithNoContext().WithSingleSegment()
-            .WithThreads(Threads).WithAudioContextSize(ctx);
+            .WithThreads(Threads).WithAudioContextSize(ctx).WithMaxTokensPerSegment(maxTokens).WithTemperatureInc(0f);
     }
 
     public async Task<string?> RecognizeAsync(float[] samples16k, CancellationToken ct)
@@ -139,7 +149,7 @@ public sealed class WhisperRecognizer(GgmlType model) : IPhraseRecognizer
 }
 
 /// <summary>
-/// Windows offline recogniser with a closed grammar of PAR phrases: fast and accurate for standard
+/// Windows offline recognizer with a closed grammar of PAR phrases: fast and accurate for standard
 /// phraseology, but it only hears what the grammar allows.
 /// </summary>
 public sealed class WindowsGrammarRecognizer : IPhraseRecognizer
@@ -153,7 +163,7 @@ public sealed class WindowsGrammarRecognizer : IPhraseRecognizer
         if (_engine != null) return Task.FromResult("Windows Speech ready");
         var info = SpeechRecognitionEngine.InstalledRecognizers()
             .FirstOrDefault(r => r.Culture.Name.StartsWith("en", StringComparison.OrdinalIgnoreCase));
-        if (info == null) return Task.FromResult("No English Windows speech recogniser installed (Settings › Time & language › Speech)");
+        if (info == null) return Task.FromResult("No English Windows speech recognizer installed (Settings › Time & language › Speech)");
         _engine = new SpeechRecognitionEngine(info);
         _engine.LoadGrammar(BuildGrammar(info.Culture));
         return Task.FromResult("Windows Speech ready");

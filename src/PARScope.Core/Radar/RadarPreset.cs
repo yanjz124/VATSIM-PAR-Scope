@@ -4,7 +4,7 @@ public enum DisplayStyle
 {
     /// <summary>Monochrome P7-style phosphor with afterglow (FPN-63 / MPN-14 era).</summary>
     Phosphor,
-    /// <summary>Raster colour display with tracks and data blocks (FPN-68 / GCA-2020 era).</summary>
+    /// <summary>Raster color display with tracks and data blocks (FPN-68 / GCA-2020 era).</summary>
     Digital,
 }
 
@@ -68,9 +68,9 @@ public sealed record RadarPreset
     /// straight (ATNAVICS footage). Otherwise height stays linear in feet and those lines curve.
     /// </summary>
     public bool LogStraightLines { get; init; }
-    /// <summary>Azimuth display centred on the antenna boresight (limits symmetric, course line tilted), as on
-    /// ATNAVICS footage; otherwise centred on the final course.</summary>
-    public bool AzimuthAntennaCentred { get; init; }
+    /// <summary>Azimuth display centered on the antenna boresight (limits symmetric, course line tilted), as on
+    /// ATNAVICS footage; otherwise centered on the final course.</summary>
+    public bool AzimuthAntennaCentered { get; init; }
     /// <summary>
     /// Whether the ASR picture that goes with this system has an azimuth scale (compass rose) round the edge:
     /// stand-alone and tactical PPI displays do; fixed bases that show the ASR on a STARS TCW do not. Default
@@ -78,7 +78,7 @@ public sealed record RadarPreset
     /// </summary>
     public bool AsrCompassRose { get; init; }
     /// <summary>
-    /// Antenna aim toward the centreline for this system when the runway has no saved siting; null = the
+    /// Antenna aim toward the centerline for this system when the runway has no saved siting; null = the
     /// ICAO Annex 10 siting example (5°). ATNAVICS footage shows the course along the middle of the sector,
     /// i.e. the antenna pointed parallel to the runway.
     /// </summary>
@@ -141,7 +141,7 @@ public sealed record RadarPreset
         Id = "fpn68",
         Name = "AN/FPN-68 (PAR-2020)",
         Description = "USN/USMC FPN-63 replacement (L3Harris). AESA, 30° az, −1° to +7° el, 20 NM (15 NM rain mode), "
-                      + "update under 1 s, colour display with tracks and data blocks.",
+                      + "update under 1 s, color display with tracks and data blocks.",
         AzLeftDeg = 15, AzRightDeg = 15, ElMinDeg = -1, ElMaxDeg = 7, MaxRangeNm = 20,
         AzScanSec = 0.5, ElScanSec = 0.5, Pattern = ScanPattern.Electronic,
         AzBeamwidthDeg = 0.75, ElBeamwidthDeg = 0.6,
@@ -185,7 +185,7 @@ public sealed record RadarPreset
         NoiseFactor = 1.0, Style = DisplayStyle.Digital, Tracking = true, MaxTracks = 6, RangeScalesNm = [5, 10],
         LogRangeDefault = true,
         LogStraightLines = true,
-        AzimuthAntennaCentred = true,
+        AzimuthAntennaCentered = true,
         AsrCompassRose = true,
         DefaultAntennaAimDeg = 0,
     };

@@ -48,14 +48,23 @@ public sealed record Transmission(string Text)
     public bool AcknowledgeRequested { get; init; }
     /// <summary>"If no transmissions received for … seconds …": lost communications instructions to remember.</summary>
     public bool LostCommsInstructions { get; init; }
+    /// <summary>No-gyro (7110.65 §5-10-3): "turn left/right" with no heading, −1 left, +1 right; turn until told to stop.</summary>
+    public int NoGyroTurn { get; init; }
+    /// <summary>No-gyro: "stop turn".</summary>
+    public bool StopTurn { get; init; }
+    /// <summary>No-gyro rate: "make half standard rate turns" (true) or "standard rate turns" (false); null = not said.</summary>
+    public bool? HalfStandardRate { get; init; }
+    /// <summary>"This will be a no-gyro approach".</summary>
+    public bool NoGyroBrief { get; init; }
 
     public bool IsEmpty => HeadingDeg is null && Glidepath == GlidepathCall.None && !BeginDescent && !MissedApproach && CourseCall is null
                            && !HowDoYouHear && !DoNotAcknowledge && !WheelsDown && !ClearedToLand && ClimbToFt is null
-                           && !MissedApproachInstructions && !ContactApproach && !ContactTower && !ApproachBrief && !RangeInfo && !LevelOff && !ResumeDescent && !LostCommsInstructions;
+                           && !MissedApproachInstructions && !ContactApproach && !ContactTower && !ApproachBrief && !RangeInfo && !LevelOff && !ResumeDescent && !LostCommsInstructions
+                           && NoGyroTurn == 0 && !StopTurn && HalfStandardRate is null && !NoGyroBrief;
 }
 
 /// <summary>
-/// Parses final-controller phraseology (FAA JO 7110.65 §5-10/§5-12) from speech-recogniser output or
+/// Parses final-controller phraseology (FAA JO 7110.65 §5-10/§5-12) from speech-recognizer output or
 /// typed text: "TURN RIGHT HEADING TWO FOUR FOUR, SLIGHTLY BELOW GLIDEPATH AND COMING UP".
 /// Spoken digits ("two four four", "niner") and numerals are both accepted.
 /// </summary>
@@ -69,7 +78,7 @@ public static partial class Phraseology
 
     public static Transmission Parse(string text)
     {
-        string s = Normalise(text);
+        string s = Normalize(text);
 
         double? heading = null;
         var h = HeadingRx().Match(s);
@@ -83,7 +92,9 @@ public static partial class Phraseology
         if (c.Success) course = c.Value.ToUpperInvariant().Replace("READ OF", "RIGHT OF");
 
         bool instructions = MissedInstructionsRx().IsMatch(s);
-        bool missed = !instructions && MissedRx().IsMatch(s);
+        // Lost communications instructions end "...and execute missed approach": what to do later, not now.
+        bool lostComms = LostCommsRx().IsMatch(s);
+        bool missed = !instructions && !lostComms && MissedRx().IsMatch(s);
         double? climb = null;
         var cl = ClimbRx().Match(s);
         if (cl.Success && int.TryParse(cl.Groups["a"].Value, out int a))
@@ -93,6 +104,10 @@ public static partial class Phraseology
             if (ft is >= 500 and <= 20000) climb = ft;
         }
         bool descend = !missed && DescentRx().IsMatch(s);
+        // No-gyro turns: "turn left/right" with no heading after it.
+        int noGyro = 0;
+        if (heading is null && NoGyroTurnRx().Match(s) is { Success: true } ng) noGyro = ng.Groups["d"].Value == "left" ? -1 : 1;
+        bool? halfRate = HalfRateRx().IsMatch(s) ? true : StandardRateRx().IsMatch(s) ? false : null;
 
         return new Transmission(text.Trim())
         {
@@ -104,7 +119,7 @@ public static partial class Phraseology
             CourseCall = course,
             HowDoYouHear = s.Contains(" how do you hear"),
             DoNotAcknowledge = NoAckRx().IsMatch(s),
-            WheelsDown = s.Contains(" wheels should be down") || s.Contains(" check wheels down"),
+            WheelsDown = WheelsRx().IsMatch(s),
             Clearance = ClearedRx().Match(s) is { Success: true } cm
                 ? cm.Value.Contains("touch") ? LandingIntent.TouchAndGo
                 : cm.Value.Contains("low") ? LandingIntent.LowApproach
@@ -121,7 +136,11 @@ public static partial class Phraseology
             LevelOff = LevelOffRx().IsMatch(s),
             ResumeDescent = ResumeRx().IsMatch(s),
             AcknowledgeRequested = AckRequestRx().IsMatch(s),
-            LostCommsInstructions = LostCommsRx().IsMatch(s),
+            LostCommsInstructions = lostComms,
+            NoGyroTurn = noGyro,
+            StopTurn = StopTurnRx().IsMatch(s),
+            HalfStandardRate = halfRate,
+            NoGyroBrief = s.Contains(" no gyro"),
         };
     }
 
@@ -155,7 +174,7 @@ public static partial class Phraseology
     }
 
     /// <summary>Lower-cases, strips punctuation, and collapses spoken digit runs into numerals.</summary>
-    public static string Normalise(string text)
+    public static string Normalize(string text)
     {
         // "2,000" from speech engines is one number, not "2 000".
         var words = PunctRx().Replace(ThousandsCommaRx().Replace(text.ToLowerInvariant(), ""), " ").Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -170,7 +189,7 @@ public static partial class Phraseology
             outWords.Add(w);
         }
         if (run.Length > 0) outWords.Add(run.ToString());
-        // Shortened and misheard forms controllers and recognisers produce: "well above glide", "glide slope".
+        // Shortened and misheard forms controllers and recognizers produce: "well above glide", "glide slope".
         string joined = " " + string.Join(' ', outWords) + " ";
         return GlideRx().Replace(joined, "glidepath");
     }
@@ -178,6 +197,11 @@ public static partial class Phraseology
     [GeneratedRegex(@"[^a-z0-9 ]")] private static partial Regex PunctRx();
     [GeneratedRegex(@"\bheading (?<h>\d{3})\b")] private static partial Regex HeadingRx();
     [GeneratedRegex(@"\bon glidepath\b")] private static partial Regex OnGlidepathRx();
+    // "turn left" / "turn right" not followed by a heading (or "stop turn").
+    [GeneratedRegex(@"(?<!stop )\bturn (?<d>left|right)\b(?! heading)(?! \d)")] private static partial Regex NoGyroTurnRx();
+    [GeneratedRegex(@"\bstop (?:the )?turn\b")] private static partial Regex StopTurnRx();
+    [GeneratedRegex(@"\bhalf (?:a )?standard rate\b")] private static partial Regex HalfRateRx();
+    [GeneratedRegex(@"(?<!half (?:a )?)\bstandard rate\b")] private static partial Regex StandardRateRx();
     [GeneratedRegex(@"\b(?:(?<going>going) |(?<mag>slightly|well) )?(?<side>above|below) (?:the )?glidepath\b")] private static partial Regex GlidepathRx();
     // "read of course" is a common mishearing of "right of course".
     [GeneratedRegex(@"\b(?:on (?:the )?(?:on ?)?course|(?:going |drifting |slightly |well )?(?:left|right|read) of (?:the )?(?:on ?)?course)\b")] private static partial Regex CourseRx();
@@ -201,7 +225,10 @@ public static partial class Phraseology
     [GeneratedRegex(@"\bthis will be a (?:p a r|par|precision|copter p a r)\b")] private static partial Regex BriefRx();
     [GeneratedRegex(@"\b(?:\d+ (?:and (?:one )?half )?miles? from touchdown|over (?:the )?approach lights|over (?:the )?landing threshold|at decision (?:altitude|height))\b")] private static partial Regex RangeInfoRx();
     // "climb and maintain 2 thousand 5 hundred" after digit merging, or "climb and maintain 2500".
-    [GeneratedRegex(@"\bclimb (?:and maintain |to )?(?<a>\d+)(?: (?<k>thousand))?(?: (?<h>\d) hundred)?\b")] private static partial Regex ClimbRx();
+    // "climb and maintain", and "climb maintain" as recognizers often hear it.
+    [GeneratedRegex(@"\bclimb (?:(?:and )?maintain |to )?(?<a>\d+)(?: (?<k>thousand))?(?: (?<h>\d) hundred)?\b")] private static partial Regex ClimbRx();
+    [GeneratedRegex(@"\b(?:wheels|gear) should be down\b|\bcheck (?:wheels|gear) down\b")] private static partial Regex WheelsRx();
     [GeneratedRegex(@"\b(?:contact|switch to|monitor) (?:approach|departure|arrival|radar)\b")] private static partial Regex ContactRx();
-    [GeneratedRegex(@"\bcleared (?:to land|for (?:the )?option|touch and go|low approach)\b")] private static partial Regex ClearedRx();
+    // "clear to land" as recognizers often drop the "-ed".
+    [GeneratedRegex(@"\bclear(?:ed)? (?:to land|for (?:the )?option|touch and go|low approach)\b")] private static partial Regex ClearedRx();
 }

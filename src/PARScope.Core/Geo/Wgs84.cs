@@ -1,6 +1,6 @@
 namespace PARScope.Core.Geo;
 
-/// <summary>Geodetic position. Altitude is metres above the ellipsoid (MSL is used as a stand-in; geoid
+/// <summary>Geodetic position. Altitude is meters above the ellipsoid (MSL is used as a stand-in; geoid
 /// undulation is effectively constant over a PAR's 20 NM footprint, so it cancels out).</summary>
 public readonly record struct GeoPoint(double LatDeg, double LonDeg, double AltM)
 {
@@ -27,7 +27,7 @@ public static class Wgs84
             (n * (1 - E2) + p.AltM) * sLat);
     }
 
-    /// <summary>ECEF to geodetic (Bowring's method, sub-millimetre at aviation altitudes).</summary>
+    /// <summary>ECEF to geodetic (Bowring's method, sub-millimeter at aviation altitudes).</summary>
     public static GeoPoint FromEcef(Vec3 e)
     {
         double p = Math.Sqrt(e.X * e.X + e.Y * e.Y);

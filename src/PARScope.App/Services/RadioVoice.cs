@@ -8,7 +8,7 @@ namespace PARScope.App.Services;
 
 /// <summary>
 /// The simulated radio and interphone: pilot, tower and approach voices from the selected speech engine,
-/// played on the chosen output device through an optional radio effect. Each line starts synthesising as
+/// played on the chosen output device through an optional radio effect. Each line starts synthesizing as
 /// soon as it is queued (so a slow neural voice is ready by the time the pilot would answer) and plays at its
 /// due time, one at a time in order. Playback pauses while the controller holds push-to-talk.
 /// </summary>

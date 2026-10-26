@@ -10,7 +10,7 @@ public sealed record ParRenderOptions
     public double RangeScaleNm { get; init; } = 10;
     public bool LogRange { get; init; }
     public bool LogStraightLines { get; init; }
-    public bool AzimuthAntennaCentred { get; init; }
+    public bool AzimuthAntennaCentered { get; init; }
     public bool ShowSafetyLimits { get; init; } = true;
     /// <summary>UK RA 3291 blue 2° and 5° azimuth lines (not on US displays).</summary>
     public bool ShowCourseWedge { get; init; }
@@ -104,7 +104,7 @@ public sealed class ParDisplayRenderer : IDisposable
 
         _log = opt.LogRange;
         _logStraight = opt.LogRange && opt.LogStraightLines;
-        _azAntenna = opt.AzimuthAntennaCentred;
+        _azAntenna = opt.AzimuthAntennaCentered;
         _ant = geo.AntennaPoint;
         _tanBoresight = Math.Tan(Units.DegToRad(geo.BoresightAzDeg));
         _rMaxNm = opt.RangeScaleNm;
@@ -153,7 +153,7 @@ public sealed class ParDisplayRenderer : IDisposable
     /// <summary>Right of course is drawn up: a plan view seen from above, the aircraft flying toward touchdown at the left.</summary>
     private float YAz(double crossFt, double rangeFt)
     {
-        // Antenna-centred: offset from the boresight line through the antenna, so the course line tilts.
+        // Antenna-centered: offset from the boresight line through the antenna, so the course line tilts.
         if (_azAntenna) crossFt -= _ant.CrossFt + _tanBoresight * (rangeFt - _ant.RangeFt);
         return (float)(_azZeroY - crossFt * VerticalScale(_azPxPerFt, rangeFt));
     }

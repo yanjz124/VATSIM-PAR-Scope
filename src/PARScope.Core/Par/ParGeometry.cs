@@ -2,9 +2,9 @@ using PARScope.Core.Geo;
 
 namespace PARScope.Core.Par;
 
-/// <summary>A point in approach coordinates, in feet, centred on the glidepath intercept (touchdown) point.</summary>
+/// <summary>A point in approach coordinates, in feet, centered on the glidepath intercept (touchdown) point.</summary>
 /// <param name="RangeFt">Distance from touchdown along the final approach course; positive = out on final.</param>
-/// <param name="CrossFt">Distance from the extended centreline; positive = right of course as the pilot sees it.</param>
+/// <param name="CrossFt">Distance from the extended centerline; positive = right of course as the pilot sees it.</param>
 /// <param name="HeightFt">Height above threshold elevation.</param>
 public readonly record struct ApproachPoint(double RangeFt, double CrossFt, double HeightFt)
 {
@@ -45,7 +45,7 @@ public sealed class ParGeometry
 
         double alongFt = GpiFromThresholdFt + site.AntennaSetbackFt;
         _antennaEnu = (_inbound * alongFt + _right * site.AntennaOffsetFt + new Vec3(0, 0, site.AntennaHeightFt)) * Units.MetersPerFoot;
-        // Aim toward the centreline: an antenna right of the runway turns its sector left, and vice versa.
+        // Aim toward the centerline: an antenna right of the runway turns its sector left, and vice versa.
         BoresightAzDeg = -Math.Sign(site.AntennaOffsetFt) * site.AntennaAimDeg;
     }
 

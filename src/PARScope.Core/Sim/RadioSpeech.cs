@@ -139,8 +139,18 @@ public static class RadioSpeech
     /// with the flight number in group form; a leading word callsign as a word; other letters (registrations)
     /// phonetically. Military flight numbers stay digit by digit.
     /// </summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> SpokenCallwords = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>A generated callsign whose callword was abbreviated to fit the radar ("BNS21") is spoken with the full word.</summary>
+    public static void RegisterSpokenCallword(string callsign, string callword) => SpokenCallwords[callsign] = callword;
+
     public static string Callsign(string cs)
     {
+        if (SpokenCallwords.TryGetValue(cs, out var full))
+        {
+            string number = new(cs.SkipWhile(char.IsLetter).ToArray());
+            return $"{char.ToUpperInvariant(full[0])}{full[1..].ToLowerInvariant()} {Digits(number)}";
+        }
         if (!cs.Any(char.IsDigit)) return Spell(cs); // all letters: a registration such as G-ABCD
         var airline = System.Text.RegularExpressions.Regex.Match(cs, @"^([A-Za-z]{3})(\d{1,4})([A-Za-z]{0,2})$");
         if (airline.Success && Airlines.TryGetValue(airline.Groups[1].Value, out var telephony) && !ServicePrefixes.ContainsKey(airline.Groups[1].Value))
@@ -162,7 +172,7 @@ public static class RadioSpeech
             string run = cs[i..j];
             if (!letters) parts.Add(Digits(run));
             else if (first && ServicePrefixes.TryGetValue(run.ToUpperInvariant(), out var service)) parts.Add(service);
-            else if (first && (run.Length >= 4 || ShortWords.Contains(run))) parts.Add(char.ToUpperInvariant(run[0]) + run[1..].ToLowerInvariant());
+            else if (first && (run.Length >= 4 || ShortWords.Contains(run) || MilitaryCallsigns.IsCallword(run))) parts.Add(char.ToUpperInvariant(run[0]) + run[1..].ToLowerInvariant());
             else parts.Add(Spell(run));
             first = false;
             i = j;

@@ -6,7 +6,7 @@ namespace PARScope.Core.Geo;
 /// <summary>
 /// World Magnetic Model (NOAA/BGS WMM2025, valid 2025.0–2030.0; coefficients are public domain and
 /// embedded as WMM2025.COF). Gives magnetic declination where airport data has no variation of record,
-/// i.e. outside the FAA NASR. Spherical-harmonic synthesis to degree 12 with Schmidt semi-normalised
+/// i.e. outside the FAA NASR. Spherical-harmonic synthesis to degree 12 with Schmidt semi-normalized
 /// associated Legendre functions, following the WMM technical report.
 /// </summary>
 public static class Wmm
@@ -41,7 +41,7 @@ public static class Wmm
         double latC = Math.Asin(z / r);
         double cosT = Math.Sin(latC), sinT = Math.Cos(latC); // θ = colatitude
 
-        // Legendre functions P(n,m)(cos θ) and dP/dθ, Gauss normalised, then Schmidt factors.
+        // Legendre functions P(n,m)(cos θ) and dP/dθ, Gauss normalized, then Schmidt factors.
         var P = new double[MaxDegree + 1, MaxDegree + 1];
         var dP = new double[MaxDegree + 1, MaxDegree + 1];
         var S = new double[MaxDegree + 1, MaxDegree + 1];

@@ -88,6 +88,34 @@ public class GlidepathResponseTests
         Assert.InRange(p(GlidepathCall.WellAbove, CallTrend.Worsening, -1300), Nominal - 700, 0);
     }
 
+    [Theory]
+    [InlineData("ABOVE GLIDEPATH", true)]
+    [InlineData("ON GLIDEPATH", true)]
+    [InlineData("BELOW GLIDEPATH", false)] // level until they meet it
+    public void A_level_pilot_told_on_or_above_the_glidepath_starts_down(string call, bool descends)
+    {
+        var (sim, ac) = Arrival();
+        Run(sim, 2);
+        Assert.False(ac.Descending);
+        double vs = Say(sim, ac, call);
+        Assert.Equal(descends, ac.Descending);
+        if (descends) Assert.True(vs < -500, $"{vs:0}"); else Assert.InRange(vs, -50, 50);
+    }
+
+    [Fact]
+    public void Lost_comms_instructions_are_not_a_missed_approach()
+    {
+        var t = Phraseology.Parse("IF NO TRANSMISSIONS ARE RECEIVED FOR ONE MINUTE IN THE PATTERN OR FIVE SECONDS ON FINAL APPROACH, "
+            + "ATTEMPT CONTACT WITH TOWER AND PROCEED VFR. IF UNABLE, CLIMB AND MAINTAIN 2000 AND EXECUTE MISSED APPROACH");
+        Assert.True(t.LostCommsInstructions);
+        Assert.False(t.MissedApproach);
+        var (sim, ac) = Arrival();
+        ac.Receive(t, sim.SimTime, 243, 700);
+        Run(sim, 10);
+        Assert.False(ac.GoingAround);
+        Assert.True(Phraseology.Parse("EXECUTE MISSED APPROACH").MissedApproach);
+    }
+
     [Fact]
     public void Repeated_calls_while_still_high_keep_adding_correction()
     {

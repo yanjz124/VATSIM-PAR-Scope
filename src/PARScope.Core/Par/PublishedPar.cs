@@ -24,7 +24,7 @@ public static class PublishedPar
     public static PublishedParMinimums? Find(string? icaoOrLid, string runwayId)
     {
         if (string.IsNullOrEmpty(icaoOrLid)) return null;
-        string rwy = Normalise(runwayId);
+        string rwy = Normalize(runwayId);
         if (Table.Value.TryGetValue((icaoOrLid.ToUpperInvariant(), rwy), out var p)) return p;
         return icaoOrLid.Length == 3 && Table.Value.TryGetValue(("K" + icaoOrLid.ToUpperInvariant(), rwy), out p) ? p : null;
     }
@@ -39,7 +39,7 @@ public static class PublishedPar
         Source = p.Source,
     };
 
-    private static string Normalise(string id)
+    private static string Normalize(string id)
     {
         id = id.Trim().ToUpperInvariant();
         int digits = id.TakeWhile(char.IsDigit).Count();
@@ -60,7 +60,7 @@ public static class PublishedPar
             if (header) { header = false; continue; }
             var f = line.Split(',');
             double D(int i) => double.Parse(f[i], CultureInfo.InvariantCulture);
-            var p = new PublishedParMinimums(f[0], Normalise(f[1]), D(2), D(3), D(4), D(5), D(6), f[7]);
+            var p = new PublishedParMinimums(f[0], Normalize(f[1]), D(2), D(3), D(4), D(5), D(6), f[7]);
             dict[(p.Icao, p.RunwayId)] = p;
         }
         return dict;

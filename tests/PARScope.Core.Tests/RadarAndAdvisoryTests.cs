@@ -131,12 +131,12 @@ public class RadarAndAdvisoryTests
     [InlineData(4000, 0, "WELL RIGHT OF COURSE AND HOLDING")]
     public void Course_phraseology_uses_2_and_5_degree_lines(double rightFt, double rate, string expected)
     {
-        // At 5 NM the 2° line is ~1,060 ft and the 5° line ~2,660 ft from the centreline.
+        // At 5 NM the 2° line is ~1,060 ft and the 5° line ~2,660 ft from the centerline.
         Assert.Equal(expected, AdvisoryEngine.CoursePhrase(rightFt, rate, 5 * Units.FeetPerNm, Uk));
     }
 
     [Fact]
-    public void Talkdown_of_simulated_aircraft_produces_heading_toward_centreline()
+    public void Talkdown_of_simulated_aircraft_produces_heading_toward_centerline()
     {
         var (geo, store, sim) = Setup();
         var ac = sim.Spawn(new SpawnOptions { RangeNm = 6, CrossFt = -800, HeightOffsetFt = 0, SpeedKt = 130, Mode = PilotMode.ControllerDirected, Skill = 1 });

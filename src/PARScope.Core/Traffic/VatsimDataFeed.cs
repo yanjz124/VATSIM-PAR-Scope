@@ -44,14 +44,14 @@ public sealed class VatsimDataFeed : IDisposable
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         while (!_cts.IsCancellationRequested)
         {
-            if (_wanted() && Area() is { } centre)
+            if (_wanted() && Area() is { } center)
             {
                 Active = true;
                 try
                 {
                     await using var stream = await _http.GetStreamAsync(Url, _cts.Token);
                     using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: _cts.Token);
-                    var current = Parse(doc.RootElement, centre);
+                    var current = Parse(doc.RootElement, center);
                     foreach (var r in current) _sink(r);
                     foreach (var gone in seen.Except(current.Select(r => r.Callsign), StringComparer.OrdinalIgnoreCase).ToList())
                         _sink(new TargetRemoved(gone));
@@ -77,14 +77,14 @@ public sealed class VatsimDataFeed : IDisposable
         }
     }
 
-    private List<PositionReport> Parse(JsonElement root, GeoPoint centre)
+    private List<PositionReport> Parse(JsonElement root, GeoPoint center)
     {
         var list = new List<PositionReport>();
         if (root.TryGetProperty("general", out var g) && g.TryGetProperty("update_timestamp", out var ts) && ts.TryGetDateTime(out var upd))
             LastUpdateUtc = upd;
         if (!root.TryGetProperty("pilots", out var pilots)) return list;
 
-        var frame = new LocalFrame(centre);
+        var frame = new LocalFrame(center);
         double limitM = RadiusNm * Units.MetersPerNm;
         double now = _clock.Now;
         var utcNow = DateTime.UtcNow;

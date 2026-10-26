@@ -1,6 +1,6 @@
 namespace PARScope.Core.Geo;
 
-/// <summary>Double-precision 3-vector (System.Numerics is single precision, too coarse for ECEF metres).</summary>
+/// <summary>Double-precision 3-vector (System.Numerics is single precision, too coarse for ECEF meters).</summary>
 public readonly record struct Vec3(double X, double Y, double Z)
 {
     public static readonly Vec3 Zero = new(0, 0, 0);

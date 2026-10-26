@@ -56,8 +56,8 @@
                                     <ui:NumberBox Value="{Binding SiteOffset}" SmallChange="50" MaxDecimalPlaces="0" Minimum="-2500" Maximum="2500" />
                                 </StackPanel>
                                 <StackPanel Grid.Row="2" Grid.Column="2" Margin="0,0,0,8">
-                                    <TextBlock Text="Antenna aim ° toward centreline" Style="{StaticResource MetricLabel}"
-                                               ToolTip="ICAO Annex 10 siting example: 15°/5° asymmetric scan, i.e. the sector turned 5° toward the runway centreline." />
+                                    <TextBlock Text="Antenna aim ° toward centerline" Style="{StaticResource MetricLabel}"
+                                               ToolTip="ICAO Annex 10 siting example: 15°/5° asymmetric scan, i.e. the sector turned 5° toward the runway centerline." />
                                     <ui:NumberBox Value="{Binding SiteAim}" SmallChange="0.5" MaxDecimalPlaces="1" Minimum="0" Maximum="15" />
                                 </StackPanel>
                                 <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,0,8">
@@ -131,6 +131,12 @@
                             <ui:ToggleSwitch IsChecked="{Binding TrainingLiveWind}" Margin="0,0,0,6"
                                              OnContent="Training arrivals use the live METAR wind" OffContent="Training arrivals use the live METAR wind"
                                              ToolTip="Surface wind and gusts from the current METAR (random when off or when there is no METAR). Harder difficulties still add wind shift and drop-off on descent." />
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="Training callsigns on the radar, at most" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding CallsignLengths}" SelectedItem="{Binding MaxCallsignLength}" MinWidth="70"
+                                          ToolTip="Longer squadron callwords are abbreviated to fit (BANSHEE21 becomes BNS21 at 5, BNSH21 at 6); the radio still says the whole word. Callsigns you type are kept as typed." />
+                                <TextBlock Text="characters" VerticalAlignment="Center" Margin="8,0,0,0" />
+                            </StackPanel>
                             <ui:ToggleSwitch IsChecked="{Binding ShowAdvisoriesOnNetwork}" OnContent="Suggested calls for VATSIM traffic" OffContent="Suggested calls for VATSIM traffic" Margin="0,0,0,10" />
 
                     </StackPanel>

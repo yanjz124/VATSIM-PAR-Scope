@@ -3,7 +3,7 @@ namespace PARScope.Core.Par;
 /// <summary>
 /// Per-runway PAR installation parameters. Defaults follow the ICAO Annex 10 Vol I §3.2 siting example
 /// with an asymmetric 15°/5° azimuth scan: antenna 2,250 ft past touchdown, 400 ft to the side, its
-/// sector turned 5° toward the runway centreline.
+/// sector turned 5° toward the runway centerline.
 /// </summary>
 public sealed record ParSiteConfig
 {
@@ -19,10 +19,10 @@ public sealed record ParSiteConfig
 
     /// <summary>Antenna distance beyond the glidepath intercept point, along the runway, feet.</summary>
     public double AntennaSetbackFt { get; init; } = 2250.0;
-    /// <summary>Antenna offset from the runway centreline, feet; positive = right side as seen by a landing pilot.</summary>
+    /// <summary>Antenna offset from the runway centerline, feet; positive = right side as seen by a landing pilot.</summary>
     public double AntennaOffsetFt { get; init; } = 400.0;
     public double AntennaHeightFt { get; init; } = 10.0;
-    /// <summary>Azimuth boresight turned toward the runway centreline, degrees (ICAO 15°/5° example: 5°).</summary>
+    /// <summary>Azimuth boresight turned toward the runway centerline, degrees (ICAO 15°/5° example: 5°).</summary>
     public double AntennaAimDeg { get; init; } = 5.0;
 }
 
@@ -45,7 +45,7 @@ public sealed record DeviationBands
     public double SlightlyFt { get; init; } = 60;
     /// <summary>Beyond this is "well" above/below (RA 3291: more than 100 ft).</summary>
     public double WellFt { get; init; } = 100;
-    /// <summary>"On course" half-width, feet (RA 3291 draws the centreline 50 ft wide).</summary>
+    /// <summary>"On course" half-width, feet (RA 3291 draws the centerline 50 ft wide).</summary>
     public double OnCourseFt { get; init; } = 25;
     /// <summary>Azimuth line inside which deviations are "slightly" (RA 3291 blue 2° line from touchdown).</summary>
     public double SlightlyCourseDeg { get; init; } = 2.0;

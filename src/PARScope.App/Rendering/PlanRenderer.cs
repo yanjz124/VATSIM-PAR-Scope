@@ -8,7 +8,7 @@ using SkiaSharp;
 namespace PARScope.App.Rendering;
 
 /// <summary>
-/// North-up surveillance view in the style of an FAA STARS TCW: black field, grey video map, blue
+/// North-up surveillance view in the style of an FAA STARS TCW: black field, gray video map, blue
 /// history trails, beacon slashes, green full data blocks with a time-shared second line, and an SSA
 /// clock/altimeter readout. Used to vector traffic onto the PAR final.
 /// </summary>
@@ -49,7 +49,7 @@ public sealed class PlanRenderer : IDisposable
         _hits.Clear();
         if (geo == null || asr == null) return;
 
-        // Put the threshold off-centre so the final approach course runs across the view.
+        // Put the threshold off-center so the final approach course runs across the view.
         double radiusM = rangeNm * Units.MetersPerNm;
         _pxPerM = (float)(Math.Min(w, h) / 2 / radiusM);
         double outbound = Units.DegToRad(geo.Runway.TrueHeadingDeg + 180);
@@ -88,7 +88,7 @@ public sealed class PlanRenderer : IDisposable
             c.DrawPath(path, _ink.Line(MapDim, 1f));
         }
 
-        // Extended runway centreline (final approach course) with a tick each mile, longer every five.
+        // Extended runway centerline (final approach course) with a tick each mile, longer every five.
         int courseNm = (int)Math.Ceiling(preset.MaxRangeNm);
         var tdEnu = frame.EcefToEnu(geo.ToEcef(new ApproachPoint(0, 0, 0)));
         var farEnu = frame.EcefToEnu(geo.ToEcef(new ApproachPoint(courseNm * Units.FeetPerNm, 0, 0)));
@@ -153,7 +153,7 @@ public sealed class PlanRenderer : IDisposable
     }
 
     /// <summary>Magnetic azimuth scale round the radar at the selected range: ticks every 5°, longer every 10°,
-    /// labelled every 30°.</summary>
+    /// labeled every 30°.</summary>
     private void DrawCompassRose(SKCanvas c, double rangeNm, double variationDeg)
     {
         float r = (float)(rangeNm * Units.MetersPerNm * _pxPerM);
