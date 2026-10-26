@@ -7,7 +7,8 @@ param(
 # checksums, then deletes older releases of the same major version beyond -Keep. Tags are kept, so old
 # builds can still be found and rebuilt. Requires a clean working tree and the gh CLI.
 
-$ErrorActionPreference = "Stop"
+# Native tools (git, gh) report progress on stderr, so failures are detected by exit code.
+$ErrorActionPreference = "Continue"
 $root = Resolve-Path (Join-Path $PSScriptRoot "..")
 if (git -C $root status --porcelain) { throw "Commit or stash your changes first." }
 $sha = git -C $root rev-parse --short HEAD
@@ -15,7 +16,7 @@ $tag = "v$Version"
 $out = Join-Path $root "release"
 
 & (Join-Path $PSScriptRoot "build-release.ps1") -Version $Version -OutDir $out
-if ($LASTEXITCODE) { throw "Build failed" }
+if (-not $?) { throw "Build failed" }
 
 if (-not $NotesFile) {
   $prev = git -C $root describe --tags --abbrev=0 2>$null
@@ -24,9 +25,11 @@ if (-not $NotesFile) {
   ($log -join "`n") + "`n`nBuilt from $sha." | Set-Content -Encoding utf8 $NotesFile
 }
 
-git -C $root push origin HEAD
+git -C $root push origin HEAD 2>&1 | Out-Host
+if ($LASTEXITCODE) { throw "git push failed" }
 git -C $root tag -a $tag -m "vibe PAR $Version"
-git -C $root push origin $tag
+git -C $root push origin $tag 2>&1 | Out-Host
+if ($LASTEXITCODE) { throw "pushing the tag failed" }
 
 $assets = @("PARScope-$Version.zip", "PARScope-Setup-$Version.exe", "PARScope-$Version.sha256.txt") |
   ForEach-Object { Join-Path $out $_ } | Where-Object { Test-Path $_ }
