@@ -453,11 +453,12 @@ public sealed class ParDisplayRenderer : IDisposable
     private void DrawStatusBox(SKCanvas c, ParGeometry geo, RadarSimulator radar, ParRenderOptions opt)
     {
         var rw = geo.Runway;
-        // Only what the reference screens show: time, PAR runway and glidepath, range, wind/altimeter.
+        // Only what the reference screens show: time, PAR runway, "GS: 3.0° RWY: 248°" (GCA-2000 patent
+        // fig. 4A: glidepath angle and magnetic runway course), range, wind/altimeter.
         string[] lines =
         [
-            $"{DateTime.UtcNow:HHmmss}",
-            $"PAR RWY-{rw.RunwayId} GS-{geo.Site.GlidepathDeg:0.0}",
+            $"{DateTime.UtcNow:HHmmss}  PAR RWY-{rw.RunwayId}",
+            $"GS: {geo.Site.GlidepathDeg:0.0}° RWY: {rw.MagneticCourseDeg:000}°",
             $"RNG:{opt.RangeScaleNm:0}NM",
             .. (opt.Weather is { Length: > 0 } wx ? new[] { wx } : []),
         ];
