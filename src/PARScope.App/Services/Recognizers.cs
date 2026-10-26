@@ -51,7 +51,8 @@ public sealed class WhisperRecognizer(GgmlType model) : IPhraseRecognizer
         "On course. Begin descent. Approaching glidepath. Wheels should be down. How do you hear me. " +
         "Do not acknowledge further transmissions. Too low for safe approach, execute missed approach. " +
         "Wind three one zero at seven, runway two four right, cleared to land. Navy, Marine, Army, Reach, niner. " +
-        "In the event of missed approach, climb and maintain two thousand, turn left heading one eight zero. Contact approach.";
+        "In the event of missed approach, climb and maintain two thousand, turn left heading one eight zero. Contact approach. " +
+        "Tower, final, Navy one two three four, four mile final, full stop. Approach, final, Banshee two one, missed approach, runway heading, climbing to two thousand.";
 
     private WhisperFactory? _factory;
     private WhisperProcessor? _processor;
@@ -146,6 +147,12 @@ public sealed class WindowsGrammarRecognizer : IPhraseRecognizer
 
     /// <summary>One transmission is a sequence of up to six phrases, e.g.
     /// "turn right heading two four four, slightly below glidepath and coming up, on course".</summary>
+    /// <summary>Spoken callsign words: service prefixes, mission callsigns and squadron callwords.</summary>
+    private static string[] CallsignWords() =>
+        new[] { "navy", "marine", "army", "air force", "coast guard", "reach", "pat", "convoy" }
+            .Concat(PARScope.Core.Sim.MilitaryCallsigns.All.Select(m => m.Callword.ToLowerInvariant()))
+            .Distinct().ToArray();
+
     private static Grammar BuildGrammar(CultureInfo culture)
     {
         var digit = new Choices("zero", "one", "two", "three", "tree", "four", "five", "fife", "six", "seven", "eight", "nine", "niner");
@@ -196,6 +203,11 @@ public sealed class WindowsGrammarRecognizer : IPhraseRecognizer
             G("climb and maintain", digit, "thousand", Opt(G(digit, "hundred"))),
             G(new Choices("contact", "switch to"), new Choices("approach", "departure")),
             G("radar contact"),
+            // Interphone: "tower, final, navy one two three four, four mile final, full stop".
+            G(new Choices("tower", "local", "approach", "departure"), Opt("final"),
+              Opt(G(new Choices(CallsignWords()), Opt(digit), Opt(digit), Opt(digit), Opt(digit), Opt(digit))),
+              Opt(G(digit, "mile final")),
+              Opt(new Choices("full stop", "touch and go", "low approach", "option", "missed approach", "request landing clearance"))),
             G("tower clearance not received"),
             G("tower clearance canceled"),
             G("do not acknowledge", Opt(G("further", new Choices("transmissions", "instructions", "calls")))),

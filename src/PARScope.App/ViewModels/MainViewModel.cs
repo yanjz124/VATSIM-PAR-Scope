@@ -719,14 +719,19 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         TypedTransmission = "";
     }
 
-    /// <summary>Sends a controller transmission to the selected training aircraft (or the only one).</summary>
+    /// <summary>
+    /// Sends a transmission: to tower or approach if it opens by addressing them (interphone), otherwise to
+    /// the selected training aircraft (or the only one) on the final frequency.
+    /// </summary>
     public void ProcessTransmission(string text, string via)
     {
+        if (Interphone.Parse(text) is { } call) { ProcessInterphone(call, via); return; }
+
         var t = Phraseology.Parse(text);
         var target = (SelectedCallsign is { } cs ? Engine.Training.Find(cs) : null)
                      ?? (Engine.Training.Aircraft.Count == 1 ? Engine.Training.Aircraft[0] : null);
-        _session.Write($"          ({via}) to {target?.Callsign ?? "no aircraft selected"}; understood as: {Understood(t)}");
         Log("FINAL", text.ToUpperInvariant() + (t.IsEmpty ? "  (not understood)" : ""));
+        _session.Write($"          ({via}) to {target?.Callsign ?? "no aircraft selected"}; understood as: {Understood(t)}");
         _lastTxTime = Engine.Training.SimTime;
         if (t.IsEmpty || target == null || Engine.Runway is not { } rw)
         {
@@ -742,27 +747,69 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _ = SayLaterAsync(1.0 + Random.Shared.NextDouble(), () => PilotSays(target.Callsign, reply));
     }
 
+    /// <summary>
+    /// A spoken or typed coordination call. The aircraft is the one named in the call, else the selected
+    /// one; tower gets a landing request (intent from the wording, else the panel's choice), approach a
+    /// missed approach coordination. Anything else gets a plain acknowledgement.
+    /// </summary>
+    private void ProcessInterphone(InterphoneCall call, string via)
+    {
+        string who = call.To == Facility.Tower ? "TOWER" : "APPROACH";
+        Log("FINAL", $"({who.ToLowerInvariant()} line) {call.Text}");
+        var ac = Interphone.FindAircraft(call.Text, Engine.Training.Aircraft)
+                 ?? (SelectedCallsign is { } cs ? Engine.Training.Find(cs) : null)
+                 ?? (Engine.Training.Aircraft.Count == 1 ? Engine.Training.Aircraft[0] : null);
+        _session.Write($"          ({via}) interphone to {who.ToLowerInvariant()} about {ac?.Callsign ?? "no aircraft"}; "
+            + $"understood as: {(call.Intent is { } i ? i.ToString() : call.MissedApproach ? "missed approach" : "general")}");
+
+        if (call.To == Facility.Tower)
+        {
+            if (ac != null && !ac.GoingAround) TowerRequest(ac, call.Intent ?? TowerIntent, spoken: true);
+            else Reply(who, "Roger.", _voice.Tower);
+        }
+        else if (ac != null && (ac.GoingAround || call.MissedApproach))
+        {
+            if (!ac.GoingAround) Reply(who, $"{RadioSpeech.Callsign(ac.Callsign)}, say again when they're missed.", _voice.Approach);
+            else ApproachCoordination(ac, spoken: true);
+        }
+        else Reply(who, $"Roger, {string.Join(' ', _approach.Initials.ToCharArray())}.", _voice.Approach);
+    }
+
+    private void Reply(string who, string text, Action<string> voice) =>
+        _ = SayLaterAsync(2.0, () => { Log(who, text); voice(text); });
+
     /// <summary>Interphone request to tower for the selected training aircraft (7110.65 §5-10-13).</summary>
     [RelayCommand]
     private void RequestTower()
     {
-        if (SelectedCallsign is not { } cs || Engine.Training.Find(cs) is not { } ac || Engine.Runway is not { } rw) return;
-        Log("FINAL", TowerSim.RequestText(cs, ac.RangeFt / Units.FeetPerNm, TowerIntent));
+        if (SelectedCallsign is not { } cs || Engine.Training.Find(cs) is not { } ac) return;
+        TowerRequest(ac, TowerIntent, spoken: false);
+    }
+
+    private void TowerRequest(SimAircraft ac, LandingIntent intent, bool spoken)
+    {
+        if (Engine.Runway is not { } rw) return;
+        if (!spoken) Log("FINAL", TowerSim.RequestText(ac.Callsign, ac.RangeFt / Units.FeetPerNm, intent));
+        TowerIntent = intent;
         bool occupied = Engine.Training.Aircraft.Any(a => a != ac && a.Landed && !a.Finished);
-        string answer = _tower.Request(cs, TowerIntent, rw.RunwayId, occupied);
-        _ = SayLaterAsync(2.0, () => { Log("TOWER", answer); _voice.Tower(answer); });
+        Reply("TOWER", _tower.Request(ac.Callsign, intent, rw.RunwayId, occupied), _voice.Tower);
     }
 
     /// <summary>Interphone coordination of a missed approach with approach control, before switching the pilot.</summary>
     [RelayCommand]
     private void CoordinateMissed()
     {
-        if (SelectedCallsign is not { } cs || Engine.Training.Find(cs) is not { } ac || Engine.Runway is not { } rw) return;
+        if (SelectedCallsign is not { } cs || Engine.Training.Find(cs) is not { } ac) return;
         if (!ac.GoingAround) { StatusMessage = $"{cs} has not gone missed"; return; }
-        string request = ApproachSim.MissedApproachRequest(cs, Units.Norm360(rw.MagneticCourseDeg + ac.CommandedHeadingRelDeg), ac.ClimbToFt + rw.ThresholdElevFt);
-        Log("FINAL", request);
-        string answer = _approach.Coordinate(cs);
-        _ = SayLaterAsync(2.0, () => { Log("APPROACH", answer); _voice.Approach(answer); });
+        ApproachCoordination(ac, spoken: false);
+    }
+
+    private void ApproachCoordination(SimAircraft ac, bool spoken)
+    {
+        if (Engine.Runway is not { } rw) return;
+        if (!spoken)
+            Log("FINAL", ApproachSim.MissedApproachRequest(ac.Callsign, Units.Norm360(rw.MagneticCourseDeg + ac.CommandedHeadingRelDeg), ac.ClimbToFt + rw.ThresholdElevFt));
+        Reply("APPROACH", _approach.Coordinate(ac.Callsign), _voice.Approach);
     }
 
     public void BeginDescent()

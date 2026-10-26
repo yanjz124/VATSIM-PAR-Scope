@@ -117,6 +117,39 @@ public class RadioTests
         Assert.Contains("one four miles", ApproachSim.HandoffToFinal("VV1234", 14.2, 243, 2500));
     }
 
+    [Theory]
+    [InlineData("Tower, final, Navy one two three four, four mile final, full stop", Facility.Tower, LandingIntent.FullStop, false)]
+    [InlineData("tower final 1234 touch n go", Facility.Tower, LandingIntent.TouchAndGo, false)]
+    [InlineData("Local, got a Navy on a four mile final for the option", Facility.Tower, LandingIntent.Option, false)]
+    [InlineData("Approach, final, Banshee two one went missed, runway heading, climbing to two thousand", Facility.Approach, null, true)]
+    [InlineData("uh departure, missed approach on 1234", Facility.Approach, null, true)]
+    public void Interphone_calls_are_read_loosely(string text, Facility to, LandingIntent? intent, bool missed)
+    {
+        var call = Interphone.Parse(text);
+        Assert.NotNull(call);
+        Assert.Equal(to, call.To);
+        Assert.Equal(intent, call.Intent);
+        Assert.Equal(missed, call.MissedApproach);
+    }
+
+    [Theory]
+    [InlineData("tower clearance not received, execute missed approach")]
+    [InlineData("approaching glidepath, wheels should be down")]
+    [InlineData("if runway or approach lights not in sight, execute missed approach")]
+    public void Pilot_calls_are_not_mistaken_for_interphone(string text) => Assert.Null(Interphone.Parse(text));
+
+    [Fact]
+    public void Interphone_finds_the_aircraft_named()
+    {
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
+        var navy = sim.SpawnRandom(PilotMode.ControllerDirected, "VV1234", "P8");
+        var banshee = sim.SpawnRandom(PilotMode.ControllerDirected, "BANSHEE21", "F16");
+        Assert.Same(navy, Interphone.FindAircraft("tower final navy one two three four full stop", sim.Aircraft));
+        Assert.Same(navy, Interphone.FindAircraft("tower, 234, full stop", sim.Aircraft));
+        Assert.Same(banshee, Interphone.FindAircraft("approach, banshee went missed", sim.Aircraft));
+        Assert.Null(Interphone.FindAircraft("tower, full stop", sim.Aircraft));
+    }
+
     [Fact]
     public void Pause_freezes_aircraft_and_holds_pilot_reactions()
     {
