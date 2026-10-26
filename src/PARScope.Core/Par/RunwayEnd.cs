@@ -6,6 +6,8 @@ namespace PARScope.Core.Par;
 /// <param name="ThresholdLat">Landing threshold (displaced threshold if any).</param>
 /// <param name="ThresholdElevFt">Threshold elevation, feet MSL.</param>
 /// <param name="TrueHeadingDeg">Runway true heading (direction of landing).</param>
+/// <param name="VgsiTchFt">TCH of the visual glide slope indicator (PAPI/VASI) from NASR, not the PAR/ILS TCH.</param>
+/// <param name="VgsiAngleDeg">PAPI/VASI visual glide path angle from NASR; not the PAR glidepath, which comes from the approach plate.</param>
 /// <param name="MagVarEastDeg">Magnetic variation, east positive (magnetic = true − variation).</param>
 public sealed record RunwayEnd(
     string AirportId,
@@ -15,8 +17,8 @@ public sealed record RunwayEnd(
     double ThresholdLon,
     double ThresholdElevFt,
     double TrueHeadingDeg,
-    double? TchFt = null,
-    double? GlidepathDeg = null,
+    double? VgsiTchFt = null,
+    double? VgsiAngleDeg = null,
     double? MagVarEastDeg = null,
     string? ApproachLights = null,
     double? LengthFt = null,

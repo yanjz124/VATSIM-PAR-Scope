@@ -59,6 +59,8 @@ public sealed record RadarPreset
     public double DetectionProbability { get; init; } = 0.98;
 
     public DisplayStyle Style { get; init; } = DisplayStyle.Digital;
+    /// <summary>Whether the indicator shows the antenna sweep trace (analog B-scope). Default for the Scan toggle.</summary>
+    public bool SweepTrace { get; init; }
     /// <summary>Whether the system runs a track-while-scan tracker (track symbols, data blocks).</summary>
     public bool Tracking { get; init; } = true;
     public int MaxTracks { get; init; } = 6;
@@ -85,7 +87,7 @@ public sealed record RadarPreset
         AzLeftDeg = 10, AzRightDeg = 10, ElMinDeg = -1, ElMaxDeg = 7, MaxRangeNm = 20, MtiMaxRangeNm = 15,
         AzScanSec = 1.0, ElScanSec = 1.0, Pattern = ScanPattern.Mechanical,
         AzBeamwidthDeg = 0.85, ElBeamwidthDeg = 0.55,
-        NoiseFactor = 1.3, Style = DisplayStyle.Phosphor, Tracking = false, RangeScalesNm = [10, 20],
+        NoiseFactor = 1.3, Style = DisplayStyle.Phosphor, SweepTrace = true, Tracking = false, RangeScalesNm = [10, 20],
     };
 
     public static readonly RadarPreset Gpn22 = new()
@@ -97,7 +99,7 @@ public sealed record RadarPreset
         AzLeftDeg = 10, AzRightDeg = 10, ElMinDeg = -1, ElMaxDeg = 7, MaxRangeNm = 15,
         AzScanSec = 1.0, ElScanSec = 1.0, Pattern = ScanPattern.Electronic,
         AzBeamwidthDeg = 0.75, ElBeamwidthDeg = 0.75,
-        NoiseFactor = 1.0, Style = DisplayStyle.Phosphor, Tracking = true, MaxTracks = 6, RangeScalesNm = [5, 10, 15],
+        NoiseFactor = 1.0, Style = DisplayStyle.Phosphor, SweepTrace = true, Tracking = true, MaxTracks = 6, RangeScalesNm = [5, 10, 15],
     };
 
     public static readonly RadarPreset Fpn67 = new()

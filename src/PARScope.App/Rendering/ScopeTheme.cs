@@ -53,7 +53,7 @@ public sealed record ScopeTheme
         History = new SKColor(0xC8, 0xC8, 0xC8),
         Selected = new SKColor(0xFF, 0xE0, 0x40),
         Warning = new SKColor(0xFF, 0x40, 0x40),
-        Scan = SKColors.Transparent,
+        Scan = new SKColor(0x2E, 0x9A, 0x46, 0x50),
         Analog = false,
         PersistenceSec = 0.9,
     };

@@ -6,7 +6,7 @@ namespace PARScope.Core.Tests;
 public class GeometryTests
 {
     // NAS Lemoore (NLC) runway 32L-ish geometry, rounded; any mid-latitude runway works.
-    internal static readonly RunwayEnd Runway = new("NLC", "KNLC", "32L", 36.3200, -119.9400, 228, 315.0, TchFt: 55, MagVarEastDeg: 13);
+    internal static readonly RunwayEnd Runway = new("NLC", "KNLC", "32L", 36.3200, -119.9400, 228, 315.0, MagVarEastDeg: 13);
     internal static readonly ParSiteConfig Site = new() { TchFt = 55 };
 
     [Fact]

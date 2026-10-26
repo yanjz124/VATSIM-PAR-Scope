@@ -98,7 +98,7 @@ public sealed class VatsimDataFeed : IDisposable
 
             // Place the report at the time the server last heard from the pilot, not when we downloaded it.
             double age = p.TryGetProperty("last_updated", out var lu) && lu.TryGetDateTime(out var luTime)
-                ? Math.Clamp((utcNow - luTime.ToUniversalTime()).TotalSeconds, 0, 60) : 0;
+                ? Math.Clamp((utcNow - luTime.ToUniversalTime()).TotalSeconds, 0, 10) : 0;
             string? type = p.TryGetProperty("flight_plan", out var fp) && fp.ValueKind == JsonValueKind.Object
                            && fp.TryGetProperty("aircraft_short", out var ac) ? ac.GetString() : null;
 

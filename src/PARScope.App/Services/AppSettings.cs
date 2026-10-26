@@ -15,8 +15,8 @@ public sealed class AppSettings
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
 
     public int UdpPort { get; set; } = 49090;
-    /// <summary>Use the public 15 s VATSIM data feed when no vPilot plugin is streaming.</summary>
-    public bool DataFeedFallback { get; set; } = true;
+    /// <summary>Use the public 15 s VATSIM data feed when no vPilot plugin is streaming. Opt-in.</summary>
+    public bool UseDataFeed { get; set; }
     public string? AirportId { get; set; }
     public string? RunwayId { get; set; }
     public string PresetId { get; set; } = "fpn68";
@@ -37,6 +37,8 @@ public sealed class AppSettings
     public bool ShowPlanView { get; set; } = true;
     public double PlanRangeNm { get; set; } = 20;
     public double SidePanelWidth { get; set; } = 380;
+    /// <summary>Side-panel section open/closed state.</summary>
+    public Dictionary<string, bool> Panels { get; set; } = new();
     public int HistoryDots { get; set; } = 8;
     public MetarSource MetarSource { get; set; } = MetarSource.Vatsim;
     public DeviationBands Bands { get; set; } = new();
@@ -52,11 +54,13 @@ public sealed class AppSettings
 
     public static string SiteKey(RunwayEnd r) => $"{r.AirportId}/{r.RunwayId}";
 
-    /// <summary>Site config for a runway: saved overrides, else defaults seeded from the runway's published TCH and glidepath.</summary>
+    /// <summary>
+    /// Site config for a runway: saved overrides, else a 3.0° glidepath and 50 ft TCH. Airport data only
+    /// carries the PAPI/VASI visual glide slope, which is not the PAR glidepath; set the real values from
+    /// the approach plate.
+    /// </summary>
     public ParSiteConfig SiteFor(RunwayEnd r) =>
-        Sites.TryGetValue(SiteKey(r), out var s)
-            ? s
-            : new ParSiteConfig { TchFt = r.TchFt ?? 50, GlidepathDeg = r.GlidepathDeg ?? 3.0 };
+        Sites.TryGetValue(SiteKey(r), out var s) ? s : new ParSiteConfig { TchFt = 50, GlidepathDeg = 3.0 };
 
     public static AppSettings Load()
     {

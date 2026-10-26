@@ -74,7 +74,7 @@ public sealed class ParDisplayRenderer : IDisposable
         DrawRangeLines(c, opt);
         DrawElevationCursors(c, geo, radar, opt);
         DrawAzimuthCursors(c, geo, radar, opt);
-        if (_t.Analog && opt.ShowScan) DrawScan(c, geo, radar);
+        if (opt.ShowScan) DrawScan(c, geo, radar);
         DrawVideo(c, geo, radar, now, opt);
         if (!_t.Analog)
         {
@@ -171,6 +171,7 @@ public sealed class ParDisplayRenderer : IDisposable
     private void DrawRangeLines(SKCanvas c, ParRenderOptions opt)
     {
         double minor = opt.RangeScaleNm <= 5 ? 0.25 : 0.5;
+        float lastLabelRight = float.NegativeInfinity;
         for (double nm = 0; nm <= _rMaxNm + 1e-6; nm += minor)
         {
             bool whole = Math.Abs(nm - Math.Round(nm)) < 1e-6;
@@ -186,8 +187,14 @@ public sealed class ParDisplayRenderer : IDisposable
             if (!_t.Analog && whole && (opt.RangeScaleNm <= 10 || (int)nm % 2 == 0))
             {
                 string label = nm.ToString("0.00");
-                bool last = x + _ink.FontSmall.MeasureText(label) + 2 > _right;
-                c.DrawText(label, last ? x - 2 : x + 2, _elBottom + 13, last ? SKTextAlign.Right : SKTextAlign.Left, _ink.FontSmall, _ink.TextPaint(_t.RangeLabel));
+                float lw = _ink.FontSmall.MeasureText(label);
+                bool last = x + lw + 2 > _right;
+                float left = last ? x - 2 - lw : x + 2;
+                if (left > lastLabelRight + 6)
+                {
+                    c.DrawText(label, left, _elBottom + 13, SKTextAlign.Left, _ink.FontSmall, _ink.TextPaint(_t.RangeLabel));
+                    lastLabelRight = left + lw;
+                }
             }
         }
     }

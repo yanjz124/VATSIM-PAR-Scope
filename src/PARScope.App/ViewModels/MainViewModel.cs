@@ -38,6 +38,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ShowSafetyLimits = settings.ShowSafetyLimits;
         ShowCourseWedge = settings.ShowCourseWedge;
         UseUkBands = settings.Bands.Standard == DeviationStandard.UkRa3291;
+        UseDataFeed = settings.UseDataFeed;
+        bool Panel(string key, bool def) => settings.Panels.TryGetValue(key, out var v) ? v : def;
+        ExpandTarget = Panel("target", true);
+        ExpandAsr = Panel("asr", true);
+        ExpandWeather = Panel("weather", true);
+        ExpandVoice = Panel("voice", true);
+        ExpandTraining = Panel("training", false);
+        ExpandSetup = Panel("setup", false);
         ShowScan = settings.ShowScan;
         ShowAdvisories = settings.ShowAdvisories;
         ShowAdvisoriesOnNetwork = settings.ShowAdvisoriesOnNetwork;
@@ -65,7 +73,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public async Task InitializeAsync()
     {
         Engine.StartNetwork(_settings.UdpPort);
-        Engine.StartDataFeed(Http, () => _settings.DataFeedFallback);
+        Engine.StartDataFeed(Http, () => _settings.UseDataFeed);
         bool cached = await Task.Run(_airports.TryLoadCache);
         AirportDbStatus = cached ? DbStatusText() : "No airport data yet";
         if (!cached)
@@ -133,6 +141,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (newValue is null) { SelectedPreset = oldValue ?? RadarPreset.Fpn68; return; }
         var value = newValue;
         RefreshRangeScales(value);
+        IsAnalogPreset = value.Style == DisplayStyle.Phosphor;
+        // Each model brings its own sweep-trace default; the Scan button overrides it.
+        if (oldValue is not null && oldValue.Id != value.Id) ShowScan = value.SweepTrace;
         _settings.PresetId = value.Id;
         Reconfigure();
     }
@@ -262,6 +273,23 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] public partial bool ShowCourseWedge { get; set; }
     /// <summary>UK RA 3291 fixed-feet deviation terms instead of the US Navy target-quarter method.</summary>
     [ObservableProperty] public partial bool UseUkBands { get; set; }
+    /// <summary>Analog presets have a sweep trace; the Scan toggle only applies to them.</summary>
+    [ObservableProperty] public partial bool IsAnalogPreset { get; set; }
+    [ObservableProperty] public partial bool UseDataFeed { get; set; }
+
+    // Side-panel sections: open/closed state is remembered.
+    [ObservableProperty] public partial bool ExpandTarget { get; set; }
+    [ObservableProperty] public partial bool ExpandAsr { get; set; }
+    [ObservableProperty] public partial bool ExpandWeather { get; set; }
+    [ObservableProperty] public partial bool ExpandVoice { get; set; }
+    [ObservableProperty] public partial bool ExpandTraining { get; set; }
+    [ObservableProperty] public partial bool ExpandSetup { get; set; }
+    partial void OnExpandTargetChanged(bool value) => _settings.Panels["target"] = value;
+    partial void OnExpandAsrChanged(bool value) => _settings.Panels["asr"] = value;
+    partial void OnExpandWeatherChanged(bool value) => _settings.Panels["weather"] = value;
+    partial void OnExpandVoiceChanged(bool value) => _settings.Panels["voice"] = value;
+    partial void OnExpandTrainingChanged(bool value) => _settings.Panels["training"] = value;
+    partial void OnExpandSetupChanged(bool value) => _settings.Panels["setup"] = value;
     [ObservableProperty] public partial bool ShowScan { get; set; }
     [ObservableProperty] public partial bool ShowAdvisories { get; set; }
     [ObservableProperty] public partial bool ShowAdvisoriesOnNetwork { get; set; }
@@ -284,6 +312,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
     partial void OnShowSafetyLimitsChanged(bool value) => _settings.ShowSafetyLimits = value;
     partial void OnShowCourseWedgeChanged(bool value) => _settings.ShowCourseWedge = value;
+    partial void OnUseDataFeedChanged(bool value) => _settings.UseDataFeed = value;
     partial void OnUseUkBandsChanged(bool value) =>
         _settings.Bands = _settings.Bands with { Standard = value ? DeviationStandard.UkRa3291 : DeviationStandard.UsNavyTargetQuarters };
     partial void OnShowScanChanged(bool value) => _settings.ShowScan = value;

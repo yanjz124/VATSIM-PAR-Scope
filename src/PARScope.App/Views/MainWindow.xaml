@@ -84,7 +84,8 @@
                                   ToolTip="Moving target indicator: rejects targets slower than 40 kt and most ground clutter" />
                     <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Safety" IsChecked="{Binding ShowSafetyLimits}" ToolTip="Lower safe limit (TERPS obstacle clearance surface)" />
                     <ToggleButton Style="{StaticResource ToolbarToggle}" Content="2°/5°" IsChecked="{Binding ShowCourseWedge}" ToolTip="UK RA 3291 azimuth lines from touchdown (not shown on US displays)" />
-                    <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Scan" IsChecked="{Binding ShowScan}" ToolTip="Sweep trace (analog phosphor indicators only)" />
+                    <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Scan" IsChecked="{Binding ShowScan}"
+                                  ToolTip="Antenna sweep trace. Defaults per radar model (on for analog indicators); click to override." />
                     <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Log" IsChecked="{Binding LogRange}" ToolTip="Compressed (logarithmic) range axis" />
                 </StackPanel>
 
@@ -117,8 +118,8 @@
                           Visibility="{Binding ShowPlanView, Converter={StaticResource BoolToVisibility}}">
                 <StackPanel>
 
-                    <!-- Selected target -->
-                    <ui:Card Padding="14" Margin="0,0,0,8">
+                    <!-- Every section collapses; open/closed state is remembered. -->
+                    <ui:CardExpander Header="Selected target" Icon="{ui:SymbolIcon Target24}" Margin="0,0,0,6" IsExpanded="{Binding ExpandTarget}">
                         <StackPanel>
                             <DockPanel>
                                 <TextBlock DockPanel.Dock="Right" Text="{Binding SpeedText}"
@@ -164,10 +165,9 @@
                                 </Grid>
                             </Border>
                         </StackPanel>
-                    </ui:Card>
+                    </ui:CardExpander>
 
-                    <!-- Surveillance view -->
-                    <ui:Card Padding="0" Margin="0,0,0,8">
+                    <ui:CardExpander Header="ASR" Icon="{ui:SymbolIcon GridCircles24}" Margin="0,0,0,6" IsExpanded="{Binding ExpandAsr}">
                         <Grid>
                             <Border x:Name="PlanHost" Height="360" CornerRadius="6" ClipToBounds="True" Background="{StaticResource ScopeBackgroundBrush}"
                                     SizeChanged="PlanHost_SizeChanged">
@@ -182,27 +182,29 @@
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
                         </Grid>
-                    </ui:Card>
+                    </ui:CardExpander>
 
-                    <!-- Weather -->
-                    <ui:Card Padding="14" Margin="0,0,0,8">
-                        <StackPanel>
-                            <DockPanel Margin="0,0,0,6">
-                                <Border DockPanel.Dock="Right" CornerRadius="4" Padding="6,1"
+                    <ui:CardExpander Icon="{ui:SymbolIcon WeatherPartlyCloudyDay24}" Margin="0,0,0,6" IsExpanded="{Binding ExpandWeather}">
+                        <ui:CardExpander.Header>
+                            <DockPanel LastChildFill="False">
+                                <TextBlock Text="Weather" VerticalAlignment="Center" />
+                                <Border DockPanel.Dock="Right" CornerRadius="4" Padding="6,1" Margin="0,0,8,0"
                                         Background="{Binding MetarCategory, Converter={StaticResource StatusBrush}}">
                                     <TextBlock Text="{Binding MetarCategory, Converter={StaticResource CategoryLabel}}" FontSize="11" FontWeight="Bold" Foreground="#05080B" />
                                 </Border>
-                                <TextBlock Text="WEATHER" Style="{StaticResource SectionLabel}" Margin="0" VerticalAlignment="Center" />
                             </DockPanel>
+                        </ui:CardExpander.Header>
+                        <StackPanel>
                             <TextBlock Text="{Binding MetarSpoken}" FontSize="13" TextWrapping="Wrap" />
                             <TextBlock Text="{Binding MetarRaw}" FontSize="11" TextWrapping="Wrap"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,8" />
                             <ui:ToggleSwitch IsChecked="{Binding UseVatsimMetar}" OnContent="VATSIM METAR" OffContent="NOAA METAR" />
                         </StackPanel>
-                    </ui:Card>
+                    </ui:CardExpander>
 
                     <!-- Controller transmissions to training traffic: push-to-talk or typed. -->
-                    <ui:Card Padding="14" Margin="0,0,0,8" Visibility="{Binding HasTraining, Converter={StaticResource BoolToVisibility}}">
+                    <ui:CardExpander Header="Transmissions" Icon="{ui:SymbolIcon Mic24}" Margin="0,0,0,6" IsExpanded="{Binding ExpandVoice}"
+                                     Visibility="{Binding HasTraining, Converter={StaticResource BoolToVisibility}}">
                         <StackPanel>
                             <DockPanel Margin="0,0,0,8">
                                 <ui:SymbolIcon DockPanel.Dock="Left" Symbol="Mic24" Margin="0,0,8,0" />
@@ -215,10 +217,9 @@
                             <TextBlock Margin="0,8,0,0" Style="{StaticResource MetricLabel}" TextWrapping="Wrap"
                                        Text="Shortcuts: Tab next target · D begin descent · ←/→ heading ±1° (Shift ±5°) · PgUp/PgDn range" />
                         </StackPanel>
-                    </ui:Card>
+                    </ui:CardExpander>
 
-                    <!-- Training -->
-                    <ui:CardExpander Header="Training traffic" Icon="{ui:SymbolIcon Airplane24}" Margin="0,0,0,8" IsExpanded="True">
+                    <ui:CardExpander Header="Training traffic" Icon="{ui:SymbolIcon Airplane24}" Margin="0,0,0,6" IsExpanded="{Binding ExpandTraining}">
                         <StackPanel>
                             <TextBlock TextWrapping="Wrap" Style="{StaticResource MetricLabel}" Margin="0,0,0,10"
                                        Text="Simulated arrivals for practising talk-downs. Controller-directed pilots hold heading and altitude until you talk to them: hold Space and speak (or type) headings, 'begin descent' and glidepath calls." />
@@ -233,8 +234,7 @@
                         </StackPanel>
                     </ui:CardExpander>
 
-                    <!-- Approach setup -->
-                    <ui:CardExpander Header="Approach and site setup" Icon="{ui:SymbolIcon Settings24}" Margin="0,0,0,8">
+                    <ui:CardExpander Header="Setup" Icon="{ui:SymbolIcon Settings24}" Margin="0,0,0,6" IsExpanded="{Binding ExpandSetup}">
                         <StackPanel>
                             <TextBlock Text="{Binding RunwayDetail}" TextWrapping="Wrap" Style="{StaticResource MetricLabel}" Margin="0,0,0,10" />
                             <Grid>
@@ -249,11 +249,11 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
                                 <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,8">
-                                    <TextBlock Text="Glidepath °" Style="{StaticResource MetricLabel}" />
+                                    <TextBlock Text="Glidepath ° (approach plate)" Style="{StaticResource MetricLabel}" />
                                     <ui:NumberBox Value="{Binding SiteGlidepath}" SmallChange="0.1" MaxDecimalPlaces="2" Minimum="2" Maximum="6" />
                                 </StackPanel>
                                 <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,8">
-                                    <TextBlock Text="TCH ft" Style="{StaticResource MetricLabel}" />
+                                    <TextBlock Text="TCH ft (approach plate)" Style="{StaticResource MetricLabel}" />
                                     <ui:NumberBox Value="{Binding SiteTch}" SmallChange="1" MaxDecimalPlaces="0" Minimum="20" Maximum="100" />
                                 </StackPanel>
                                 <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,0,8">
@@ -269,6 +269,9 @@
                                     <ui:NumberBox Value="{Binding SiteOffset}" SmallChange="50" MaxDecimalPlaces="0" Minimum="-2500" Maximum="2500" />
                                 </StackPanel>
                             </Grid>
+                            <ui:ToggleSwitch IsChecked="{Binding UseDataFeed}" Margin="0,0,0,8"
+                                             OnContent="Use VATSIM data feed without vPilot" OffContent="Use VATSIM data feed without vPilot"
+                                             ToolTip="When no vPilot plugin is connected, show traffic from the public VATSIM data feed (updates every ~15 s). Off by default." />
                             <ui:ToggleSwitch IsChecked="{Binding SimulateErrors}" Margin="0,0,0,8"
                                              OnContent="Simulate radar errors" OffContent="Simulate radar errors"
                                              ToolTip="Measurement noise (ICAO accuracy budget), multipath, ground clutter and missed paints. Off: targets plot exactly where the aircraft is, once per scan." />
@@ -281,7 +284,7 @@
                                              ToolTip="US Navy: slightly/well read from quarters of the radar target (NAVEDTRA 14342A Table 10-1). UK: fixed 60/100 ft and 2°/5° lines." />
                             <WrapPanel>
                                 <ui:Button Content="Apply" Appearance="Primary" Margin="0,0,6,0" Command="{Binding ApplySiteCommand}" />
-                                <ui:Button Content="Reset to published" Command="{Binding ResetSiteCommand}" />
+                                <ui:Button Content="Reset to defaults" Command="{Binding ResetSiteCommand}" />
                             </WrapPanel>
 
                             <Separator Margin="0,14,0,10" />
