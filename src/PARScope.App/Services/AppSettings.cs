@@ -39,6 +39,8 @@ public sealed class AppSettings
     public bool RadioEffect { get; set; } = true;
     /// <summary>Use the public 15 s VATSIM data feed when no vPilot plugin is streaming. Opt-in.</summary>
     public bool UseDataFeed { get; set; }
+    /// <summary>CRC feed capture: Off, RawSocket or Npcap (see CrcCaptureMode). Off by default.</summary>
+    public string CrcFeed { get; set; } = "Off";
     /// <summary>Look for a newer release on GitHub at start-up.</summary>
     public bool CheckForUpdates { get; set; } = true;
     /// <summary>Training arrivals use the live METAR surface wind instead of a random one.</summary>

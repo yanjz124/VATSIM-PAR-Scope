@@ -65,12 +65,19 @@ public sealed class ScopeEngine : IDisposable
     {
         _feed?.Dispose();
         _feed = new VatsimDataFeed(http, Clock, Ingest,
-            () => enabled() && Clock.Now - Link.LastDatagram > FeedFallbackAfterSec,
+            () => enabled() && Clock.Now - Link.LastDatagram > FeedFallbackAfterSec && !CrcLive,
             () => Runway is { } r ? GeoPoint.FromFeet(r.ThresholdLat, r.ThresholdLon, r.ThresholdElevFt) : null);
         _feed.Start();
     }
 
     public VatsimDataFeed? Feed => _feed;
+
+    /// <summary>vNAS target data captured from CRC's UDP (Settings › Data). Off unless the user turns it on.</summary>
+    public CrcFeed Crc => _crc ??= new CrcFeed(Clock, Ingest);
+    private CrcFeed? _crc;
+
+    /// <summary>CRC feed data has arrived recently.</summary>
+    public bool CrcLive => _crc != null && Clock.Now - _crc.LastPacket < 10;
 
     public void Configure(AirportRecord airport, RunwayEnd runway, ParSiteConfig site, RadarPreset preset)
     {
@@ -142,5 +149,6 @@ public sealed class ScopeEngine : IDisposable
         Recorder.Dispose();
         _udp?.Dispose();
         _feed?.Dispose();
+        _crc?.Dispose();
     }
 }

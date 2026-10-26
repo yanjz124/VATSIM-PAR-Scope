@@ -104,6 +104,15 @@
                                              OnContent="Use VATSIM data feed without vPilot" OffContent="Use VATSIM data feed without vPilot"
                                              ToolTip="When no vPilot plugin is connected, show traffic from the public VATSIM data feed (updates every ~15 s). Off by default." />
                             <ui:ToggleSwitch IsChecked="{Binding UseVatsimMetar}" OnContent="VATSIM METAR" OffContent="NOAA METAR" Margin="0,0,0,14" />
+
+                            <TextBlock Text="CRC feed (experimental)" Style="{StaticResource MetricLabel}" />
+                            <TextBlock Style="{StaticResource MetricLabel}" TextWrapping="Wrap" Margin="0,2,0,4"
+                                       Text="Reads the 1 Hz target data vNAS already sends your CRC (no second connection). Open a Tower Cab window at the field for exact altitude; STARS gives Mode C altitude in 100 ft steps. Read-only: nothing is sent and CRC is not touched. Unofficial, and may stop working with a vNAS update." />
+                            <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding CrcFeedChoices}" SelectedItem="{Binding CrcFeedChoice}" Margin="0,2,0,4"
+                                      ToolTip="Raw socket: built into Windows, but vibe PAR has to run as administrator. Npcap: install Npcap once (as administrator) from npcap.com, then vibe PAR runs normally." />
+                            <TextBlock Text="{Binding CrcFeedStatus}" Style="{StaticResource MetricLabel}" TextWrapping="Wrap" Margin="0,0,0,4" />
+                            <ui:Button Content="Restart as administrator" Icon="{ui:SymbolIcon Shield24}" Command="{Binding RestartAsAdministratorCommand}" Margin="0,0,0,14"
+                                       Visibility="{Binding CrcNeedsAdmin, Converter={StaticResource BoolToVisibility}}" />
                                                     
                             <ui:ToggleSwitch IsChecked="{Binding CheckForUpdates}" Margin="0,0,0,14"
                                              OnContent="Check for updates at start-up" OffContent="Check for updates at start-up"

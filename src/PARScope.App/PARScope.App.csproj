@@ -33,6 +33,8 @@
     <PackageReference Include="WPF-UI" Version="4.3.0" />
     <!-- Local neural voices (Kokoro, Piper). 1.13.x: 2.0 dropped the built-in espeak phonemiser these models use. -->
     <PackageReference Include="org.k2fsa.sherpa.onnx" Version="1.13.8" />
+    <!-- CRC feed, Npcap mode: packet capture through Npcap's libpcap API (Npcap itself is installed by the user). -->
+    <PackageReference Include="SharpPcap" Version="6.3.0" />
   </ItemGroup>
 
   <ItemGroup>

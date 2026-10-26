@@ -99,6 +99,53 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     private void ApplyLiveWind() => Engine.Training.SurfaceWind = _settings.TrainingLiveWind ? _liveWind : null;
 
+    // ---- CRC feed (vNAS UDP) ----
+
+    private CrcCaptureMode CrcMode => Enum.TryParse<CrcCaptureMode>(_settings.CrcFeed, out var m) ? m : CrcCaptureMode.Off;
+
+    /// <summary>Settings › Data choices, in CrcCaptureMode order.</summary>
+    public IReadOnlyList<string> CrcFeedChoices { get; } = ["Off", "Raw socket (run vibe PAR as administrator)", "Npcap (install once from npcap.com)"];
+    public string CrcFeedChoice
+    {
+        get => CrcFeedChoices[(int)CrcMode];
+        set
+        {
+            var mode = (CrcCaptureMode)Math.Max(0, CrcFeedChoices.ToList().IndexOf(value));
+            _settings.CrcFeed = mode.ToString();
+            if (mode == CrcCaptureMode.Off) Engine.Crc.Stop(); else Engine.Crc.Start(mode);
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(CrcNeedsAdmin));
+            RefreshCrcStatus();
+        }
+    }
+
+    /// <summary>Raw-socket mode chosen but vibe PAR is not running as administrator.</summary>
+    public bool CrcNeedsAdmin => CrcMode == CrcCaptureMode.RawSocket && !CrcFeed.IsAdministrator;
+
+    [ObservableProperty] public partial string CrcFeedStatus { get; set; } = "";
+
+    private void RefreshCrcStatus()
+    {
+        if (CrcMode == CrcCaptureMode.Off) { CrcFeedStatus = ""; return; }
+        var crc = Engine.Crc;
+        double now = Engine.Now;
+        CrcFeedStatus = crc.Problem is { } p ? p
+            : Engine.CrcLive ? $"Receiving vNAS data: {crc.AircraftCount(now)} aircraft (Tower Cab: exact altitude; STARS: Mode C)"
+            : "Listening. Connect CRC and open a Tower Cab (best) or STARS display covering the field.";
+    }
+
+    /// <summary>Restarts vibe PAR elevated so the raw-socket capture can run.</summary>
+    [RelayCommand]
+    private void RestartAsAdministrator()
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = true, Verb = "runas" });
+            App.Current.Shutdown();
+        }
+        catch (System.ComponentModel.Win32Exception) { StatusMessage = "Restart as administrator was cancelled"; }
+    }
+
     /// <summary>Longest training callsign on the radar (Settings › Training).</summary>
     public IReadOnlyList<int> CallsignLengths { get; } = [5, 6];
     public int MaxCallsignLength
@@ -145,6 +192,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         Engine.StartNetwork(_settings.UdpPort);
         Engine.StartDataFeed(Http, () => _settings.UseDataFeed);
+        if (CrcMode != CrcCaptureMode.Off) Engine.Crc.Start(CrcMode);
         bool cached = await Task.Run(_airports.TryLoadCache);
         AirportDbStatus = cached ? DbStatusText() : "No airport data yet";
         if (!cached)
@@ -1343,6 +1391,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         var link = Engine.Link;
         double age = now - link.LastDatagram;
         if (link.Error != null) { Link = LinkHealth.Error; LinkText = "UDP error"; LinkDetail = link.Error; }
+        else if (age > 15 && Engine.CrcLive)
+        {
+            Link = LinkHealth.Fast;
+            LinkText = $"CRC (vNAS) · 1 Hz, {Engine.Crc.AircraftCount(now)} aircraft";
+            LinkDetail = "vNAS target data captured from CRC: Tower Cab aircraft with exact altitude, STARS targets with Mode C (corrected by the altimeter).";
+        }
         else if (age > 15 && Engine.Feed is { Active: true } feed)
         {
             Link = LinkHealth.Slow;
@@ -1368,6 +1422,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             if (link.FastPerMin is double f) LinkDetail += $" Last minute: {f / 60:0.0} fast packets/s.";
         }
 
+        RefreshCrcStatus();
         int real = Engine.Targets.Count(t => !t.IsSimulated);
         int sim = Engine.Targets.Count - real;
         int fastNow = Engine.Targets.Count(t => t.IsFastActive(now));
@@ -1419,6 +1474,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             int? magDir = m?.WindDirDeg is int td ? RadioSpeech.MagneticWindDeg(td, SelectedRunway?.MagVarEastDeg ?? 0) : null;
             MetarWindPhrase = m is null ? "" : RadioSpeech.Wind(magDir, m.WindSpeedKt, m.WindVariable).ToUpperInvariant();
             MetarStars = m?.StarsShort;
+            if (m?.AltimeterInHg is double altimeter) Engine.Crc.Decoder.AltimeterInHg = altimeter;
             MetarCategory = m?.Category ?? FlightCategory.Unknown;
             _liveWind = m is { WindSpeedKt: int kt } ? (m.WindVariable ? null : m.WindDirDeg, kt, m.GustKt) : null;
             Engine.Training.FieldWeather = (m?.CeilingFt, m?.VisibilitySm);

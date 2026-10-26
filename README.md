@@ -76,6 +76,17 @@ Conduct (C7(b)) allows a controller one extra tower-view connection, `(CID)_TV`.
 
 Hover the status text for details; **Settings › Diagnostics** shows live rates per aircraft.
 
+**CRC feed (experimental, no second connection).** vNAS sends CRC its display targets over UDP about once a
+second, as plain MessagePack. **Settings › Data › CRC feed** reads them by packet capture:
+
+* **Raw socket:** nothing to install, but vibe PAR must run as administrator. The settings page offers a
+  restart.
+* **Npcap:** install [Npcap](https://npcap.com) once, then vibe PAR runs normally.
+
+Open a **Tower Cab** window at the field for exact altitude; a STARS display gives Mode C altitude in 100 ft
+steps. It is read-only and unofficial, and may stop working with a vNAS update. The format is documented in
+[docs/CRC-VNAS-UDP.md](docs/CRC-VNAS-UDP.md).
+
 ## Using the scope
 
 | Control | |

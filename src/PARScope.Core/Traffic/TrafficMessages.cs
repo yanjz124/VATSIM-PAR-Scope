@@ -14,6 +14,8 @@ public enum ReportSource
     Simulated,
     /// <summary>Public VATSIM data feed, about every 15 s (degraded fallback).</summary>
     Feed,
+    /// <summary>vNAS target data CRC receives over UDP (Tower Cab or STARS), about 1 Hz, read by packet capture.</summary>
+    Crc,
 }
 
 public abstract record TrafficMessage;
