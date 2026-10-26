@@ -245,7 +245,38 @@
 
                             <ui:ToggleSwitch IsChecked="{Binding PilotVoices}" OnContent="Pilot and tower voices" OffContent="Pilot and tower voices" Margin="0,10,0,0" />
                             <TextBlock Margin="0,8,0,0" Style="{StaticResource MetricLabel}" TextWrapping="Wrap"
-                                       Text="Hold Space to talk · Tab next target · D begin descent · ←/→ heading ±1° (Shift ±5°)" />
+                                       Text="Space talk · ←/→ heading ±1° (Shift ±5°) · D begin descent · Q/W/E slightly/–/well above · A on glidepath · Z/X/C slightly/–/well below · G wheels · M missed approach · T tower · Tab next target" />
+                        </StackPanel>
+                    </ui:CardExpander>
+
+                    <ui:CardExpander Header="Audio (training)" Icon="{ui:SymbolIcon Speaker224}" Margin="0,0,0,6" IsExpanded="{Binding ExpandAudio}"
+                                     Visibility="{Binding TrainingMode, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel>
+                            <TextBlock Text="Microphone" Style="{StaticResource MetricLabel}" />
+                            <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding Microphones}" SelectedItem="{Binding SelectedMicrophone}" Margin="0,2,0,4" />
+                            <ProgressBar Value="{Binding MicLevel}" Maximum="1" Height="4" Margin="0,0,0,8" ToolTip="Input level while transmitting" />
+                            <TextBlock Text="Pilot and tower audio output" Style="{StaticResource MetricLabel}" />
+                            <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding Speakers}" SelectedItem="{Binding SelectedSpeaker}" Margin="0,2,0,8" />
+                            <TextBlock Text="Speech recognition" Style="{StaticResource MetricLabel}" />
+                            <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding Recognizers}" SelectedItem="{Binding SelectedRecognizer}" Margin="0,2,0,2"
+                                      ToolTip="Windows Speech: offline, standard phraseology only. Whisper: local OpenAI model, more tolerant of accents and wording; downloaded on first use." />
+                            <TextBlock Text="{Binding VoiceState}" Style="{StaticResource MetricLabel}" TextTrimming="CharacterEllipsis" Margin="0,0,0,8" />
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Pilot voice" Style="{StaticResource MetricLabel}" />
+                                    <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding VoiceNames}" SelectedItem="{Binding PilotVoiceName}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Tower voice" Style="{StaticResource MetricLabel}" />
+                                    <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding VoiceNames}" SelectedItem="{Binding TowerVoiceName}" />
+                                </StackPanel>
+                            </Grid>
+                            <ui:Button Content="Test voices" Icon="{ui:SymbolIcon Speaker224}" Command="{Binding TestVoicesCommand}" />
                         </StackPanel>
                     </ui:CardExpander>
 

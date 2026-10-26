@@ -39,6 +39,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ShowCourseWedge = settings.ShowCourseWedge;
         UseUkBands = settings.Bands.Standard == DeviationStandard.UkRa3291;
         UseDataFeed = settings.UseDataFeed;
+        LoadAudioSettings();
         RecordTraffic = settings.RecordTraffic;
         Engine.Recorder.Enabled = RecordTraffic;
         TrainingMode = settings.TrainingMode;
@@ -50,6 +51,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ExpandTraining = Panel("training", false);
         ExpandSetup = Panel("setup", false);
         ExpandDiagnostics = Panel("diagnostics", false);
+        ExpandAudio = Panel("audio", false);
         ShowScan = settings.ShowScan;
         ShowAdvisories = settings.ShowAdvisories;
         ShowAdvisoriesOnNetwork = settings.ShowAdvisoriesOnNetwork;
@@ -316,6 +318,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] public partial bool ExpandTraining { get; set; }
     [ObservableProperty] public partial bool ExpandSetup { get; set; }
     [ObservableProperty] public partial bool ExpandDiagnostics { get; set; }
+    [ObservableProperty] public partial bool ExpandAudio { get; set; }
+    partial void OnExpandAudioChanged(bool value) => _settings.Panels["audio"] = value;
     [ObservableProperty] public partial bool RecordTraffic { get; set; }
     /// <summary>Live per-aircraft update rates (diagnostics section).</summary>
     public ObservableCollection<string> RateLines { get; } = [];
@@ -566,8 +570,71 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _voiceStarted = true;
         _speech.StateChanged += s => App.Current.Dispatcher.BeginInvoke(() => VoiceState = s);
         _speech.Heard += text => App.Current.Dispatcher.BeginInvoke(() => ProcessTransmission(text, spoken: true));
-        _speech.Start();
-        VoiceState = _speech.State;
+        _speech.MicrophoneId = _settings.MicrophoneId;
+        _ = _speech.UseRecognizerAsync(_settings.RecognizerId);
+    }
+
+    // ---- Audio setup: devices, voices, speech engine ------------------------------------------
+
+    public IReadOnlyList<AudioDevice> Microphones { get; } = AudioDevices.Inputs();
+    public IReadOnlyList<AudioDevice> Speakers { get; } = AudioDevices.Outputs();
+    public IReadOnlyList<RecognizerOption> Recognizers => RecognizerOption.All;
+    public IReadOnlyList<string> VoiceNames => _voice.Voices;
+
+    [ObservableProperty] public partial AudioDevice? SelectedMicrophone { get; set; }
+    [ObservableProperty] public partial AudioDevice? SelectedSpeaker { get; set; }
+    [ObservableProperty] public partial RecognizerOption? SelectedRecognizer { get; set; }
+    [ObservableProperty] public partial string? PilotVoiceName { get; set; }
+    [ObservableProperty] public partial string? TowerVoiceName { get; set; }
+    [ObservableProperty] public partial double MicLevel { get; set; }
+
+    private void LoadAudioSettings()
+    {
+        SelectedMicrophone = Microphones.FirstOrDefault(d => d.Id == (_settings.MicrophoneId ?? "")) ?? AudioDevice.Default;
+        SelectedSpeaker = Speakers.FirstOrDefault(d => d.Id == (_settings.SpeakerId ?? "")) ?? AudioDevice.Default;
+        SelectedRecognizer = RecognizerOption.All.FirstOrDefault(r => r.Id == _settings.RecognizerId) ?? RecognizerOption.All[0];
+        PilotVoiceName = _settings.PilotVoice is { } pv && VoiceNames.Contains(pv) ? pv : _voice.PilotVoice;
+        TowerVoiceName = _settings.TowerVoice is { } tv && VoiceNames.Contains(tv) ? tv : _voice.TowerVoice;
+    }
+
+    partial void OnSelectedMicrophoneChanged(AudioDevice? value)
+    {
+        if (value is null) return;
+        _settings.MicrophoneId = value.Id;
+        _speech.MicrophoneId = value.Id;
+    }
+
+    partial void OnSelectedSpeakerChanged(AudioDevice? value)
+    {
+        if (value is null) return;
+        _settings.SpeakerId = value.Id;
+        _voice.OutputDeviceId = value.Id;
+    }
+
+    partial void OnSelectedRecognizerChanged(RecognizerOption? value)
+    {
+        if (value is null) return;
+        _settings.RecognizerId = value.Id;
+        if (_voiceStarted) _ = _speech.UseRecognizerAsync(value.Id);
+    }
+
+    partial void OnPilotVoiceNameChanged(string? value) { _settings.PilotVoice = value; _voice.PilotVoice = value; }
+    partial void OnTowerVoiceNameChanged(string? value) { _settings.TowerVoice = value; _voice.TowerVoice = value; }
+
+    [RelayCommand]
+    private void TestVoices()
+    {
+        _voice.Pilot("Radio check, pilot voice.");
+        _voice.Tower("Radio check, tower voice.");
+    }
+
+    // ---- Keyboard calls (training) -------------------------------------------------------------
+
+    /// <summary>Standard calls bound to keys; sent to the selected training aircraft like spoken ones.</summary>
+    public void KeyCall(string call)
+    {
+        if (!TrainingMode) return;
+        ProcessTransmission(call, spoken: false);
     }
 
     public void PressToTalk()
@@ -712,6 +779,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         RateLines.Clear();
         foreach (var line in rates.Take(12)) RateLines.Add(line);
         if (rates.Count == 0) RateLines.Add("No network traffic received yet.");
+        MicLevel = _speech.InputLevel;
         if (double.IsNaN(_lastTxTime) || !HasTraining) { TxTimerText = ""; TxTimerLevel = AdvisoryLevel.Normal; }
         else
         {

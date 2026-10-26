@@ -135,6 +135,17 @@ public partial class MainWindow : FluentWindow
                 if (!e.IsRepeat) _vm.PressToTalk();
                 break;
             case Key.D: _vm.BeginDescent(); break;
+            // Standard glidepath calls and procedures (training): FAA JO 7110.65 §5-12-4, §2-1-25, §5-10-14.
+            case Key.Q: _vm.KeyCall("slightly above glidepath"); break;
+            case Key.W: _vm.KeyCall("above glidepath"); break;
+            case Key.E: _vm.KeyCall("well above glidepath"); break;
+            case Key.A: _vm.KeyCall("on glidepath"); break;
+            case Key.Z: _vm.KeyCall("slightly below glidepath"); break;
+            case Key.X: _vm.KeyCall("below glidepath"); break;
+            case Key.C: _vm.KeyCall("well below glidepath"); break;
+            case Key.G: _vm.KeyCall("wheels should be down"); break;
+            case Key.M: _vm.KeyCall("execute missed approach"); break;
+            case Key.T: _vm.RequestTowerCommand.Execute(null); break;
             case Key.Left: _vm.NudgeHeading(shift ? -5 : -1); break;
             case Key.Right: _vm.NudgeHeading(shift ? 5 : 1); break;
             default: return;

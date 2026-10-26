@@ -17,6 +17,12 @@ public sealed class AppSettings
     public int UdpPort { get; set; } = 49090;
     /// <summary>Master switch for training aids (training traffic, radio, suggested calls). Off = plain VATSIM scope.</summary>
     public bool TrainingMode { get; set; }
+    public string? MicrophoneId { get; set; }
+    public string? SpeakerId { get; set; }
+    /// <summary>Speech engine id (see RecognizerOption.All).</summary>
+    public string RecognizerId { get; set; } = "windows";
+    public string? PilotVoice { get; set; }
+    public string? TowerVoice { get; set; }
     /// <summary>Use the public 15 s VATSIM data feed when no vPilot plugin is streaming. Opt-in.</summary>
     public bool UseDataFeed { get; set; }
     /// <summary>Record received traffic to CSV for update-rate diagnostics.</summary>

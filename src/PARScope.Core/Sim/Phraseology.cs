@@ -113,6 +113,8 @@ public static partial class Phraseology
         foreach (var w in words)
         {
             if (Digits.TryGetValue(w, out char d)) { run.Append(d); continue; }
+            // Speech engines often write spoken digits as separate numerals ("2 4 0").
+            if (w.Length == 1 && char.IsDigit(w[0])) { run.Append(w[0]); continue; }
             if (run.Length > 0) { outWords.Add(run.ToString()); run.Clear(); }
             outWords.Add(w);
         }
