@@ -49,6 +49,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ExpandTraining = Panel("training", false);
         Difficulty = settings.TrainingDifficulty;
         Engine.Training.Difficulty = Difficulty;
+        Engine.Training.ReturnForAnotherApproach = settings.TrainingReturnForAnother;
         ShowScan = settings.ShowScan;
         ShowCompassRose = settings.ShowCompassRose ?? SelectedPreset.AsrCompassRose;
         ShowAdvisories = settings.ShowAdvisories;
@@ -606,9 +607,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         var perf = AircraftPerformance.Find(ac.TypeCode);
         StatusMessage = $"{ac.Callsign} ({ac.TypeCode}{(perf != null ? $", cat {perf.ApproachCategory}" : ", type not in FAA database")}, {ac.SpeedKt:0} kt) handed off {ac.RangeFt / Units.FeetPerNm:0.0} NM out";
         Select(ac.Callsign);
+        OfferToFinal(ac, rw);
+    }
 
-        // Approach offers the handoff on the interphone (7110.65 §5-4-5). Once final says "radar contact",
-        // approach switches the pilot, who checks in (NAVAIR 00-80T-112 ¶25.3.1.1).
+    /// <summary>
+    /// Approach offers the handoff on the interphone (7110.65 §5-4-5). Once final says "radar contact",
+    /// approach switches the pilot, who checks in (NAVAIR 00-80T-112 ¶25.3.1.1).
+    /// </summary>
+    private void OfferToFinal(SimAircraft ac, RunwayEnd rw)
+    {
         string handoff = _approach.OfferHandoff(ac.Callsign, ac.RangeFt / Units.FeetPerNm,
             Units.Norm360(rw.MagneticCourseDeg + ac.CommandedHeadingRelDeg), ac.AltitudeAboveThresholdFt + rw.ThresholdElevFt, Engine.Training.SimTime);
         _ = SayLaterAsync(0.5, () => { Log("APPROACH", handoff); _voice.Approach(handoff); });
@@ -635,6 +642,29 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             PilotSays(a.Callsign, a.CheckInCall(FacilityName, rw.MagneticCourseDeg, rw.ThresholdElevFt));
         });
         return true;
+    }
+
+    /// <summary>Aircraft back from approach's pattern are offered for another approach.</summary>
+    private void HandOffReturningAircraft()
+    {
+        if (Engine.Runway is not { } rw) return;
+        foreach (var ac in Engine.Training.SpawnDueReturns())
+        {
+            _tower.Forget(ac.Callsign);
+            _approach.Forget(ac.Callsign);
+            _session.Write($"NOTE     {ac.Callsign} back from approach's pattern for another approach");
+            OfferToFinal(ac, rw);
+        }
+        var pattern = Engine.Training.InPattern.Select(p => $"{p.Callsign} {(int)p.InSec / 60}:{(int)p.InSec % 60:00}").ToList();
+        PatternText = pattern.Count == 0 ? "" : "In approach's pattern: " + string.Join("   ", pattern);
+    }
+
+    [ObservableProperty] public partial string PatternText { get; set; } = "";
+
+    public bool ReturnForAnotherApproach
+    {
+        get => _settings.TrainingReturnForAnother;
+        set { _settings.TrainingReturnForAnother = value; Engine.Training.ReturnForAnotherApproach = value; OnPropertyChanged(); }
     }
 
     /// <summary>Approach repeats a handoff final has not answered.</summary>
@@ -1095,6 +1125,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         RefreshSelection();
         if (HasTraining) { SnapshotTraining(); RepeatUnansweredHandoffs(); }
+        HandOffReturningAircraft();
         foreach (var (cs, text) in Engine.Training.TakePilotCalls()) PilotSays(cs, text);
         _speech.Vocabulary = string.Join(", ", Engine.Training.Aircraft.Select(a => RadioSpeech.Callsign(a.Callsign)));
         _ = RefreshMetarIfDueAsync(now);

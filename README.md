@@ -127,6 +127,9 @@ instead of the pilot. Wording can be loose; the aircraft is found by its callsig
   repeated every 20 seconds.
 * **Tower**: request a clearance (full stop, touch and go, low approach, option) and relay it.
 * **Missed approach**: hand the aircraft back to approach, then tell the pilot "contact approach".
+  Aircraft that go missed, or fly a touch and go or low approach, are vectored round by approach and
+  handed off to you again about two minutes later for another approach (pattern work). Full-stop
+  landings end there. Turn this off in the Training traffic panel.
 
 ### Keys
 

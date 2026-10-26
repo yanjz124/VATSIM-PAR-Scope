@@ -120,6 +120,31 @@ public sealed class TrainingTraffic
     public ParGeometry? Geometry { get; set; }
     public bool Paused { get; set; }
     public TrainingDifficulty Difficulty { get; set; } = TrainingDifficulty.Normal;
+
+    /// <summary>Aircraft that go missed (or fly a touch and go / low approach) rejoin approach's radar pattern and
+    /// are handed off again for another approach, as in GCA pattern work.</summary>
+    public bool ReturnForAnotherApproach { get; set; } = true;
+    /// <summary>Simulated time in approach's pattern before the next handoff, seconds (compressed from a real pattern).</summary>
+    public double PatternSec { get; set; } = 120;
+    private readonly List<(string Callsign, string TypeCode, PilotMode Mode, double Skill, double Due)> _returning = [];
+
+    /// <summary>Aircraft back from the pattern and due to be handed off again; they are spawned 12–15 NM out.</summary>
+    public IReadOnlyList<SimAircraft> SpawnDueReturns()
+    {
+        var due = _returning.Where(r => r.Due <= SimTime && Find(r.Callsign) == null).ToList();
+        var spawned = new List<SimAircraft>();
+        foreach (var r in due)
+        {
+            _returning.Remove(r);
+            var ac = SpawnRandom(r.Mode, r.Callsign, r.TypeCode, r.Skill);
+            ac.AnotherApproach = true;
+            spawned.Add(ac);
+        }
+        return spawned;
+    }
+
+    /// <summary>Callsigns in approach's pattern and the simulated seconds until each comes back.</summary>
+    public IEnumerable<(string Callsign, double InSec)> InPattern => _returning.Select(r => (r.Callsign, Math.Max(0, r.Due - SimTime)));
     /// <summary>Ceiling (ft AGL) and visibility (SM) at the field, e.g. from the live METAR; null = good weather.
     /// Pilots compare them with the decision height to decide whether they can see the runway.</summary>
     public (double? CeilingFt, double? VisibilitySm) FieldWeather { get; set; }
@@ -174,7 +199,7 @@ public sealed class TrainingTraffic
         return ac;
     }
 
-    public SimAircraft SpawnRandom(PilotMode mode, string? callsign = null, string? typeCode = null)
+    public SimAircraft SpawnRandom(PilotMode mode, string? callsign = null, string? typeCode = null, double? skill = null)
     {
         var d = DifficultyProfile.For(Difficulty);
         double Between(double lo, double hi) => lo + _rng.NextDouble() * (hi - lo);
@@ -191,7 +216,7 @@ public sealed class TrainingTraffic
             SpeedKt = 0, // from the callsign style's aircraft
             InterceptAngleDeg = _rng.NextDouble() * d.InterceptDeg,
             Mode = mode,
-            Skill = Between(d.SkillLo, d.SkillHi),
+            Skill = skill ?? Between(d.SkillLo, d.SkillHi),
             WindFromDeg = live?.FromDeg ?? _rng.Next(0, 36) * 10,
             WindKt = live?.Kt ?? _rng.Next(d.WindKtLo, d.WindKtHi + 1),
             HeadingDriftDegPerMin = d.HeadingDriftDegPerMin * Between(0.6, 1.2),
@@ -202,8 +227,17 @@ public sealed class TrainingTraffic
         });
     }
 
-    public void Remove(string callsign) => _aircraft.RemoveAll(a => a.Callsign == callsign);
-    public void Clear() => _aircraft.Clear();
+    public void Remove(string callsign)
+    {
+        _aircraft.RemoveAll(a => a.Callsign == callsign);
+        _returning.RemoveAll(r => r.Callsign == callsign);
+    }
+
+    public void Clear()
+    {
+        _aircraft.Clear();
+        _returning.Clear();
+    }
 
     public SimAircraft? Find(string callsign) => _aircraft.FirstOrDefault(a => a.Callsign.Equals(callsign, StringComparison.OrdinalIgnoreCase));
 
@@ -223,6 +257,9 @@ public sealed class TrainingTraffic
         foreach (var gone in _aircraft.Where(a => a.Finished).ToList())
         {
             _aircraft.Remove(gone);
+            // A full-stop landing ends the sortie; anything that climbed out comes round again.
+            if (ReturnForAnotherApproach && gone.GoingAround)
+                _returning.Add((gone.Callsign, gone.TypeCode, gone.Mode, gone.SkillLevel, SimTime + PatternSec * (0.8 + 0.4 * _rng.NextDouble())));
             yield return new TargetRemoved(gone.Callsign);
         }
 
@@ -313,6 +350,9 @@ public sealed class SimAircraft
     private bool _decided;
     private (double? CeilingFt, double? VisibilitySm) _wx;
 
+    /// <summary>Back from approach's pattern for another approach (says so on check-in).</summary>
+    public bool AnotherApproach { get; internal set; }
+
     /// <summary>Gear reported down to the final controller (check-in or wheels check), so the reminder can be dropped (§2-1-25).</summary>
     public bool GearReportedDown { get; private set; }
 
@@ -356,7 +396,8 @@ public sealed class SimAircraft
         GearReportedDown |= GearDown;
         double hdg = Units.Norm360(courseMagDeg + CommandedHeadingRelDeg);
         return $"{facility} final, {RadioSpeech.Callsign(Callsign)}, heading {RadioSpeech.Heading(hdg)}, "
-               + $"{RadioSpeech.Altitude(AltitudeAboveThresholdFt + thresholdElevFt)}, gear {(GearDown ? "down" : "up")}.";
+               + $"{RadioSpeech.Altitude(AltitudeAboveThresholdFt + thresholdElevFt)}, gear {(GearDown ? "down" : "up")}"
+               + (AnotherApproach ? ", for another approach." : ".");
     }
 
     /// <summary>What the pilot is doing, for the controller's training display.</summary>

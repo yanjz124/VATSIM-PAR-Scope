@@ -292,6 +292,10 @@
                             <TextBlock Text="Difficulty" Style="{StaticResource MetricLabel}" />
                             <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding Difficulties}" SelectedItem="{Binding Difficulty}" Margin="0,2,0,2" />
                             <TextBlock Text="{Binding DifficultyText}" Style="{StaticResource MetricLabel}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <ui:ToggleSwitch IsChecked="{Binding ReturnForAnotherApproach}" OnContent="Missed approaches come back for another try" OffContent="Missed approaches come back for another try" Margin="0,0,0,4"
+                                             ToolTip="After a missed approach, touch and go or low approach, approach vectors the aircraft round (about 2 minutes) and hands it off to you again." />
+                            <TextBlock Text="{Binding PatternText}" Style="{StaticResource MetricLabel}" Margin="0,0,0,8"
+                                       TextTrimming="CharacterEllipsis" ToolTip="Aircraft being vectored round and the time until approach hands them off again." />
                             <ui:ToggleSwitch IsChecked="{Binding SpawnSelfFlying}" OnContent="Pilot flies the approach" OffContent="Controller-directed" Margin="0,0,0,8" />
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>

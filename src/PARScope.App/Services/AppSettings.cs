@@ -34,6 +34,8 @@ public sealed class AppSettings
     public bool CheckForUpdates { get; set; } = true;
     /// <summary>Training arrivals use the live METAR surface wind instead of a random one.</summary>
     public bool TrainingLiveWind { get; set; } = true;
+    /// <summary>Missed approaches, touch and goes and low approaches come round again for another approach.</summary>
+    public bool TrainingReturnForAnother { get; set; } = true;
     /// <summary>Record received traffic to CSV for update-rate diagnostics.</summary>
     public bool RecordTraffic { get; set; } = true;
     public string? AirportId { get; set; }

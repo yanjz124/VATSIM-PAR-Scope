@@ -321,6 +321,36 @@ public class RadioTests
         Assert.False(Phraseology.Parse("tower clearance not received, if runway or approach lights not in sight, execute missed approach").ConditionalMissedApproach);
     }
     [Fact]
+    public void Missed_approach_comes_back_for_another_approach()
+    {
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site), PatternSec = 30 };
+        var ac = sim.SpawnRandom(PilotMode.ControllerDirected, "VV1234", "P8");
+        ac.Receive(Phraseology.Parse("execute missed approach"), 0, 243, 700);
+        for (double t = 0; t <= 20; t += 0.1) sim.Step(t).ToList();
+        ac.Receive(Phraseology.Parse("contact approach"), sim.SimTime, 243, 700);
+        for (double t = 20.1; t <= 30; t += 0.1) sim.Step(t).ToList();
+        Assert.Empty(sim.Aircraft);
+        Assert.Single(sim.InPattern);
+
+        Assert.Empty(sim.SpawnDueReturns()); // still being vectored round
+        for (double t = 30.1; t <= 80; t += 0.1) sim.Step(t).ToList();
+        var back = Assert.Single(sim.SpawnDueReturns());
+        Assert.Equal("VV1234", back.Callsign);
+        Assert.Equal("P8", back.TypeCode);
+        Assert.InRange(back.RangeFt / PARScope.Core.Geo.Units.FeetPerNm, 12, 15);
+        Assert.EndsWith("for another approach.", back.CheckInCall("Miramar", 243, 0));
+        Assert.Empty(sim.InPattern);
+    }
+
+    [Fact]
+    public void Full_stop_landing_does_not_come_back()
+    {
+        var (sim, ac) = StableFinal("runway two four right, cleared to land");
+        for (double t = 150; t <= 400 && sim.Aircraft.Count > 0; t += 0.1) sim.Step(t).ToList();
+        Assert.Empty(sim.Aircraft);
+        Assert.Empty(sim.InPattern);
+    }
+    [Fact]
     public void Pause_freezes_aircraft_and_holds_pilot_reactions()
     {
         var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
