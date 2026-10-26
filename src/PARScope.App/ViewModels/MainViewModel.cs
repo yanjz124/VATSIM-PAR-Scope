@@ -102,10 +102,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         set { _settings.CheckForUpdates = value; OnPropertyChanged(); }
     }
 
-    /// <summary>A newer release, if the start-up check found one.</summary>
-    public async Task<ReleaseInfo?> CheckForUpdateAsync()
+    /// <summary>A newer release, if any (at start-up only when the check is enabled; <paramref name="force"/> for the button).</summary>
+    public async Task<ReleaseInfo?> CheckForUpdateAsync(bool force = false)
     {
-        if (!_settings.CheckForUpdates) return null;
+        if (!_settings.CheckForUpdates && !force) return null;
         try { return await Updater.CheckAsync(Http, new CancellationTokenSource(TimeSpan.FromSeconds(15)).Token); }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException) { return null; }
     }
@@ -866,6 +866,82 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ProcessTransmission(call, "key");
     }
 
+    public enum KeyTrend { None, Correcting, Holding, Going }
+
+    /// <summary>Glidepath call from a key: level −3…3 (well below … well above, 0 on glidepath) plus trend (§5-12-4).</summary>
+    public void GlidepathKey(int level, KeyTrend trend)
+    {
+        if (level == 0) { KeyCall("ON GLIDEPATH"); return; }
+        string side = level > 0 ? "ABOVE" : "BELOW";
+        if (trend == KeyTrend.Going) { KeyCall($"GOING {side} GLIDEPATH"); return; }
+        string mag = Math.Abs(level) switch { 1 => "SLIGHTLY ", 3 => "WELL ", _ => "" };
+        string tail = trend switch { KeyTrend.Correcting => level > 0 ? " AND COMING DOWN" : " AND COMING UP", KeyTrend.Holding => " AND HOLDING", _ => "" };
+        KeyCall($"{mag}{side} GLIDEPATH{tail}");
+    }
+
+    /// <summary>Course call from a key: level −3…3 (well left … well right, 0 on course) plus trend.</summary>
+    public void CourseKey(int level, KeyTrend trend)
+    {
+        if (level == 0) { KeyCall("ON COURSE"); return; }
+        string side = level > 0 ? "RIGHT" : "LEFT";
+        if (trend == KeyTrend.Going) { KeyCall($"GOING {side} OF COURSE"); return; }
+        string mag = Math.Abs(level) switch { 1 => "SLIGHTLY ", 3 => "WELL ", _ => "" };
+        string tail = trend switch { KeyTrend.Correcting => " AND CORRECTING", KeyTrend.Holding => " AND HOLDING", _ => "" };
+        KeyCall($"{mag}{side} OF COURSE{tail}");
+    }
+
+    /// <summary>Enter: transmit the suggested call for the selected aircraft.</summary>
+    public void SaySuggestedCall()
+    {
+        string text = AdvisoryText.Replace("(ADVISORY) ", "").Trim();
+        if (text.Length > 0) KeyCall(text);
+    }
+
+    /// <summary>R: the range or position call due now, else the range to the nearest half mile.</summary>
+    public void SayRange()
+    {
+        if (RangeCallText.Length > 0) { KeyCall(RangeCallText); return; }
+        if (CurrentAdvisory is { } a && a.Deviation.RangeNm > 0.4) KeyCall(AdvisoryEngine.RangePhrase(a.Deviation.RangeNm));
+    }
+
+    private double MissedClimbMsl => Engine.Runway is { } rw ? Math.Round((rw.ThresholdElevFt + 2000) / 100) * 100 : 2000;
+
+    /// <summary>B: approach brief (§5-10-2).</summary>
+    public void SayApproachBrief()
+    {
+        if (Engine.Runway is { } rw) KeyCall($"THIS WILL BE A P-A-R APPROACH TO RUNWAY {rw.RunwayId}");
+    }
+
+    /// <summary>L: lost communications instructions (§5-10-4).</summary>
+    public void SayLostComms() => KeyCall(
+        $"IF NO TRANSMISSIONS ARE RECEIVED FOR ONE MINUTE IN THE PATTERN OR FIVE SECONDS ON FINAL APPROACH, ATTEMPT CONTACT WITH TOWER AND PROCEED VFR. IF UNABLE, CLIMB AND MAINTAIN {MissedClimbMsl:0} AND EXECUTE MISSED APPROACH");
+
+    /// <summary>K: missed approach instructions, runway heading and the missed approach altitude.</summary>
+    public void SayMissedInstructions() => KeyCall($"IN THE EVENT OF MISSED APPROACH, CLIMB AND MAINTAIN {MissedClimbMsl:0}, FLY RUNWAY HEADING");
+
+    /// <summary>Y: relay tower's landing clearance with the wind (§5-10-13).</summary>
+    public void SayTowerClearance()
+    {
+        if (SelectedCallsign is not { } cs || Engine.Runway is not { } rw) return;
+        if (_tower.AnswerFor(cs) != TowerAnswer.Cleared) { StatusMessage = $"Tower has not cleared {cs} yet (T to request)"; return; }
+        string wind = MetarWindPhrase;
+        KeyCall($"{(wind.Length > 0 ? wind + ", " : "")}RUNWAY {rw.RunwayId}, {TowerSim.ClearanceWords(_tower.IntentFor(cs)).ToUpperInvariant()}");
+    }
+
+    /// <summary>Accept approach's handoff without speaking: the selected aircraft if offered, else the oldest offer.</summary>
+    [RelayCommand]
+    private void AcceptHandoff()
+    {
+        var offered = Engine.Training.Aircraft.Where(a => _approach.IsPending(a.Callsign)).ToList();
+        var ac = offered.FirstOrDefault(a => a.Callsign == SelectedCallsign) ?? offered.FirstOrDefault();
+        if (ac == null) { StatusMessage = "No handoff waiting"; return; }
+        TryAcceptHandoff($"{RadioSpeech.Callsign(ac.Callsign)}, radar contact", "button");
+    }
+
+    /// <summary>Switch the selected pilot to approach (after a missed approach).</summary>
+    [RelayCommand]
+    private void ContactApproach() => KeyCall("CONTACT APPROACH");
+
     /// <summary>Push-to-talk key, chosen in Settings › Audio.</summary>
     public System.Windows.Input.Key PttKey
     {
@@ -895,9 +971,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     };
 
     public string KeysHint =>
-        $"{PttKeyText} talk (start with 'Tower…' or 'Approach…' to coordinate) · ←/→ heading ±1° (Shift ±5°) · D begin descent · "
-        + "Q/W/E slightly/–/well above · A on glidepath · Z/X/C slightly/–/well below · G wheels · M missed approach · T tower · "
-        + "P pause · F flip PAR/ASR · Tab next target";
+        $"{PttKeyText} talk (start with 'Tower…' or 'Approach…' to coordinate) · Enter send suggested call · ←/→ heading ±1° (Shift ±5°)\n"
+        + "Glidepath: Q/W/E slightly/–/well above · A on · Z/X/C slightly/–/well below\n"
+        + "Course: 1/2/3 well/–/slightly left · 4 on · 5/6/7 slightly/–/well right\n"
+        + "  with Shift: …and correcting · Ctrl: …and holding · Alt: going…\n"
+        + "H radio check · B approach brief · L lost comms · K missed approach instr. · N do not acknowledge · G approaching glidepath/wheels · "
+        + "D begin descent · R range call · V level off (Shift: resume descent) · M missed approach (Shift: if not in sight) · "
+        + "Y relay clearance · J contact approach · U contact tower after landing\n"
+        + "T tower request · Ctrl+R radar contact · Ctrl+M coordinate missed · P pause · F flip PAR/ASR · Tab next target";
 
     /// <summary>Push-to-talk is held (drives the TX indicator).</summary>
     [ObservableProperty] public partial bool IsTransmitting { get; set; }

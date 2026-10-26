@@ -39,6 +39,18 @@ public partial class SettingsWindow : FluentWindow
         e.Handled = true;
     }
 
+    private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
+    {
+        void Say(string s) { UpdateStatus.Text = s; UpdateStatus2.Text = s; }
+        Say("Checking…");
+        var release = await _vm.CheckForUpdateAsync(force: true);
+        if (release == null) { Say($"Up to date ({PARScope.App.Services.Updater.DisplayVersion})"); return; }
+        Say($"{release.Version} available");
+        var answer = System.Windows.MessageBox.Show(this, $"vibe PAR {release.Version} is available (you have {PARScope.App.Services.Updater.DisplayVersion}).\n\nUpdate now? The scope restarts when it is done.",
+            "Update available", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Information);
+        if (answer == System.Windows.MessageBoxResult.Yes) { Say("Installing…"); await _vm.InstallUpdateAsync(release); }
+    }
+
     private void ImportNasr_Click(object sender, RoutedEventArgs e)
     {
         var dlg = new OpenFileDialog { Filter = "NASR APT CSV (*.zip)|*.zip", Title = "Import FAA NASR APT CSV zip" };

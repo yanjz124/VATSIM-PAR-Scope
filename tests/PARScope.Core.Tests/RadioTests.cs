@@ -350,6 +350,46 @@ public class RadioTests
         Assert.Empty(sim.Aircraft);
         Assert.Empty(sim.InPattern);
     }
+    /// <summary>Every transmission the hotkeys produce must be understood by the pilot model.</summary>
+    [Theory]
+    [InlineData("SLIGHTLY ABOVE GLIDEPATH AND COMING DOWN")]
+    [InlineData("WELL BELOW GLIDEPATH AND HOLDING")]
+    [InlineData("GOING BELOW GLIDEPATH")]
+    [InlineData("ON GLIDEPATH")]
+    [InlineData("WELL LEFT OF COURSE AND CORRECTING")]
+    [InlineData("GOING RIGHT OF COURSE")]
+    [InlineData("ON COURSE")]
+    [InlineData("HOW DO YOU HEAR ME")]
+    [InlineData("THIS WILL BE A P-A-R APPROACH TO RUNWAY 24R")]
+    [InlineData("IF NO TRANSMISSIONS ARE RECEIVED FOR ONE MINUTE IN THE PATTERN OR FIVE SECONDS ON FINAL APPROACH, ATTEMPT CONTACT WITH TOWER AND PROCEED VFR. IF UNABLE, CLIMB AND MAINTAIN 2500 AND EXECUTE MISSED APPROACH")]
+    [InlineData("IN THE EVENT OF MISSED APPROACH, CLIMB AND MAINTAIN 2500, FLY RUNWAY HEADING")]
+    [InlineData("DO NOT ACKNOWLEDGE FURTHER TRANSMISSIONS")]
+    [InlineData("APPROACHING GLIDEPATH, WHEELS SHOULD BE DOWN")]
+    [InlineData("4 MILES FROM TOUCHDOWN")]
+    [InlineData("ONE MILE FROM TOUCHDOWN")]
+    [InlineData("OVER LANDING THRESHOLD, SLIGHTLY LEFT OF COURSE")]
+    [InlineData("LEVEL OFF YOUR AIRCRAFT, ACKNOWLEDGE")]
+    [InlineData("RESUME NORMAL RATE OF DESCENT")]
+    [InlineData("IF RUNWAY OR APPROACH LIGHTS NOT IN SIGHT, EXECUTE MISSED APPROACH")]
+    [InlineData("WIND 300 AT 9, RUNWAY 24R, CLEARED TO LAND")]
+    [InlineData("CONTACT APPROACH")]
+    [InlineData("CONTACT TOWER AFTER LANDING")]
+    public void Every_hotkey_call_is_understood(string text)
+    {
+        Assert.False(Phraseology.Parse(text).IsEmpty, text);
+
+    }
+
+    [Fact]
+    public void Missed_approach_instructions_from_the_key_are_not_flown_and_lost_comms_is_read_back()
+    {
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 6, Skill = 1, Mode = PilotMode.ControllerDirected });
+        Assert.StartsWith("Missed approach, climb and maintain", ac.Receive(Phraseology.Parse("IN THE EVENT OF MISSED APPROACH, CLIMB AND MAINTAIN 2500, FLY RUNWAY HEADING"), 0, 243, 700).Reply);
+        Assert.StartsWith("Roger", ac.Receive(Phraseology.Parse("IF NO TRANSMISSIONS ARE RECEIVED FOR ONE MINUTE IN THE PATTERN OR FIVE SECONDS ON FINAL APPROACH, ATTEMPT CONTACT WITH TOWER AND PROCEED VFR"), 0, 243, 700).Reply);
+        Assert.StartsWith("Roger", ac.Receive(Phraseology.Parse("THIS WILL BE A P-A-R APPROACH TO RUNWAY 24R"), 0, 243, 700).Reply);
+        Assert.False(ac.GoingAround);
+    }
     [Fact]
     public void Pause_freezes_aircraft_and_holds_pilot_reactions()
     {

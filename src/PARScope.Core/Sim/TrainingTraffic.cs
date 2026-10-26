@@ -495,6 +495,11 @@ public sealed class SimAircraft
             _pending.Enqueue((now + delay, () => { _levelled = false; CommandedVsFpm = vs; _vsBias = 0; }));
             actions.Add("normal rate of descent");
         }
+        if (t.ApproachBrief)
+        {
+            actions.Add("approach brief");
+            readback.Add("roger");
+        }
         if (t.HowDoYouHear)
         {
             actions.Add("radio check");

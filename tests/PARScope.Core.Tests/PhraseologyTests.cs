@@ -40,7 +40,7 @@ public class PhraseologyTests
         var safety = Phraseology.Parse("too low for safe approach, if runway or approach lights not in sight execute missed approach");
         Assert.True(safety.MissedApproach);
         Assert.False(Phraseology.Parse("your missed approach procedure is climb to 2000").MissedApproach);
-        Assert.True(Phraseology.Parse("four miles from touchdown").IsEmpty);
+        Assert.True(Phraseology.Parse("four miles from touchdown").RangeInfo); // information only: understood, no action
         Assert.Equal("SLIGHTLY LEFT OF COURSE", Phraseology.Parse("slightly left of course and correcting").CourseCall);
     }
 }

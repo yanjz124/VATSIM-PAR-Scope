@@ -31,6 +31,10 @@ public sealed record Transmission(string Text)
     public bool MissedApproachInstructions { get; init; }
     /// <summary>"Contact approach/departure": frequency change off final.</summary>
     public bool ContactApproach { get; init; }
+    /// <summary>"This will be a P-A-R approach to runway…" (§5-10-2).</summary>
+    public bool ApproachBrief { get; init; }
+    /// <summary>Range or position information: "(n) miles from touchdown", "over approach lights", "at decision altitude".</summary>
+    public bool RangeInfo { get; init; }
     /// <summary>"Contact tower/ground (after landing)" (§5-12-9).</summary>
     public bool ContactTower { get; init; }
     /// <summary>"(Reason), if runway/approach lights not in sight, execute missed approach" (§5-10-14): the pilot
@@ -47,7 +51,7 @@ public sealed record Transmission(string Text)
 
     public bool IsEmpty => HeadingDeg is null && Glidepath == GlidepathCall.None && !BeginDescent && !MissedApproach && CourseCall is null
                            && !HowDoYouHear && !DoNotAcknowledge && !WheelsDown && !ClearedToLand && ClimbToFt is null
-                           && !MissedApproachInstructions && !ContactApproach && !ContactTower && !LevelOff && !ResumeDescent && !LostCommsInstructions;
+                           && !MissedApproachInstructions && !ContactApproach && !ContactTower && !ApproachBrief && !RangeInfo && !LevelOff && !ResumeDescent && !LostCommsInstructions;
 }
 
 /// <summary>
@@ -111,6 +115,8 @@ public static partial class Phraseology
             MissedApproachInstructions = instructions,
             ContactApproach = ContactRx().IsMatch(s),
             ContactTower = ContactTowerRx().IsMatch(s),
+            ApproachBrief = BriefRx().IsMatch(s),
+            RangeInfo = RangeInfoRx().IsMatch(s),
             ConditionalMissedApproach = missed && NotInSightRx().IsMatch(s) && !TowerClearanceRx().IsMatch(s),
             LevelOff = LevelOffRx().IsMatch(s),
             ResumeDescent = ResumeRx().IsMatch(s),
@@ -192,6 +198,8 @@ public static partial class Phraseology
     [GeneratedRegex(@"\bif (?:the )?(?:runway|approach lights|runway lights)\b[^.]*?\bnot in sight\b")] private static partial Regex NotInSightRx();
     [GeneratedRegex(@"\btower clearance (?:not received|cancell?ed)\b")] private static partial Regex TowerClearanceRx();
     [GeneratedRegex(@"\b(?:contact|switch to|monitor) (?:tower|ground)\b")] private static partial Regex ContactTowerRx();
+    [GeneratedRegex(@"\bthis will be a (?:p a r|par|precision|copter p a r)\b")] private static partial Regex BriefRx();
+    [GeneratedRegex(@"\b(?:\d+ (?:and (?:one )?half )?miles? from touchdown|over (?:the )?approach lights|over (?:the )?landing threshold|at decision (?:altitude|height))\b")] private static partial Regex RangeInfoRx();
     // "climb and maintain 2 thousand 5 hundred" after digit merging, or "climb and maintain 2500".
     [GeneratedRegex(@"\bclimb (?:and maintain |to )?(?<a>\d+)(?: (?<k>thousand))?(?: (?<h>\d) hundred)?\b")] private static partial Regex ClimbRx();
     [GeneratedRegex(@"\b(?:contact|switch to|monitor) (?:approach|departure|arrival|radar)\b")] private static partial Regex ContactRx();
