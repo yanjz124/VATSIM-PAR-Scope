@@ -493,12 +493,24 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>Called every frame: keeps the advisory used by the renderer current.</summary>
+    /// <summary>
+    /// The heading the controller knows for an aircraft, magnetic: the last one assigned to a training aircraft,
+    /// or the heading a network aircraft reports. Lets suggested headings keep the wind correction.
+    /// </summary>
+    private double? KnownHeadingMag(string? callsign, RunwayEnd rw)
+    {
+        if (callsign == null) return null;
+        if (Engine.Training.Find(callsign) is { } sim) return Units.Norm360(rw.MagneticCourseDeg + sim.CommandedHeadingRelDeg);
+        var t = Engine.Targets.FirstOrDefault(x => x.Callsign.Equals(callsign, StringComparison.OrdinalIgnoreCase));
+        return t?.HeadingDeg is double trueHdg ? Units.Norm360(trueHdg - (rw.MagVarEastDeg ?? 0)) : null;
+    }
+
     public void UpdateAdvisory()
     {
         CurrentAdvisory = null;
         if (SelectedCallsign is null || Engine.Radar is not { } radar || Engine.Geometry is not { } geo || Engine.Runway is not { } rw) return;
         if (!radar.Tracks.TryGetValue(SelectedCallsign, out var tr) || !tr.IsCorrelated) return;
-        CurrentAdvisory = AdvisoryEngine.Evaluate(tr, geo, radar.Preset, _settings.Bands, rw.MagneticCourseDeg);
+        CurrentAdvisory = AdvisoryEngine.Evaluate(tr, geo, radar.Preset, _settings.Bands, rw.MagneticCourseDeg, KnownHeadingMag(SelectedCallsign, rw));
     }
 
     private void RefreshSelection()
@@ -723,7 +735,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             double hdg = Units.Norm360(rw.MagneticCourseDeg + a.HeadingRelDeg);
             double cmd = Units.Norm360(rw.MagneticCourseDeg + a.CommandedHeadingRelDeg);
             string call = Engine.Radar is { } radar && radar.Tracks.TryGetValue(a.Callsign, out var tr) && tr.IsCorrelated
-                ? AdvisoryEngine.Evaluate(tr, geo, radar.Preset, _settings.Bands, rw.MagneticCourseDeg).Transmission
+                ? AdvisoryEngine.Evaluate(tr, geo, radar.Preset, _settings.Bands, rw.MagneticCourseDeg, KnownHeadingMag(a.Callsign, rw)).Transmission
                 : "(not on PAR)";
             _session.Write($"STATE    {a.Callsign} {a.RangeFt / Units.FeetPerNm:0.00} NM | GP {gp:+0;-0} ft | CRS {Math.Abs(a.CrossFt):0} ft {(a.CrossFt >= 0 ? "R" : "L")} | "
                 + $"HDG {hdg:000} (assigned {cmd:000}, drift {a.HeadingDriftDeg:+0.0;-0.0}) | VS {a.VerticalSpeedFpm:0} (drift {a.VsDriftFpm:+0;-0}) | "

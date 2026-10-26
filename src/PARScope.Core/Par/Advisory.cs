@@ -38,7 +38,10 @@ public static class AdvisoryEngine
     /// <summary>Descent this much faster than the glidepath is a "radical descent deviation".</summary>
     private const double RadicalDescentFps = 15.0;
 
-    public static Advisory Evaluate(RadarTrack track, ParGeometry geo, RadarPreset preset, DeviationBands bands, double magneticCourseDeg)
+    /// <param name="headingMagDeg">The aircraft's heading if the controller knows it (the last assigned heading, or
+    /// the reported one), so the suggested heading keeps the wind correction; null = estimate from the track.</param>
+    public static Advisory Evaluate(RadarTrack track, ParGeometry geo, RadarPreset preset, DeviationBands bands, double magneticCourseDeg,
+        double? headingMagDeg = null)
     {
         var dev = geo.DeviationOf(track.Point);
         double rangeFt = Math.Max(dev.RangeFt, 1);
@@ -82,7 +85,10 @@ public static class AdvisoryEngine
                 level = AdvisoryLevel.Caution;
         }
 
-        double? heading = SuggestHeading(track, dev, magneticCourseDeg, rangeFt);
+        double closureFps = Math.Max(-track.RangeRateFps, 1);
+        double currentTrack = magneticCourseDeg + Units.RadToDeg(Math.Atan2(track.CrossRateFps, closureFps));
+        double currentHeading = headingMagDeg ?? currentTrack;
+        double? heading = SuggestHeading(track, dev, magneticCourseDeg, rangeFt, currentTrack, currentHeading);
         double gsKt = Math.Max(track.GroundSpeedKt, 60);
         double rod = gsKt * Units.FeetPerNm / 60.0 * gpSlope;
 
@@ -96,7 +102,7 @@ public static class AdvisoryEngine
         else
         {
             var parts = new List<string>();
-            if (heading.HasValue) parts.Add($"TURN {TurnDirection(track, heading.Value, magneticCourseDeg)} HEADING {heading.Value:000}");
+            if (heading.HasValue) parts.Add($"TURN {(Units.Norm180(heading.Value - currentHeading) >= 0 ? "RIGHT" : "LEFT")} HEADING {heading.Value:000}");
             parts.Add(preDescent ? PreDescentCall(dev, devRateGp, elHalf) : gp);
             parts.Add(course);
             text = string.Join(", ", parts) + ".";
@@ -182,10 +188,12 @@ public static class AdvisoryEngine
     }
 
     /// <summary>
-    /// Heading that returns the aircraft to the centreline within about 30 s, keeping the current wind
-    /// correction (heading − track). Corrections shrink close in, where small heading changes are used.
+    /// Heading that returns the aircraft to the centreline within about 30 s, keeping the wind correction
+    /// (heading − track): the controller works out the drift from the heading assigned against the track
+    /// seen. Corrections are limited about the drift-corrected course, smaller close in.
     /// </summary>
-    private static double? SuggestHeading(RadarTrack track, Deviation dev, double courseMag, double rangeFt)
+    private static double? SuggestHeading(RadarTrack track, Deviation dev, double courseMag, double rangeFt,
+        double currentTrack, double currentHeading)
     {
         double closure = -track.RangeRateFps;
         if (closure < 50) return null;
@@ -197,19 +205,13 @@ public static class AdvisoryEngine
         double limit = rangeFt < 2 * Units.FeetPerNm ? 5 : rangeFt < 5 * Units.FeetPerNm ? 10 : 15;
         // Only advise a turn when the needed change is worth saying.
         if (Math.Abs(correctionDeg) < 1.5) return null;
-        double currentTrack = courseMag + Units.RadToDeg(Math.Atan2(track.CrossRateFps, closure));
-        double target = currentTrack + Math.Clamp(correctionDeg, -limit, limit);
-        // Never more than the limit away from the final course itself.
-        double fromCourse = Math.Clamp(Units.Norm180(target - courseMag), -limit, limit);
-        double hdg = Units.Norm360(Math.Round(courseMag + fromCourse));
+        double windCorrection = Units.Norm180(currentHeading - currentTrack);
+        double target = currentHeading + Math.Clamp(correctionDeg, -limit, limit);
+        // Never more than the limit away from the course flown with the current drift correction.
+        double corrected = courseMag + windCorrection;
+        double hdg = Units.Norm360(Math.Round(corrected + Math.Clamp(Units.Norm180(target - corrected), -limit, limit)));
+        if (Math.Abs(Units.Norm180(hdg - currentHeading)) < 1) return null; // already flying it
         return hdg == 0 ? 360 : hdg;
-    }
-
-    private static string TurnDirection(RadarTrack track, double heading, double courseMag)
-    {
-        double closure = Math.Max(-track.RangeRateFps, 1);
-        double currentTrack = courseMag + Units.RadToDeg(Math.Atan2(track.CrossRateFps, closure));
-        return Units.Norm180(heading - currentTrack) >= 0 ? "RIGHT" : "LEFT";
     }
 
     /// <summary>

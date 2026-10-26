@@ -44,7 +44,14 @@ public sealed class RadarTrack
     /// <summary>Seen in both scopes, the condition for taking control on a PAR.</summary>
     public bool IsCorrelated => AzPaints >= 2 && ElPaints >= 2;
 
-    public ApproachPoint Point => new(RangeFt, CrossFt, HeightFt);
+    /// <summary>Range when the last elevation / azimuth return was painted. Height is only measured by the
+    /// elevation scan, so the glidepath deviation must use the range of that same paint: pairing it with a
+    /// newer range (from an azimuth paint) reads a closing aircraft as high by closure × Δt × tan GPA.</summary>
+    public double RangeAtElevationFt { get; private set; }
+    public double RangeAtAzimuthFt { get; private set; }
+
+    /// <summary>Position for glidepath and course deviation: height at the range it was measured at.</summary>
+    public ApproachPoint Point => new(HasElevation ? RangeAtElevationFt : RangeFt, CrossFt, HeightFt);
 
     public double GroundSpeedKt => Math.Abs(RangeRateFps) * 3600 / Geo.Units.FeetPerNm;
 
@@ -55,6 +62,7 @@ public sealed class RadarTrack
         {
             _cross.Update(p.Point.CrossFt, p.Time);
             _crossTrend.Add(p.Time, p.Point.CrossFt);
+            RangeAtAzimuthFt = _range.Value;
             LastAzPaint = p.Time;
             AzPaints++;
         }
@@ -62,6 +70,7 @@ public sealed class RadarTrack
         {
             _height.Update(p.Point.HeightFt, p.Time);
             _heightTrend.Add(p.Time, p.Point.HeightFt);
+            RangeAtElevationFt = _range.Value;
             LastElPaint = p.Time;
             ElPaints++;
         }
@@ -90,12 +99,15 @@ public sealed class RadarTrack
     private sealed class AlphaBeta(double alpha, double beta)
     {
         private double _t = double.NaN;
+        private bool _seeded;
         public double Value { get; private set; }
         public double Rate { get; private set; }
 
         public void Update(double z, double t)
         {
             if (double.IsNaN(_t)) { Value = z; _t = t; return; }
+            // Seed the rate from the first two measurements instead of letting it grow from zero.
+            if (!_seeded && t - _t > 1e-3 && t - _t <= 6) { Rate = (z - Value) / (t - _t); Value = z; _t = t; _seeded = true; return; }
             double dt = t - _t;
             if (dt <= 1e-3) { Value += alpha * (z - Value); return; }
             if (dt > 6) { Value = z; Rate = 0; _t = t; return; }

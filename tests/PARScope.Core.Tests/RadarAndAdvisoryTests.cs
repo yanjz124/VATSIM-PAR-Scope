@@ -102,7 +102,7 @@ public class RadarAndAdvisoryTests
     public void Talkdown_of_simulated_aircraft_produces_heading_toward_centreline()
     {
         var (geo, store, sim) = Setup();
-        var ac = sim.Spawn(new SpawnOptions { RangeNm = 6, CrossFt = -800, HeightOffsetFt = 0, Mode = PilotMode.ControllerDirected, Skill = 1 });
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 6, CrossFt = -800, HeightOffsetFt = 0, SpeedKt = 130, Mode = PilotMode.ControllerDirected, Skill = 1 });
         var radar = new RadarSimulator(RadarPreset.Fpn68, geo, seed: 5) { ClutterEnabled = false };
         for (double t = 0; t <= 6; t += 1 / 30.0)
         {
@@ -113,7 +113,71 @@ public class RadarAndAdvisoryTests
         Assert.Contains("LEFT OF COURSE", adv.CoursePhrase);
         Assert.NotNull(adv.SuggestedHeadingDeg);
         Assert.True(Units.Norm180(adv.SuggestedHeadingDeg!.Value - GeometryTests.Runway.MagneticCourseDeg) > 0, "should turn right toward course");
-        Assert.InRange(adv.RecommendedDescentFpm, 450, 900); // depends on the type's approach speed
+        Assert.InRange(adv.RecommendedDescentFpm, 650, 720); // 130 kt on 3°: 130 × 101.3 × tan 3° ≈ 690 fpm
+    }
+
+    /// <summary>
+    /// Regression: height comes only from elevation paints, so the glidepath deviation must use the range of that
+    /// paint. Pairing it with a newer azimuth-paint range read a perfect approach as high by up to ~19 ft.
+    /// </summary>
+    [Theory]
+    [InlineData("gpn22")]
+    [InlineData("fpn63")]
+    [InlineData("icao")]
+    [InlineData("fpn68")]
+    public void Perfect_approach_reads_on_glidepath_on_every_radar(string presetId)
+    {
+        var (geo, store, sim) = Setup();
+        var preset = RadarPreset.ById(presetId);
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 3.5, HeightOffsetFt = 0, SpeedKt = 140, Skill = 1, Mode = PilotMode.ControllerDirected });
+        ac.BeginDescent(-10, 140 * Units.FeetPerNm / 60 * Math.Tan(3 * Math.PI / 180));
+        var radar = new RadarSimulator(preset, geo, seed: 2) { ClutterEnabled = false };
+        int frames = 0;
+        double worst = 0;
+        for (double t = 0; t <= 40; t += 1 / 30.0)
+        {
+            foreach (var m in sim.Step(t)) store.Apply(m);
+            radar.Advance(t, store.Snapshot(t));
+            if (t < 8 || !radar.Tracks.TryGetValue(ac.Callsign, out var tr) || !tr.IsCorrelated || tr.Point.RangeNm < 1) continue;
+            // Radar-derived deviation against the aircraft's true deviation (it is steady on a straight path).
+            double radarDev = geo.DeviationOf(tr.Point).AboveGlidepathFt;
+            double trueDev = ac.HeightFt - geo.GlidepathHeightFt(ac.RangeFt);
+            worst = Math.Max(worst, Math.Abs(radarDev - trueDev));
+            frames++;
+        }
+        Assert.True(frames > 100);
+        Assert.True(worst < 2.0, $"{presetId}: worst glidepath error {worst:0.0} ft");
+    }
+
+    /// <summary>Regression: in a crosswind the suggested heading must keep the crab, and the turn direction must be
+    /// relative to the heading flown, not the track.</summary>
+    [Theory]
+    [InlineData(-300, "RIGHT")]
+    [InlineData(300, "LEFT")]
+    public void Suggested_heading_keeps_the_wind_correction(double crossFt, string expectedTurn)
+    {
+        var (geo, store, sim) = Setup();
+        double course = GeometryTests.Runway.MagneticCourseDeg;
+        double crab = Units.RadToDeg(Math.Asin(20.0 / 140)); // 20 kt from the right at 140 kt
+        var ac = sim.Spawn(new SpawnOptions
+        {
+            RangeNm = 6, CrossFt = crossFt, HeightOffsetFt = 0, SpeedKt = 140, Skill = 1, Mode = PilotMode.ControllerDirected,
+            WindFromDeg = GeometryTests.Runway.TrueHeadingDeg + 90, WindKt = 20,
+        });
+        double heading = Math.Round(course + crab);
+        ac.SetHeading(heading, course, -10);
+        var radar = new RadarSimulator(RadarPreset.Fpn68, geo, seed: 4) { ClutterEnabled = false };
+        for (double t = 0; t <= 12; t += 1 / 30.0)
+        {
+            foreach (var m in sim.Step(t)) store.Apply(m);
+            radar.Advance(t, store.Snapshot(t));
+        }
+        var adv = AdvisoryEngine.Evaluate(radar.Tracks[ac.Callsign], geo, RadarPreset.Fpn68, new DeviationBands(), course, heading);
+        Assert.NotNull(adv.SuggestedHeadingDeg);
+        Assert.Contains($"TURN {expectedTurn} HEADING", adv.Transmission);
+        double change = Units.Norm180(adv.SuggestedHeadingDeg!.Value - heading);
+        Assert.Equal(expectedTurn == "RIGHT", change > 0);
+        Assert.InRange(Math.Abs(change), 1, 12); // a correction from the crab, not from the course
     }
 
     [Fact]

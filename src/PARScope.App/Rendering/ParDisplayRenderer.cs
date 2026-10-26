@@ -383,7 +383,9 @@ public sealed class ParDisplayRenderer : IDisposable
                 if (!inThisScope) continue;
                 double since = now - (scope == ScopeKind.Elevation ? tr.LastElPaint : tr.LastAzPaint);
                 if (since > 6) continue;
-                float x = X(tr.RangeFt), y = scope == ScopeKind.Elevation ? YEl(tr.HeightFt, tr.RangeFt) : YAz(tr.CrossFt, tr.RangeFt);
+                // Each scope plots its own return: height at the elevation paint's range, lateral at the azimuth paint's.
+                double tr0 = scope == ScopeKind.Elevation ? tr.RangeAtElevationFt : tr.RangeAtAzimuthFt;
+                float x = X(tr0), y = scope == ScopeKind.Elevation ? YEl(tr.HeightFt, tr0) : YAz(tr.CrossFt, tr0);
                 if (!clip.Contains(x, y)) continue;
                 _hits.Add(new HitTarget(tr.Callsign, x, y));
                 shown.Add((tr, x, y, tr.Callsign.Equals(opt.Selected, StringComparison.OrdinalIgnoreCase)));
