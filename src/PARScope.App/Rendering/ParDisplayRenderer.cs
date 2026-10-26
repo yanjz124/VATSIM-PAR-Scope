@@ -319,7 +319,8 @@ public sealed class ParDisplayRenderer : IDisposable
         c.Restore();
         c.Save();
         c.ClipRect(AzRect);
-        double tanAz = Math.Tan(Units.DegToRad(radar.AzBeamDeg));
+        // Beam azimuth is relative to the antenna boresight, which is aimed in toward the runway.
+        double tanAz = Math.Tan(Units.DegToRad(radar.AzBeamDeg + geo.BoresightAzDeg));
         Curve(c, p, r => ant.CrossFt + tanAz * (r - ant.RangeFt), YAz, Math.Max(ant.RangeFt, 1), RangeMaxFt);
         c.Restore();
     }

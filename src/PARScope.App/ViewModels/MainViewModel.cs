@@ -985,7 +985,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>Y: relay tower's landing clearance with the wind (§5-10-13).</summary>
     public void SayTowerClearance()
     {
-        if (SelectedCallsign is not { } cs || Engine.Runway is not { } rw) return;
+        if (KeyTarget()?.Callsign is not { } cs || Engine.Runway is not { } rw) return;
         if (_tower.AnswerFor(cs) != TowerAnswer.Cleared) { StatusMessage = $"Tower has not cleared {cs} yet (T to request)"; return; }
         string wind = MetarWindPhrase;
         KeyCall($"{(wind.Length > 0 ? wind + ", " : "")}RUNWAY {rw.RunwayId}, {TowerSim.ClearanceWords(_tower.IntentFor(cs)).ToUpperInvariant()}");
@@ -1091,8 +1091,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (Interphone.Parse(text) is { } call) { ProcessInterphone(call, via); return; }
 
         var t = Phraseology.Parse(text);
-        var target = (SelectedCallsign is { } cs ? Engine.Training.Find(cs) : null)
-                     ?? (Engine.Training.Aircraft.Count == 1 ? Engine.Training.Aircraft[0] : null);
+        var target = CallTarget;
         Log("FINAL", text.ToUpperInvariant() + (t.IsEmpty ? "  (not understood)" : ""));
         _session.Write($"          ({via}) to {target?.Callsign ?? "no aircraft selected"}; understood as: {Understood(t)}");
         _lastTxTime = Engine.Training.SimTime;
@@ -1120,8 +1119,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         string who = call.To == Facility.Tower ? "TOWER" : "APPROACH";
         Log("FINAL", $"({who.ToLowerInvariant()} line) {call.Text}");
         var ac = Interphone.FindAircraft(call.Text, Engine.Training.Aircraft)
-                 ?? (SelectedCallsign is { } cs ? Engine.Training.Find(cs) : null)
-                 ?? (Engine.Training.Aircraft.Count == 1 ? Engine.Training.Aircraft[0] : null);
+                 ?? CallTarget;
         _session.Write($"          ({via}) interphone to {who.ToLowerInvariant()} about {ac?.Callsign ?? "no aircraft"}; "
             + $"understood as: {(call.Intent is { } i ? i.ToString() : call.MissedApproach ? "missed approach" : "general")}");
 
@@ -1149,7 +1147,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void RequestTower()
     {
-        if (SelectedCallsign is not { } cs || Engine.Training.Find(cs) is not { } ac) return;
+        if (KeyTarget() is not { } ac) return;
         TowerRequest(ac, TowerIntent, spoken: false);
     }
 
@@ -1166,8 +1164,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void CoordinateMissed()
     {
-        if (SelectedCallsign is not { } cs || Engine.Training.Find(cs) is not { } ac) return;
-        if (!ac.GoingAround) { StatusMessage = $"{cs} has not gone missed"; return; }
+        if (KeyTarget() is not { } ac) return;
+        if (!ac.GoingAround) { StatusMessage = $"{ac.Callsign} has not gone missed"; return; }
         ApproachCoordination(ac, spoken: false);
     }
 
@@ -1179,16 +1177,29 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         Reply("APPROACH", _approach.Coordinate(ac.Callsign));
     }
 
+    /// <summary>Who a call or key is for: the selected training aircraft, else the only one.</summary>
+    private SimAircraft? CallTarget =>
+        (SelectedCallsign is { } cs ? Engine.Training.Find(cs) : null)
+        ?? (Engine.Training.Aircraft.Count == 1 ? Engine.Training.Aircraft[0] : null);
+
+    /// <summary>The target for a key or button, or a status prompt to select one.</summary>
+    private SimAircraft? KeyTarget()
+    {
+        if (CallTarget is { } ac) return ac;
+        if (TrainingMode) StatusMessage = Engine.Training.Aircraft.Count == 0 ? "No training aircraft" : "Select a training aircraft first (click it or Tab)";
+        return null;
+    }
+
     public void BeginDescent()
     {
-        if (SelectedCallsign is not { } cs || Engine.Training.Find(cs) is not { } ac) return;
+        if (KeyTarget() is not { } ac) return;
         ac.BeginDescent(Engine.Training.SimTime, CurrentAdvisory?.RecommendedDescentFpm ?? 700);
         Log("FINAL", "BEGIN DESCENT");
     }
 
     public void NudgeHeading(int degrees)
     {
-        if (SelectedCallsign is not { } cs || Engine.Training.Find(cs) is not { } ac || Engine.Runway is not { } rw) return;
+        if (KeyTarget() is not { } ac || Engine.Runway is not { } rw) return;
         double current = Units.Norm360(rw.MagneticCourseDeg + ac.CommandedHeadingRelDeg);
         double next = Units.Norm360(Math.Round(current) + degrees);
         ProcessTransmission($"turn {(degrees > 0 ? "right" : "left")} heading {(next == 0 ? 360 : next):000}", "key");

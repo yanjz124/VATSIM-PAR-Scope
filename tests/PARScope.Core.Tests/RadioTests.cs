@@ -85,6 +85,25 @@ public class RadioTests
     }
 
     [Fact]
+    public void Course_information_stops_the_drift_but_does_not_turn_the_pilot()
+    {
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 10, Skill = 1, HeadingDriftDegPerMin = 6, Mode = PilotMode.ControllerDirected });
+        for (double t = 0; t <= 60; t += 0.1) sim.Step(t).ToList();
+        double drifted = ac.HeadingRelDeg;
+        Assert.InRange(Math.Abs(drifted), 4, 8);
+        string side = drifted > 0 ? "right" : "left";
+
+        var t1 = Phraseology.Parse($"well {side} of course");
+        Assert.NotNull(t1.CourseCall);
+        ac.Receive(t1, sim.SimTime, 243, 700);
+        for (double t = 60.1; t <= 75; t += 0.1) sim.Step(t).ToList();
+        // Back on the assigned heading (the creep starts again from there), with no turn toward the centreline beyond it.
+        Assert.InRange(ac.HeadingRelDeg, -2.5, 2.5);
+        Assert.Equal(0, ac.CommandedHeadingRelDeg, 3);
+    }
+
+    [Fact]
     public void Missed_approach_instructions_are_remembered_then_flown()
     {
         var p = Phraseology.Parse("in the event of missed approach, climb and maintain two thousand five hundred, turn left heading one eight zero");

@@ -526,6 +526,13 @@ public sealed class SimAircraft
             actions.Add($"heading {hdg:000}");
             readback.Add($"heading {RadioSpeech.Heading(hdg)}");
         }
+        else if (t.CourseCall != null && Math.Abs(_headingBias) > 1)
+        {
+            // Course information is not an instruction: the pilot does not turn toward the centreline, but
+            // hearing they are off course they check the heading and stop drifting off the assigned one.
+            _pending.Enqueue((now + delay, () => _headingBias = 0));
+            actions.Add("back on assigned heading");
+        }
         if (t.DoNotAcknowledge)
         {
             NoAcknowledge = true;

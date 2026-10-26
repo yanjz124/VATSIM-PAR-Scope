@@ -15,6 +15,43 @@ public class RadarAndAdvisoryTests
         return (geo, new TrackStore(), new TrainingTraffic { Geometry = geo });
     }
 
+    [Fact]
+    public void Sweep_covers_exactly_the_coverage_sector_and_paints_where_it_is()
+    {
+        var (geo, store, sim) = Setup();
+        sim.Spawn(new SpawnOptions { RangeNm = 5, HeightOffsetFt = 150, CrossFt = 400, Mode = PilotMode.SelfFlying, Skill = 1 });
+        foreach (var basePreset in RadarPreset.All)
+        {
+            var preset = basePreset with { DetectionProbability = 1 };
+            var radar = new RadarSimulator(preset, geo, seed: 1) { ClutterEnabled = false };
+            double azMin = double.MaxValue, azMax = double.MinValue, elMin = double.MaxValue, elMax = double.MinValue;
+            const double dt = 1 / 60.0;
+            double azStep = (preset.AzLeftDeg + preset.AzRightDeg) / preset.AzScanSec * dt * 1.01;
+            double elStep = (preset.ElMaxDeg - preset.ElMinDeg) / preset.ElScanSec * dt * 1.01;
+            int seen = 0;
+            for (double t = 0; t <= 4 * Math.Max(preset.AzScanSec, preset.ElScanSec) + 1; t += dt)
+            {
+                foreach (var m in sim.Step(t)) store.Apply(m);
+                radar.Advance(t, store.Snapshot(t));
+                azMin = Math.Min(azMin, radar.AzBeamDeg); azMax = Math.Max(azMax, radar.AzBeamDeg);
+                elMin = Math.Min(elMin, radar.ElBeamDeg); elMax = Math.Max(elMax, radar.ElBeamDeg);
+                // A target is painted on the frame the drawn beam reaches it.
+                foreach (var p in radar.Plots.Where(p => p.Time == t))
+                {
+                    if (p.Scope == ScopeKind.Azimuth) Assert.True(Math.Abs(radar.AzBeamDeg - p.Polar.AzimuthDeg) <= azStep, $"{preset.Id} az");
+                    else Assert.True(Math.Abs(radar.ElBeamDeg - p.Polar.ElevationDeg) <= elStep, $"{preset.Id} el");
+                    seen++;
+                }
+            }
+            Assert.True(seen > 0, preset.Id);
+            // Between the boundaries, and all the way to each of them.
+            Assert.InRange(azMin, -preset.AzLeftDeg - 1e-9, -preset.AzLeftDeg + azStep);
+            Assert.InRange(azMax, preset.AzRightDeg - azStep, preset.AzRightDeg + 1e-9);
+            Assert.InRange(elMin, preset.ElMinDeg - 1e-9, preset.ElMinDeg + elStep);
+            Assert.InRange(elMax, preset.ElMaxDeg - elStep, preset.ElMaxDeg + 1e-9);
+        }
+    }
+
     [Theory]
     [InlineData("fpn63", 1.0)]
     [InlineData("fpn68", 0.5)]
