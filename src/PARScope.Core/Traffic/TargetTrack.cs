@@ -49,7 +49,7 @@ public sealed class TargetTrack
     public bool IsFeed { get; private set; }
     /// <summary>Altitude only in 100 ft Mode C steps (CRC STARS data): the PAR does not paint the aircraft.</summary>
     public bool CoarseAltitude { get; private set; }
-    /// <summary>Where the last report came from.</summary>
+    /// <summary>Where the last report used for the position came from (the winning source).</summary>
     public ReportSource LastSource { get; private set; }
     public bool Initialized { get; private set; }
 
@@ -72,7 +72,31 @@ public sealed class TargetTrack
     /// </summary>
     public bool IsReporting(double now) => IsSimulated || Age(now) <= Math.Max(2.0, 2.5 * ExpectedIntervalSec(now));
 
-    public void Apply(PositionReport r)
+    private readonly Dictionary<SourceGroup, (double Time, bool Coarse, bool Fast)> _heard = [];
+
+    /// <summary>
+    /// How long a source still counts as delivering this aircraft after its last report: Velocity 1.5 s, vPilot's
+    /// 5 s updates 12 s, CRC 3 s, the data feed 30 s.
+    /// </summary>
+    private static double FreshSec(SourceGroup g, bool fast) => g switch
+    {
+        SourceGroup.VPilot => fast ? 1.5 : 12,
+        SourceGroup.Crc => 3,
+        _ => 30,
+    };
+
+    /// <summary>Lower is better: the user's priority order, but coarse (100 ft Mode C) data below any exact source.</summary>
+    private static int Rank(SourceGroup g, bool coarse, IReadOnlyList<SourceGroup> priority) =>
+        (coarse ? 100 : 0) + (priority.Contains(g) ? priority.TakeWhile(p => p != g).Count() : 50);
+
+    public void Apply(PositionReport r) => Apply(r, SourceGroups.DefaultPriority);
+
+    /// <summary>
+    /// Applies a report, unless a higher-priority source (<paramref name="priority"/>, Settings › Data) is still
+    /// delivering this aircraft: then only its metadata is kept. When the better source goes quiet, the next one
+    /// takes over by itself.
+    /// </summary>
+    public void Apply(PositionReport r, IReadOnlyList<SourceGroup> priority)
     {
         if (r.TypeCode is { Length: > 0 }) TypeCode = r.TypeCode;
         if (r.PressureAltFt.HasValue) PressureAltFt = r.PressureAltFt;
@@ -81,6 +105,15 @@ public sealed class TargetTrack
         if (r.Beacon.HasValue) Beacon = r.Beacon;
         IsSimulated |= r.Source == ReportSource.Simulated;
         Frozen = r.Frozen;
+
+        if (SourceGroups.Of(r.Source) is { } group)
+        {
+            _heard[group] = (r.Time, r.CoarseAltitude, r.Source == ReportSource.Fast);
+            int mine = Rank(group, r.CoarseAltitude, priority);
+            foreach (var (other, h) in _heard)
+                if (other != group && r.Time - h.Time <= FreshSec(other, h.Fast) && Rank(other, h.Coarse, priority) < mine)
+                    return;
+        }
 
         if (r.Source == ReportSource.Fast) { _fastRate.Mark(r.Time); LastFastTime = r.Time; }
         else

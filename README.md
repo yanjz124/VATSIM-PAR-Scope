@@ -74,7 +74,8 @@ shows the version and the commit it was built from.
 vNAS sends CRC its display targets over UDP about once a second, as plain MessagePack. vibe PAR reads them
 on your own PC by packet capture. It is read-only: nothing is sent, and CRC and the network are untouched.
 
-1. In **Settings › Data › CRC feed**, choose how to capture:
+1. **Settings › Data › CRC feed** is on **Auto** by default: Npcap if it is installed, otherwise the raw
+   socket when vibe PAR runs as administrator. To pick one yourself:
    * **Raw socket:** nothing to install, but vibe PAR must run as administrator. The settings page offers a
      restart.
    * **Npcap:** install [Npcap](https://npcap.com) once, then vibe PAR runs normally.
@@ -99,9 +100,15 @@ plugin. The VATSIM Code of Conduct (C7(b)) allows a controller one extra tower-v
    * **5 Hz data**: Velocity fast positions.
    * **5 s updates only**: normal updates only.
 
-Both can run together; vPilot's fast data wins for the aircraft it covers. With neither, the **VATSIM
-data feed (15 s)** can be turned on in **Settings › Data**: fine for watching traffic, too slow for
-precision guidance.
+With neither, the **VATSIM data feed (15 s)** can be turned on in **Settings › Data**: fine for watching
+traffic, too slow for precision guidance.
+
+### Several sources at once
+
+All sources can run together, and vibe PAR uses whichever is delivering each aircraft. When more than one
+is, **Settings › Data › Source priority** decides (CRC › vPilot › data feed by default, or any other
+order). If the chosen source stops for an aircraft, the next one takes over by itself. CRC STARS-only
+data, with its 100 ft altitude steps, always ranks below an exact source.
 
 ### When data stops
 

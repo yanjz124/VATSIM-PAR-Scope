@@ -18,6 +18,30 @@ public enum ReportSource
     Crc,
 }
 
+/// <summary>Where traffic comes from, for the source priority (Settings › Data).</summary>
+public enum SourceGroup
+{
+    /// <summary>vNAS target data captured from CRC.</summary>
+    Crc,
+    /// <summary>The vPilot plugin (Velocity fast positions and 5 s updates).</summary>
+    VPilot,
+    /// <summary>The public VATSIM data feed (15 s).</summary>
+    Feed,
+}
+
+public static class SourceGroups
+{
+    public static readonly IReadOnlyList<SourceGroup> DefaultPriority = [SourceGroup.Crc, SourceGroup.VPilot, SourceGroup.Feed];
+
+    public static SourceGroup? Of(ReportSource s) => s switch
+    {
+        ReportSource.Crc => SourceGroup.Crc,
+        ReportSource.Fast or ReportSource.Slow or ReportSource.Added => SourceGroup.VPilot,
+        ReportSource.Feed => SourceGroup.Feed,
+        _ => null,
+    };
+}
+
 public abstract record TrafficMessage;
 
 /// <param name="Time">Local monotonic time in seconds (see <see cref="IClock"/>).</param>

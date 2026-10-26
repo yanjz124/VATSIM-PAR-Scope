@@ -9,6 +9,7 @@ using PARScope.Core.Geo;
 using PARScope.Core.Par;
 using PARScope.Core.Radar;
 using PARScope.Core.Sim;
+using PARScope.Core.Traffic;
 using PARScope.Core.Weather;
 
 namespace PARScope.App.ViewModels;
@@ -104,7 +105,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private CrcCaptureMode CrcMode => Enum.TryParse<CrcCaptureMode>(_settings.CrcFeed, out var m) ? m : CrcCaptureMode.Off;
 
     /// <summary>Settings › Data choices, in CrcCaptureMode order.</summary>
-    public IReadOnlyList<string> CrcFeedChoices { get; } = ["Off", "Raw socket (run vibe PAR as administrator)", "Npcap (install once from npcap.com)"];
+    public IReadOnlyList<string> CrcFeedChoices { get; } =
+        ["Off", "Auto (Npcap if installed, else raw socket as administrator)", "Raw socket (run vibe PAR as administrator)", "Npcap (install once from npcap.com)"];
     public string CrcFeedChoice
     {
         get => CrcFeedChoices[(int)CrcMode];
@@ -120,7 +122,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>Raw-socket mode chosen but vibe PAR is not running as administrator.</summary>
-    public bool CrcNeedsAdmin => CrcMode == CrcCaptureMode.RawSocket && !CrcFeed.IsAdministrator;
+    public bool CrcNeedsAdmin => !CrcFeed.IsAdministrator
+        && (CrcMode == CrcCaptureMode.RawSocket || (CrcMode == CrcCaptureMode.Auto && Engine.Crc.Problem != null));
 
     [ObservableProperty] public partial string CrcFeedStatus { get; set; } = "";
 
@@ -129,9 +132,43 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (CrcMode == CrcCaptureMode.Off) { CrcFeedStatus = ""; return; }
         var crc = Engine.Crc;
         double now = Engine.Now;
+        string how = crc.Method == CrcCaptureMode.Npcap ? "Npcap" : "raw socket";
         CrcFeedStatus = crc.Problem is { } p ? p
-            : Engine.CrcLive ? $"Receiving vNAS data: {crc.AircraftCount(now)} aircraft (Tower Cab: exact altitude; STARS: Mode C)"
-            : "Listening. Connect CRC and open a Tower Cab (best) or STARS display covering the field.";
+            : Engine.CrcLive ? $"Receiving vNAS data via {how}: {crc.AircraftCount(now)} aircraft (Tower Cab: exact altitude; STARS: ASR only)"
+            : $"Listening via {how}. Connect CRC and open a Tower Cab view at the field (STARS gives the ASR only).";
+        OnPropertyChanged(nameof(CrcNeedsAdmin));
+    }
+
+    /// <summary>Source priority orders for Settings › Data (all orders of the three sources).</summary>
+    public IReadOnlyList<string> SourcePriorityChoices { get; } = SourcePriorityOrders().Select(PriorityText).ToList();
+
+    private static IEnumerable<SourceGroup[]> SourcePriorityOrders()
+    {
+        var all = SourceGroups.DefaultPriority;
+        foreach (var a in all) foreach (var b in all) foreach (var c in all)
+            if (a != b && b != c && a != c) yield return [a, b, c];
+    }
+
+    private static string PriorityText(IReadOnlyList<SourceGroup> order) =>
+        string.Join(" › ", order.Select(g => g switch { SourceGroup.Crc => "CRC", SourceGroup.VPilot => "vPilot", _ => "data feed" }));
+
+    private static IReadOnlyList<SourceGroup> ParsePriority(string? s)
+    {
+        var parsed = (s ?? "").Split(',').Select(x => Enum.TryParse<SourceGroup>(x.Trim(), out var g) ? g : (SourceGroup?)null)
+            .OfType<SourceGroup>().Distinct().ToList();
+        return parsed.Count == 3 ? parsed : SourceGroups.DefaultPriority;
+    }
+
+    public string SourcePriorityChoice
+    {
+        get => PriorityText(ParsePriority(_settings.SourcePriority));
+        set
+        {
+            var order = SourcePriorityOrders().FirstOrDefault(o => PriorityText(o) == value) ?? [.. SourceGroups.DefaultPriority];
+            _settings.SourcePriority = string.Join(",", order);
+            Engine.Store.Priority = order;
+            OnPropertyChanged();
+        }
     }
 
     /// <summary>Restarts vibe PAR elevated so the raw-socket capture can run.</summary>
@@ -192,6 +229,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         Engine.StartNetwork(_settings.UdpPort);
         Engine.StartDataFeed(Http, () => _settings.UseDataFeed);
+        Engine.Store.Priority = ParsePriority(_settings.SourcePriority);
         if (CrcMode != CrcCaptureMode.Off) Engine.Crc.Start(CrcMode);
         bool cached = await Task.Run(_airports.TryLoadCache);
         AirportDbStatus = cached ? DbStatusText() : "No airport data yet";

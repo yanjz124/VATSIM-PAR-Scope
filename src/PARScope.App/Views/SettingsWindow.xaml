@@ -117,18 +117,21 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16,12">
                     <StackPanel MaxWidth="620" HorizontalAlignment="Left">
                             <TextBlock Style="{StaticResource MetricLabel}" TextWrapping="Wrap" Margin="0,0,0,12"
-                                       Text="Traffic sources. Where your facility is on CRC, the CRC feed is all you need. Where it is not (EuroScope areas, or no CRC), use vPilot with the plugin: its tower view gives Velocity data at up to 5 Hz. Both can run together; vPilot's fast data wins for the aircraft it covers." />
+                                       Text="Traffic sources. vibe PAR uses whichever is available: the CRC feed where your facility is on CRC, vPilot with the plugin elsewhere (its tower view gives Velocity data at up to 5 Hz), and the public data feed as a last resort. When several deliver the same aircraft, the priority below decides; if that source stops, the next takes over." />
                             <TextBlock Text="CRC feed (recommended where your facility is on CRC; experimental)" Style="{StaticResource MetricLabel}" />
                             <TextBlock Style="{StaticResource MetricLabel}" TextWrapping="Wrap" Margin="0,2,0,4"
                                        Text="Reads the 1 Hz target data vNAS already sends your CRC (no second connection). Open a Tower Cab window at the field for exact altitude; STARS gives Mode C altitude in 100 ft steps. Read-only: nothing is sent and CRC is not touched. Unofficial, and may stop working with a vNAS update." />
                             <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding CrcFeedChoices}" SelectedItem="{Binding CrcFeedChoice}" Margin="0,2,0,4"
-                                      ToolTip="Raw socket: built into Windows, but vibe PAR has to run as administrator. Npcap: install Npcap once (as administrator) from npcap.com, then vibe PAR runs normally." />
+                                      ToolTip="Auto: Npcap if it is installed, otherwise the raw socket when vibe PAR runs as administrator. Raw socket: built into Windows, but vibe PAR has to run as administrator. Npcap: install Npcap once (as administrator) from npcap.com, then vibe PAR runs normally." />
                             <TextBlock Text="{Binding CrcFeedStatus}" Style="{StaticResource MetricLabel}" TextWrapping="Wrap" Margin="0,0,0,4" />
                             <ui:Button Content="Restart as administrator" Icon="{ui:SymbolIcon Shield24}" Command="{Binding RestartAsAdministratorCommand}" Margin="0,0,0,14"
                                        Visibility="{Binding CrcNeedsAdmin, Converter={StaticResource BoolToVisibility}}" />
                             <ui:ToggleSwitch IsChecked="{Binding UseDataFeed}" Margin="0,0,0,8"
                                              OnContent="Use VATSIM data feed without vPilot" OffContent="Use VATSIM data feed without vPilot"
                                              ToolTip="When no vPilot plugin is connected, show traffic from the public VATSIM data feed (updates every ~15 s). Off by default." />
+                            <TextBlock Text="Source priority (when several deliver the same aircraft)" Style="{StaticResource MetricLabel}" />
+                            <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding SourcePriorityChoices}" SelectedItem="{Binding SourcePriorityChoice}" Margin="0,2,0,14"
+                                      ToolTip="First is used while it is delivering the aircraft. CRC STARS-only data (100 ft altitude steps) always ranks below an exact source." />
                             <ui:ToggleSwitch IsChecked="{Binding UseVatsimMetar}" OnContent="VATSIM METAR" OffContent="NOAA METAR" Margin="0,0,0,14" />
 
 

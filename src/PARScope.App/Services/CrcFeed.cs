@@ -12,6 +12,8 @@ namespace PARScope.App.Services;
 public enum CrcCaptureMode
 {
     Off,
+    /// <summary>Npcap if it is installed, otherwise the raw socket when running as administrator.</summary>
+    Auto,
     /// <summary>Windows raw socket: nothing to install; vibe PAR must run as administrator.</summary>
     RawSocket,
     /// <summary>Npcap (npcap.com): install once (as administrator); then no admin rights needed.</summary>
@@ -44,6 +46,8 @@ public sealed class CrcFeed : IDisposable
     public CrcCaptureMode Mode { get; private set; }
     /// <summary>Why the feed is not running, or null when it is.</summary>
     public string? Problem { get; private set; }
+    /// <summary>The capture method actually in use (Auto resolves to Npcap or the raw socket).</summary>
+    public CrcCaptureMode Method { get; private set; }
     public double LastPacket { get; private set; } = double.NegativeInfinity;
 
     /// <summary>Aircraft heard in the last 10 s.</summary>
@@ -71,8 +75,9 @@ public sealed class CrcFeed : IDisposable
         {
             switch (mode)
             {
-                case CrcCaptureMode.RawSocket: StartRawSockets(); break;
-                case CrcCaptureMode.Npcap: StartNpcap(); break;
+                case CrcCaptureMode.RawSocket: StartRawSockets(); Method = mode; break;
+                case CrcCaptureMode.Npcap: StartNpcap(); Method = mode; break;
+                case CrcCaptureMode.Auto: StartAuto(); break;
             }
         }
         catch (Exception ex) when (ex is SocketException or UnauthorizedAccessException or DllNotFoundException or PcapException or TypeInitializationException or InvalidOperationException)
@@ -82,10 +87,30 @@ public sealed class CrcFeed : IDisposable
             Problem = ex switch
             {
                 DllNotFoundException or TypeInitializationException => "Npcap is not installed (npcap.com).",
+                UnauthorizedAccessException { Message: var m } when mode == CrcCaptureMode.Auto => m,
                 SocketException { SocketErrorCode: SocketError.AccessDenied } or UnauthorizedAccessException => "Needs administrator rights.",
                 _ => ex.Message,
             };
         }
+    }
+
+    /// <summary>Npcap when installed (no rights needed); otherwise the raw socket if running as administrator.</summary>
+    private void StartAuto()
+    {
+        try
+        {
+            StartNpcap();
+            Method = CrcCaptureMode.Npcap;
+            return;
+        }
+        catch (Exception ex) when (ex is DllNotFoundException or TypeInitializationException or PcapException or InvalidOperationException)
+        {
+            foreach (var d in _devices) { try { d.Close(); } catch (PcapException) { } }
+            _devices.Clear();
+        }
+        if (!IsAdministrator) throw new UnauthorizedAccessException("Install Npcap (npcap.com), or run vibe PAR as administrator.");
+        StartRawSockets();
+        Method = CrcCaptureMode.RawSocket;
     }
 
     // ---- Raw socket (SIO_RCVALL): every IPv4 packet on an interface, administrator only. ----
@@ -202,7 +227,7 @@ public sealed class CrcFeed : IDisposable
             d.OnPacketArrival -= OnPcapPacket;
         }
         _devices.Clear();
-        Mode = CrcCaptureMode.Off;
+        Mode = Method = CrcCaptureMode.Off;
     }
 
     public void Dispose() => Stop();

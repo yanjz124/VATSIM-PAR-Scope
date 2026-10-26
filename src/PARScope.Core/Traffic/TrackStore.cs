@@ -7,6 +7,9 @@ public sealed class TrackStore
     public const double StaleSec = 45.0;
 
     private readonly Dictionary<string, TargetTrack> _tracks = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Which source wins when several deliver the same aircraft (Settings › Data).</summary>
+    public IReadOnlyList<SourceGroup> Priority { get; set; } = SourceGroups.DefaultPriority;
     private readonly Lock _lock = new();
 
     public void Apply(TrafficMessage msg)
@@ -18,7 +21,7 @@ public sealed class TrackStore
                 case PositionReport r:
                     if (!_tracks.TryGetValue(r.Callsign, out var t))
                         _tracks[r.Callsign] = t = new TargetTrack(r.Callsign);
-                    t.Apply(r);
+                    t.Apply(r, Priority);
                     break;
                 case TargetRemoved d:
                     _tracks.Remove(d.Callsign);
