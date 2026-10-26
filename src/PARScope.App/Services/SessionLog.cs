@@ -32,7 +32,7 @@ public sealed class SessionLog : IDisposable
                 old.Delete();
             CurrentFile = Path.Combine(TrafficRecorder.Folder, $"training-{DateTime.UtcNow:yyyyMMdd-HHmmss}.log");
             _w = new StreamWriter(CurrentFile, false, new UTF8Encoding(false)) { AutoFlush = true };
-            _w.WriteLine($"PAR Scope training session, started {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}Z");
+            _w.WriteLine($"vibe PAR training session, started {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}Z");
             return _w;
         }
         catch (IOException) { return null; }

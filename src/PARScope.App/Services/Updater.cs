@@ -8,7 +8,7 @@ using System.Text.Json;
 namespace PARScope.App.Services;
 
 /// <summary>A release on GitHub with a scope zip attached.</summary>
-public sealed record ReleaseInfo(string Version, string Name, string Notes, string ZipUrl, string PageUrl);
+public sealed record ReleaseInfo(string Version, string Name, string Notes, string ZipUrl, string? SetupUrl, string PageUrl);
 
 /// <summary>
 /// Update check against the GitHub releases of this project. A newer release's zip is downloaded and
@@ -52,19 +52,43 @@ public static class Updater
             if (r.GetProperty("prerelease").GetBoolean() && !runningPre) continue;
             string version = r.GetProperty("tag_name").GetString()!.TrimStart('v', 'V');
             if (Compare(version, CurrentVersion) <= 0 || (best != null && Compare(version, best.Version) <= 0)) continue;
-            string? zip = r.GetProperty("assets").EnumerateArray()
+            var assets = r.GetProperty("assets").EnumerateArray()
                 .Select(a => (Name: a.GetProperty("name").GetString() ?? "", Url: a.GetProperty("browser_download_url").GetString() ?? ""))
-                .FirstOrDefault(a => a.Name.StartsWith("PARScope-", StringComparison.OrdinalIgnoreCase) && a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)).Url;
-            if (string.IsNullOrEmpty(zip)) continue;
+                .ToList();
+            string? zip = assets.FirstOrDefault(a => a.Name.StartsWith("PARScope-", StringComparison.OrdinalIgnoreCase)
+                                                     && a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)).Url;
+            string? setup = assets.FirstOrDefault(a => a.Name.StartsWith("PARScope-Setup-", StringComparison.OrdinalIgnoreCase)
+                                                       && a.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)).Url;
+            if (string.IsNullOrEmpty(zip) && string.IsNullOrEmpty(setup)) continue;
             best = new ReleaseInfo(version, r.GetProperty("name").GetString() ?? version, r.GetProperty("body").GetString() ?? "",
-                zip, r.GetProperty("html_url").GetString() ?? "");
+                zip ?? "", string.IsNullOrEmpty(setup) ? null : setup, r.GetProperty("html_url").GetString() ?? "");
         }
         return best;
     }
 
-    /// <summary>Downloads and unpacks the release over the install folder, then starts the new version.</summary>
+    /// <summary>Installed with the installer (rather than unzipped): updates then go through the installer too.</summary>
+    public static bool InstalledBySetup => File.Exists(Path.Combine(InstallFolder, "unins000.exe"));
+
+    /// <summary>
+    /// Installs the release and restarts. An installer-based install runs the new installer silently (it
+    /// remembers the install and vPilot folders, closes the scope, updates the plugin and starts the scope
+    /// again); an unzipped copy is updated in place from the zip.
+    /// </summary>
     public static async Task InstallAndRestartAsync(HttpClient http, ReleaseInfo release, IProgress<string>? progress, CancellationToken ct)
     {
+        if (InstalledBySetup && release.SetupUrl is { } setupUrl)
+        {
+            progress?.Report($"Downloading {release.Version}…");
+            string setup = Path.Combine(Path.GetTempPath(), $"PARScope-Setup-{release.Version}.exe");
+            await using (var src = await http.GetStreamAsync(setupUrl, ct))
+            await using (var dst = File.Create(setup))
+                await src.CopyToAsync(dst, ct);
+            Process.Start(new ProcessStartInfo(setup, "/SILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /UPDATE") { UseShellExecute = true });
+            System.Windows.Application.Current.Shutdown();
+            return;
+        }
+        if (string.IsNullOrEmpty(release.ZipUrl)) throw new InvalidDataException("The release has no zip to update from.");
+
         string temp = Path.Combine(Path.GetTempPath(), $"PARScope-update-{release.Version}");
         if (Directory.Exists(temp)) Directory.Delete(temp, true);
         Directory.CreateDirectory(temp);

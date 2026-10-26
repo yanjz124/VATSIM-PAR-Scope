@@ -8,7 +8,7 @@
                  xmlns:vm="clr-namespace:PARScope.App.ViewModels"
                  mc:Ignorable="d"
                  d:DataContext="{d:DesignInstance vm:MainViewModel}"
-                 Title="PAR Scope"
+                 Title="vibe PAR"
                  Width="1440" Height="900" MinWidth="980" MinHeight="620"
                  ExtendsContentIntoTitleBar="True"
                  WindowBackdropType="Mica"
@@ -70,6 +70,17 @@
                     </ComboBox.ItemTemplate>
                 </ComboBox>
 
+                <!-- Scope view: PAR or ASR (flip), or the ASR in its own window. -->
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,12,0">
+                    <ToggleButton Style="{StaticResource ToolbarToggle}" Content="ASR" IsChecked="{Binding ShowAsr}"
+                                  IsEnabled="{Binding AsrPoppedOut, Converter={StaticResource InverseBool}}"
+                                  ToolTip="Flip the scope between PAR and ASR (F)" />
+                    <ToggleButton Style="{StaticResource ToolbarToggle}" IsChecked="{Binding AsrPoppedOut}" 
+                                  ToolTip="ASR in its own window (drag it to another screen)">
+                        <ui:SymbolIcon Symbol="WindowNew24" />
+                    </ToggleButton>
+                </StackPanel>
+
                 <ListBox DockPanel.Dock="Left" Style="{StaticResource SegmentedList}" Margin="0,0,12,0" VerticalAlignment="Center"
                          ItemsSource="{Binding RangeScales}" SelectedItem="{Binding RangeScaleItem}" ToolTip="Range scale (PgUp / PgDn)">
                     <ListBox.ItemTemplate>
@@ -96,13 +107,6 @@
                                   Visibility="{Binding TrainingMode, Converter={StaticResource BoolToVisibility}}"
                                   ToolTip="Pause / resume training traffic (P). Network traffic keeps moving.">
                         <ui:SymbolIcon Symbol="Pause24" />
-                    </ToggleButton>
-                    <ToggleButton Style="{StaticResource ToolbarToggle}" Content="ASR" IsChecked="{Binding ShowAsr}"
-                                  IsEnabled="{Binding AsrPoppedOut, Converter={StaticResource InverseBool}}"
-                                  ToolTip="Flip the scope between PAR and ASR (F)" />
-                    <ToggleButton Style="{StaticResource ToolbarToggle}" IsChecked="{Binding AsrPoppedOut}" Margin="0,0,8,0"
-                                  ToolTip="ASR in its own window (drag it to another screen)">
-                        <ui:SymbolIcon Symbol="WindowNew24" />
                     </ToggleButton>
                     <ToggleButton Style="{StaticResource ToolbarToggle}" IsChecked="{Binding ShowPlanView}" ToolTip="Show side panel">
                         <ui:SymbolIcon Symbol="PanelRight24" />

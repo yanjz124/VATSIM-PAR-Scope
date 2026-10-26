@@ -1,26 +1,46 @@
 param(
-  [string]$Version = "0.0.1-alpha2",
-  [string]$ZipPath = "$(Join-Path (Get-Location) ('VATSIM-PAR-Scope-'+$Version+'.zip'))",
-  [string]$ChecksumPath = "$(Join-Path (Get-Location) ('VATSIM-PAR-Scope-'+$Version+'.sha256.txt'))"
+  [Parameter(Mandatory)] [string]$Version,      # e.g. 2.0.0-beta.3 (a "-" suffix makes it a pre-release)
+  [string]$NotesFile,                           # release notes (Markdown); default: the commit list since the last tag
+  [int]$Keep = 3                                # releases of this major version to keep; older ones are deleted
 )
+# Builds the release from the current commit, tags it, publishes it on GitHub with the zip, installer and
+# checksums, then deletes older releases of the same major version beyond -Keep. Tags are kept, so old
+# builds can still be found and rebuilt. Requires a clean working tree and the gh CLI.
 
-if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
-  Write-Host "GitHub CLI 'gh' not found. Please install it from https://cli.github.com/ and authenticate with 'gh auth login'." -ForegroundColor Yellow
-  Write-Host "Then re-run this script: .\scripts\publish-release.ps1 -Version $Version"
-  exit 1
+$ErrorActionPreference = "Stop"
+$root = Resolve-Path (Join-Path $PSScriptRoot "..")
+if (git -C $root status --porcelain) { throw "Commit or stash your changes first." }
+$sha = git -C $root rev-parse --short HEAD
+$tag = "v$Version"
+$out = Join-Path $root "release"
+
+& (Join-Path $PSScriptRoot "build-release.ps1") -Version $Version -OutDir $out
+if ($LASTEXITCODE) { throw "Build failed" }
+
+if (-not $NotesFile) {
+  $prev = git -C $root describe --tags --abbrev=0 2>$null
+  $NotesFile = Join-Path $out "notes-$Version.md"
+  $log = if ($prev) { git -C $root log --pretty="- %s" "$prev..HEAD" } else { git -C $root log --pretty="- %s" -20 }
+  ($log -join "`n") + "`n`nBuilt from $sha." | Set-Content -Encoding utf8 $NotesFile
 }
 
-# Create release (draft) and upload assets
-$tag = "v$Version"
-$releaseName = "VATSIM-PAR-Scope $Version"
-$body = "Release $Version\n\nUnsigned build - please verify checksums before use."
+git -C $root push origin HEAD
+git -C $root tag -a $tag -m "vibe PAR $Version"
+git -C $root push origin $tag
 
-Write-Host "Creating release $tag (draft)..."
-$release = gh release create $tag --title "$releaseName" --notes "$body" --draft --repo $env:GITHUB_REPOSITORY 2>&1
-if ($LASTEXITCODE -ne 0) { Write-Host "gh release create failed:"; Write-Host $release; exit $LASTEXITCODE }
+$assets = @("PARScope-$Version.zip", "PARScope-Setup-$Version.exe", "PARScope-$Version.sha256.txt") |
+  ForEach-Object { Join-Path $out $_ } | Where-Object { Test-Path $_ }
+$pre = if ($Version.Contains("-")) { @("--prerelease") } else { @() }
+gh release create $tag @assets @pre --title "vibe PAR $Version ($sha)" --notes-file $NotesFile
+if ($LASTEXITCODE) { throw "gh release create failed" }
 
-Write-Host "Uploading assets: $ZipPath and $ChecksumPath"
-gh release upload $tag $ZipPath $ChecksumPath --repo $env:GITHUB_REPOSITORY
-if ($LASTEXITCODE -ne 0) { Write-Host "gh release upload failed"; exit $LASTEXITCODE }
-
-Write-Host "Draft release created. Visit the release to publish it." -ForegroundColor Green
+# Prune: newest first; keep -Keep releases of this major version, delete the rest (not their tags).
+$major = $Version.Split(".")[0]
+$old = gh release list --limit 100 --json tagName,createdAt | ConvertFrom-Json |
+  Where-Object { $_.tagName -like "v$major.*" } |
+  Sort-Object { [datetime]$_.createdAt } -Descending |
+  Select-Object -Skip $Keep
+foreach ($r in $old) {
+  Write-Host "Deleting old release $($r.tagName)"
+  gh release delete $r.tagName --yes
+}

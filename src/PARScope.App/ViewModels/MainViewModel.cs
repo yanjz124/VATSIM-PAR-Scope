@@ -87,7 +87,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     private void ApplyLiveWind() => Engine.Training.SurfaceWind = _settings.TrainingLiveWind ? _liveWind : null;
 
-    public string WindowTitle => $"PAR Scope {Updater.DisplayVersion}";
+    public string WindowTitle => $"vibe PAR {Updater.DisplayVersion}";
 
     public bool CheckForUpdates
     {
@@ -225,7 +225,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private void Reconfigure()
     {
         if (SelectedAirport is not { } apt || SelectedRunway is not { } rw || SelectedPreset is null) return;
-        Site = _settings.SiteFor(rw);
+        Site = _settings.SiteFor(rw, SelectedPreset);
         Engine.Configure(apt, rw, Site, SelectedPreset);
         _settings.AirportId = apt.Id;
         _settings.RunwayId = rw.RunwayId;

@@ -244,9 +244,10 @@ public partial class MainWindow : FluentWindow
     {
         if (await _vm.CheckForUpdateAsync() is not { } release) return;
         var answer = System.Windows.MessageBox.Show(this,
-            $"PAR Scope {release.Version} is available (you have {Updater.DisplayVersion}).\n\n"
-            + "Update now? The scope restarts when it is done. The vPilot plugin is not changed; if the release notes "
-            + "say the plugin was updated, copy it from the Plugin folder into vPilot.",
+            $"vibe PAR {release.Version} is available (you have {Updater.DisplayVersion}).\n\n"
+            + "Update now? The scope restarts when it is done. "
+            + (Updater.InstalledBySetup ? "The vPilot plugin is updated too (close vPilot first if the plugin changed)."
+                : "The vPilot plugin is not changed; if the release notes say it was updated, copy it from the Plugin folder into vPilot."),
             "Update available", System.Windows.MessageBoxButton.YesNo, MessageBoxImage.Information);
         if (answer == System.Windows.MessageBoxResult.Yes) await _vm.InstallUpdateAsync(release);
     }

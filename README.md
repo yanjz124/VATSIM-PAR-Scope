@@ -1,4 +1,6 @@
-# PAR Scope for VATSIM
+# vibe PAR
+
+*Formerly VATSIM PAR Scope. Yes, it is vibe coded.*
 
 A Precision Approach Radar (PAR) final-controller scope for VATSIM, modelled on real US military GCA
 systems: AN/FPN-68, FPN-63, GPN-22, FPN-67, MPN-25 and TPN-31 ATNAVICS. It runs alongside CRC and gets
@@ -12,12 +14,20 @@ no suggested calls, no simulated anything.
 
 | | |
 |---|---|
+| `PARScope-Setup-<version>.exe` | Installer: installs the scope and the vPilot plugin (recommended). |
 | `PARScope.exe` | The scope. Windows 10/11, no .NET install needed. |
 | `runtimes\win-x64\` | Speech-recognition libraries. Keep this folder next to `PARScope.exe`. |
 | `Plugin\RadarStreamerPlugin.dll` + `.ini` | vPilot plugin that streams the traffic vPilot sees to the scope. |
 | `TrafficProbe.exe` | Optional: shows the update rate you are actually getting, per aircraft. |
 
 ## Install
+
+**With the installer** (recommended): run `PARScope-Setup-<version>.exe`. It installs for your user
+only (no admin needed) and lets you change the install folder. It finds vPilot's `Plugins` folder by
+itself and installs the plugin there; you can point it elsewhere or skip the plugin. Close vPilot
+first. Uninstall from Windows Settings › Apps.
+
+**Or from the zip**:
 
 1. Unzip the release anywhere.
 2. Close vPilot. Copy `RadarStreamerPlugin.dll` and `RadarStreamerPlugin.ini` into

@@ -12,7 +12,7 @@
     <RootNamespace>PARScope.App</RootNamespace>
     <ApplicationIcon>Assets\PARScope.ico</ApplicationIcon>
     <Version>2.0.0</Version>
-    <Product>VATSIM PAR Scope</Product>
+    <Product>vibe PAR</Product>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 

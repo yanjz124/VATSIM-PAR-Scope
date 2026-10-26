@@ -77,6 +77,12 @@ public sealed record RadarPreset
     /// for the Compass rose setting.
     /// </summary>
     public bool AsrCompassRose { get; init; }
+    /// <summary>
+    /// Antenna aim toward the centreline for this system when the runway has no saved siting; null = the
+    /// ICAO Annex 10 siting example (5°). ATNAVICS footage shows the course along the middle of the sector,
+    /// i.e. the antenna pointed parallel to the runway.
+    /// </summary>
+    public double? DefaultAntennaAimDeg { get; init; }
     /// <summary>Whether the system runs a track-while-scan tracker (track symbols, data blocks).</summary>
     public bool Tracking { get; init; } = true;
     public int MaxTracks { get; init; } = 6;
@@ -181,6 +187,7 @@ public sealed record RadarPreset
         LogStraightLines = true,
         AzimuthAntennaCentred = true,
         AsrCompassRose = true,
+        DefaultAntennaAimDeg = 0,
     };
 
     public static IReadOnlyList<RadarPreset> All { get; } = [Fpn68, Tpn31, Fpn63, Gpn22, Fpn67, Mpn25, Icao];

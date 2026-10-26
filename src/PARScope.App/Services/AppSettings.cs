@@ -88,8 +88,12 @@ public sealed class AppSettings
     /// carries the PAPI/VASI visual glide slope, which is not the PAR glidepath; set the real values from
     /// the approach plate.
     /// </summary>
-    public ParSiteConfig SiteFor(RunwayEnd r) =>
-        Sites.TryGetValue(SiteKey(r), out var s) ? s : new ParSiteConfig { TchFt = 50, GlidepathDeg = 3.0 };
+    public ParSiteConfig SiteFor(RunwayEnd r, PARScope.Core.Radar.RadarPreset? preset = null)
+    {
+        if (Sites.TryGetValue(SiteKey(r), out var s)) return s;
+        var site = new ParSiteConfig { TchFt = 50, GlidepathDeg = 3.0 };
+        return preset?.DefaultAntennaAimDeg is double aim ? site with { AntennaAimDeg = aim } : site;
+    }
 
     public static AppSettings Load()
     {
