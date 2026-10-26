@@ -8,7 +8,10 @@ namespace PARScope.Core.Par;
 /// <param name="TrueHeadingDeg">Runway true heading (direction of landing).</param>
 /// <param name="VgsiTchFt">TCH of the visual glide slope indicator (PAPI/VASI) from NASR, not the PAR/ILS TCH.</param>
 /// <param name="VgsiAngleDeg">PAPI/VASI visual glide path angle from NASR; not the PAR glidepath, which comes from the approach plate.</param>
-/// <param name="MagVarEastDeg">Magnetic variation, east positive (magnetic = true − variation).</param>
+/// <param name="MagVarEastDeg">Magnetic variation, east positive (magnetic = true − variation). NASR's variation of
+/// record for US airports, the World Magnetic Model elsewhere.</param>
+/// <param name="TdzElevFt">Touchdown zone elevation (highest elevation in the first 3,000 ft), feet MSL; HAT is
+/// measured from it.</param>
 public sealed record RunwayEnd(
     string AirportId,
     string? Icao,
@@ -23,7 +26,8 @@ public sealed record RunwayEnd(
     string? ApproachLights = null,
     double? LengthFt = null,
     double? WidthFt = null,
-    string Source = "")
+    string Source = "",
+    double? TdzElevFt = null)
 {
     public string DisplayName => $"{AirportId} RWY {RunwayId}";
 

@@ -3,8 +3,9 @@ using PARScope.Core.Par;
 namespace PARScope.Core.Data;
 
 /// <summary>
-/// OurAirports open data (public domain, worldwide). Fills in everything outside the US; it has no
-/// TCH, glidepath angle or magnetic variation, so those fall back to site defaults.
+/// OurAirports open data (public domain, worldwide). Fills in everything outside the US. It has no
+/// TCH, glidepath angle or magnetic variation: variation comes from the World Magnetic Model, the
+/// others from site defaults.
 /// </summary>
 public static class OurAirportsLoader
 {
@@ -39,6 +40,8 @@ public static class OurAirportsLoader
             if (!airports.TryGetValue(ident, out var apt)) continue;
             if (r.GetDouble("le_latitude_deg") is not double leLat || r.GetDouble("le_longitude_deg") is not double leLon) continue;
             if (r.GetDouble("he_latitude_deg") is not double heLat || r.GetDouble("he_longitude_deg") is not double heLon) continue;
+            // Helipads are listed as runways ("H1", "06H/24H"); they are not PAR runways.
+            if (IsHelipad(r.Get("le_ident")) || IsHelipad(r.Get("he_ident"))) continue;
 
             double len = r.GetDouble("length_ft") ?? 0, wid = r.GetDouble("width_ft") ?? 0;
             var list = byAirport.TryGetValue(ident, out var l) ? l : byAirport[ident] = [];
@@ -56,6 +59,9 @@ public static class OurAirportsLoader
             .ToList();
     }
 
+    private static bool IsHelipad(string ident) =>
+        ident.StartsWith('H') || (ident.Length > 1 && ident.EndsWith('H') && char.IsDigit(ident[0]));
+
     private static RunwayEnd End(string airportId, string? icao, CsvReader r, string p,
         double lat, double lon, double otherLat, double otherLon, double fieldElev, double len, double wid)
     {
@@ -63,6 +69,7 @@ public static class OurAirportsLoader
         var (thrLat, thrLon) = RunwayMath.Displace(lat, lon, course, r.GetDouble(p + "_displaced_threshold_ft") ?? 0);
         return new RunwayEnd(airportId, icao, r.Get(p + "_ident"), thrLat, thrLon,
             r.GetDouble(p + "_elevation_ft") ?? fieldElev, course,
+            MagVarEastDeg: Math.Round(Geo.Wmm.DeclinationDeg(thrLat, thrLon), 1),
             LengthFt: len > 0 ? len : null, WidthFt: wid > 0 ? wid : null, Source: "OurAirports");
     }
 }

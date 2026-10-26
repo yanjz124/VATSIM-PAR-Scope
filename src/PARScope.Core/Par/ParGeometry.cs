@@ -39,7 +39,9 @@ public sealed class ParGeometry
         _inbound = new Vec3(Math.Sin(h), Math.Cos(h), 0);
         _right = new Vec3(Math.Cos(h), -Math.Sin(h), 0);
         _tanGp = Math.Tan(Units.DegToRad(site.GlidepathDeg));
-        GpiFromThresholdFt = site.TchFt / _tanGp;
+        GpiFromThresholdFt = site.RpiFt is > 0 and double rpi ? rpi : site.TchFt / _tanGp;
+        // HAT is measured from the touchdown zone elevation; the approach frame's zero is the threshold.
+        DecisionHeightAboveThresholdFt = site.DecisionHeightFt + ((runway.TdzElevFt ?? runway.ThresholdElevFt) - runway.ThresholdElevFt);
 
         double alongFt = GpiFromThresholdFt + site.AntennaSetbackFt;
         _antennaEnu = (_inbound * alongFt + _right * site.AntennaOffsetFt + new Vec3(0, 0, site.AntennaHeightFt)) * Units.MetersPerFoot;
@@ -51,7 +53,7 @@ public sealed class ParGeometry
     public ParSiteConfig Site { get; }
     public LocalFrame Frame => _frame;
 
-    /// <summary>Glidepath intercept point distance past the threshold (TCH / tan GPA), feet.</summary>
+    /// <summary>Glidepath intercept point distance past the threshold: the published RPI, else TCH / tan GPA, feet.</summary>
     public double GpiFromThresholdFt { get; }
 
     /// <summary>Threshold position on the range axis (negative range is past touchdown).</summary>
@@ -108,8 +110,11 @@ public sealed class ParGeometry
     /// <summary>Glidepath height above threshold elevation at a range from touchdown, feet.</summary>
     public double GlidepathHeightFt(double rangeFt) => rangeFt * _tanGp;
 
+    /// <summary>Decision height (HAT, above the touchdown zone) expressed above threshold elevation.</summary>
+    public double DecisionHeightAboveThresholdFt { get; }
+
     /// <summary>Range from touchdown at which the glidepath reaches decision height.</summary>
-    public double DecisionHeightRangeFt => Site.DecisionHeightFt / _tanGp;
+    public double DecisionHeightRangeFt => DecisionHeightAboveThresholdFt / _tanGp;
 
     /// <summary>
     /// Lower safe limit ("B") cursor: from the runway point of intercept at the commissioned glidepath angle

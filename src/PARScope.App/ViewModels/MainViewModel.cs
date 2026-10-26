@@ -129,6 +129,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         AirportDbStatus = cached ? DbStatusText() : "No airport data yet";
         if (!cached)
             await UpdateAirportsAsync();
+        else if (_airports.IsStale)
+            _ = UpdateAirportsAsync(); // refresh in the background; the cached data is used meanwhile
 
         string? airportId = DemoAirport ?? _settings.AirportId;
         string? runwayId = DemoAirport != null ? DemoRunway : _settings.RunwayId;
@@ -291,9 +293,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] public partial double SiteSetback { get; set; }
     [ObservableProperty] public partial double SiteOffset { get; set; }
     [ObservableProperty] public partial double SiteAim { get; set; }
+    /// <summary>Runway point of intercept, feet from the threshold; 0 = computed from TCH and glidepath.</summary>
+    [ObservableProperty] public partial double SiteRpi { get; set; }
+    [ObservableProperty] public partial string SiteSource { get; set; } = "";
 
     private void LoadSiteFields()
     {
+        SiteRpi = Site.RpiFt ?? 0;
+        SiteSource = Site.Source is { } src ? $"Glidepath, TCH, RPI and DH: {src}"
+            : "No published PAR for this runway: set glidepath, TCH and DH from the approach plate.";
         SiteGlidepath = Site.GlidepathDeg;
         SiteTch = Site.TchFt;
         SiteDh = Site.DecisionHeightFt;
@@ -314,7 +322,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             AntennaSetbackFt = Math.Clamp(SiteSetback, 0, 10000),
             AntennaOffsetFt = Math.Clamp(SiteOffset, -2500, 2500),
             AntennaAimDeg = Math.Clamp(SiteAim, 0, 15),
+            RpiFt = SiteRpi > 0 ? Math.Clamp(SiteRpi, 0, 5000) : null,
         };
+        // Keep the published source only while its values are untouched.
+        if (site.GlidepathDeg != Site.GlidepathDeg || site.TchFt != Site.TchFt || site.DecisionHeightFt != Site.DecisionHeightFt || site.RpiFt != Site.RpiFt)
+            site = site with { Source = "set by hand" };
         _settings.Sites[AppSettings.SiteKey(rw)] = site;
         Reconfigure();
         StatusMessage = $"Approach setup saved for {rw.DisplayName}";

@@ -19,7 +19,13 @@ public sealed class AirportDatabase
         _cachePath = Path.Combine(dataFolder, "airports.json.gz");
     }
 
+    /// <summary>Bump when AirportRecord/RunwayEnd gain fields, so old caches are rebuilt.</summary>
+    private const int SchemaVersion = 2;
+
     public int Count => _byId.Count;
+
+    /// <summary>The cache is from an older schema or older than one 28-day NASR cycle.</summary>
+    public bool IsStale { get; private set; }
     public DateTime? UpdatedUtc { get; private set; }
     public string Sources { get; private set; } = "";
 
@@ -35,6 +41,7 @@ public sealed class AirportDatabase
             Index(cache.Airports);
             UpdatedUtc = cache.UpdatedUtc;
             Sources = cache.Sources ?? "";
+            IsStale = cache.Schema < SchemaVersion || UpdatedUtc is not { } u || DateTime.UtcNow - u > TimeSpan.FromDays(28);
             return true;
         }
         catch (Exception ex) when (ex is JsonException or IOException or InvalidDataException)
@@ -76,10 +83,11 @@ public sealed class AirportDatabase
                 notes.Add($"NASR {cycle:dd MMM yyyy} {nasr.Count:N0}");
                 break;
             }
-            catch (Exception ex) when (ex is HttpRequestException or InvalidDataException or TaskCanceledException && !ct.IsCancellationRequested)
+            catch (Exception ex) when (ex is HttpRequestException or InvalidDataException or IOException or FormatException
+                                       or TaskCanceledException && !ct.IsCancellationRequested)
             {
-                notes.Add("NASR failed: " + ex.Message);
-                break;
+                // Try the previous cycle rather than giving up.
+                notes.Add($"NASR {cycle:dd MMM yyyy} failed: " + ex.Message);
             }
         }
 
@@ -89,6 +97,7 @@ public sealed class AirportDatabase
         var merged = Merge(world, nasr);
         Index(merged);
         UpdatedUtc = DateTime.UtcNow;
+        IsStale = false;
         Sources = string.Join(", ", notes.Where(n => !n.Contains("failed")));
         SaveCache(merged);
         return $"Loaded {merged.Count:N0} airports ({string.Join("; ", notes)}).";
@@ -165,9 +174,9 @@ public sealed class AirportDatabase
         string tmp = _cachePath + ".tmp";
         using (var fs = File.Create(tmp))
         using (var gz = new GZipStream(fs, CompressionLevel.Optimal))
-            JsonSerializer.Serialize(gz, new CacheFile(UpdatedUtc, Sources, airports), JsonOptions);
+            JsonSerializer.Serialize(gz, new CacheFile(UpdatedUtc, Sources, airports, SchemaVersion), JsonOptions);
         File.Move(tmp, _cachePath, overwrite: true);
     }
 
-    private sealed record CacheFile(DateTime? UpdatedUtc, string? Sources, List<AirportRecord> Airports);
+    private sealed record CacheFile(DateTime? UpdatedUtc, string? Sources, List<AirportRecord> Airports, int Schema = 1);
 }

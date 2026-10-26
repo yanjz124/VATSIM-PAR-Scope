@@ -243,7 +243,7 @@ public sealed class ParDisplayRenderer : IDisposable
 
         // Decision height: a tick across the glidepath, or (ATNAVICS) a short line at DH altitude with a tick.
         double dhR = geo.DecisionHeightRangeFt;
-        float dx = X(dhR), dy = YEl(geo.Site.DecisionHeightFt, dhR);
+        float dx = X(dhR), dy = YEl(geo.DecisionHeightAboveThresholdFt, dhR);
         if (_t.DhLine)
         {
             double half = 0.35 * Units.FeetPerNm;

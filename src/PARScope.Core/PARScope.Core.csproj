@@ -10,6 +10,8 @@
   <ItemGroup>
     <EmbeddedResource Include="Sim\aircraft.csv" LogicalName="PARScope.Core.Sim.aircraft.csv" />
     <EmbeddedResource Include="Sim\callsigns.csv" LogicalName="PARScope.Core.Sim.callsigns.csv" />
+    <EmbeddedResource Include="Geo\WMM2025.COF" LogicalName="PARScope.Core.Geo.WMM2025.COF" />
+    <EmbeddedResource Include="Par\par-minimums.csv" LogicalName="PARScope.Core.Par.par-minimums.csv" />
   </ItemGroup>
 
 </Project>

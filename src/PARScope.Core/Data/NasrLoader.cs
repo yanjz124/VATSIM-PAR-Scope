@@ -98,7 +98,7 @@ public static class NasrLoader
                         end.Vgpa is > 0 ? end.Vgpa : null,
                         b.MagVarEast,
                         end.Lights.Length > 0 ? end.Lights : null,
-                        dim.Len, dim.Wid, "NASR"));
+                        dim.Len, dim.Wid, "NASR", end.TdzElev));
                 }
             }
             if (runways.Count > 0)

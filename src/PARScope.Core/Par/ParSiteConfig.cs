@@ -9,8 +9,13 @@ public sealed record ParSiteConfig
 {
     public double GlidepathDeg { get; init; } = 3.0;
     public double TchFt { get; init; } = 50.0;
+    /// <summary>Runway point of intercept: published distance from the threshold to where the glidepath meets
+    /// the runway, feet. Allows for runway slope; null = TCH / tan(GPA).</summary>
+    public double? RpiFt { get; init; }
     /// <summary>Decision height above touchdown (HAT), feet.</summary>
     public double DecisionHeightFt { get; init; } = 200.0;
+    /// <summary>Where the glidepath, TCH, RPI and DH came from, e.g. the published radar minimums.</summary>
+    public string? Source { get; init; }
 
     /// <summary>Antenna distance beyond the glidepath intercept point, along the runway, feet.</summary>
     public double AntennaSetbackFt { get; init; } = 2250.0;

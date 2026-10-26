@@ -86,15 +86,17 @@ public sealed class AppSettings
     public static string SiteKey(RunwayEnd r) => $"{r.AirportId}/{r.RunwayId}";
 
     /// <summary>
-    /// Site config for a runway: saved overrides, else a 3.0° glidepath and 50 ft TCH. Airport data only
-    /// carries the PAPI/VASI visual glide slope, which is not the PAR glidepath; set the real values from
-    /// the approach plate.
+    /// Site config for a runway: saved overrides; else the published PAR glidepath, TCH, RPI and DH from the
+    /// FAA radar minimums (US military and joint-use fields); else a 3.0° glidepath and 50 ft TCH. Airport data
+    /// only carries the PAPI/VASI visual glide slope, which is not the PAR glidepath.
     /// </summary>
     public ParSiteConfig SiteFor(RunwayEnd r, PARScope.Core.Radar.RadarPreset? preset = null)
     {
         if (Sites.TryGetValue(SiteKey(r), out var s)) return s;
         var site = new ParSiteConfig { TchFt = 50, GlidepathDeg = 3.0 };
-        return preset?.DefaultAntennaAimDeg is double aim ? site with { AntennaAimDeg = aim } : site;
+        if (preset?.DefaultAntennaAimDeg is double aim) site = site with { AntennaAimDeg = aim };
+        // Published PAR glidepath/TCH/RPI/DH where the FAA radar minimums list this runway.
+        return PARScope.Core.Par.PublishedPar.Find(r.Icao ?? r.AirportId, r.RunwayId) is { } pub ? PARScope.Core.Par.PublishedPar.Apply(site, pub) : site;
     }
 
     public static AppSettings Load()

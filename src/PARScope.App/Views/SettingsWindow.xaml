@@ -20,7 +20,7 @@
             <TabItem Header="Site">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16,12">
                     <StackPanel MaxWidth="620" HorizontalAlignment="Left">
-                            <TextBlock Text="PAR siting for the selected runway. Glidepath, TCH and decision height come from the approach plate." Style="{StaticResource MetricLabel}" TextWrapping="Wrap" Margin="0,0,0,12" />
+                            <TextBlock Text="PAR siting for the selected runway. At US military and joint-use fields the published glidepath, TCH, RPI and DH are filled in from the FAA radar minimums; elsewhere take them from the approach plate." Style="{StaticResource MetricLabel}" TextWrapping="Wrap" Margin="0,0,0,12" />
 
                             <TextBlock Text="{Binding RunwayDetail}" TextWrapping="Wrap" Style="{StaticResource MetricLabel}" Margin="0,0,0,10" />
                             <Grid>
@@ -30,6 +30,7 @@
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
@@ -59,7 +60,13 @@
                                                ToolTip="ICAO Annex 10 siting example: 15°/5° asymmetric scan, i.e. the sector turned 5° toward the runway centreline." />
                                     <ui:NumberBox Value="{Binding SiteAim}" SmallChange="0.5" MaxDecimalPlaces="1" Minimum="0" Maximum="15" />
                                 </StackPanel>
+                                <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,0,0,8">
+                                    <TextBlock Text="RPI ft from threshold (0 = from TCH)" Style="{StaticResource MetricLabel}"
+                                               ToolTip="Runway point of intercept, from the radar minimums (GP/TCH/RPI). Allows for runway slope." />
+                                    <ui:NumberBox Value="{Binding SiteRpi}" SmallChange="10" MaxDecimalPlaces="0" Minimum="0" Maximum="5000" />
+                                </StackPanel>
                             </Grid>
+                            <TextBlock Text="{Binding SiteSource}" Style="{StaticResource MetricLabel}" TextWrapping="Wrap" Margin="0,0,0,10" />
                             <WrapPanel>
                                 <ui:Button Content="Apply" Appearance="Primary" Margin="0,0,6,0" Command="{Binding ApplySiteCommand}" />
                                 <ui:Button Content="Reset to defaults" Command="{Binding ResetSiteCommand}" />
