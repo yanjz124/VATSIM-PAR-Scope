@@ -71,6 +71,12 @@ public sealed record RadarPreset
     /// <summary>Azimuth display centred on the antenna boresight (limits symmetric, course line tilted), as on
     /// ATNAVICS footage; otherwise centred on the final course.</summary>
     public bool AzimuthAntennaCentred { get; init; }
+    /// <summary>
+    /// Whether the ASR picture that goes with this system has an azimuth scale (compass rose) round the edge:
+    /// stand-alone and tactical PPI displays do; fixed bases that show the ASR on a STARS TCW do not. Default
+    /// for the Compass rose setting.
+    /// </summary>
+    public bool AsrCompassRose { get; init; }
     /// <summary>Whether the system runs a track-while-scan tracker (track symbols, data blocks).</summary>
     public bool Tracking { get; init; } = true;
     public int MaxTracks { get; init; } = 6;
@@ -98,6 +104,7 @@ public sealed record RadarPreset
         AzScanSec = 1.0, ElScanSec = 1.0, Pattern = ScanPattern.Mechanical,
         AzBeamwidthDeg = 0.85, ElBeamwidthDeg = 0.55,
         NoiseFactor = 1.3, Style = DisplayStyle.Phosphor, SweepTrace = true, Tracking = false, RangeScalesNm = [10, 20],
+        AsrCompassRose = true,
     };
 
     public static readonly RadarPreset Gpn22 = new()
@@ -145,6 +152,7 @@ public sealed record RadarPreset
         AzScanSec = 1.0, ElScanSec = 1.0, Pattern = ScanPattern.Electronic,
         AzBeamwidthDeg = 1.05, ElBeamwidthDeg = 0.6,
         NoiseFactor = 0.9, Style = DisplayStyle.Digital, Tracking = true, MaxTracks = 6, RangeScalesNm = [5, 10, 20],
+        AsrCompassRose = true,
     };
 
     public static readonly RadarPreset Icao = new()
@@ -155,6 +163,7 @@ public sealed record RadarPreset
         AzLeftDeg = 10, AzRightDeg = 10, ElMinDeg = -1, ElMaxDeg = 6, MaxRangeNm = 10,
         AzScanSec = 1.0, ElScanSec = 1.0, Pattern = ScanPattern.Mechanical,
         NoiseFactor = 1.5, Style = DisplayStyle.Digital, Tracking = true, RangeScalesNm = [5, 10],
+        AsrCompassRose = true,
     };
 
     public static readonly RadarPreset Tpn31 = new()
@@ -171,6 +180,7 @@ public sealed record RadarPreset
         LogRangeDefault = true,
         LogStraightLines = true,
         AzimuthAntennaCentred = true,
+        AsrCompassRose = true,
     };
 
     public static IReadOnlyList<RadarPreset> All { get; } = [Fpn68, Tpn31, Fpn63, Gpn22, Fpn67, Mpn25, Icao];

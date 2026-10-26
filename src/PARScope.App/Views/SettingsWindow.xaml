@@ -79,6 +79,9 @@
                                 <TextBlock Text="Scope font" Style="{StaticResource MetricLabel}" VerticalAlignment="Center" Margin="0,0,10,0" />
                                 <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding ScopeFonts}" SelectedItem="{Binding ScopeFont}" />
                             </DockPanel>
+                            <ui:ToggleSwitch IsChecked="{Binding ShowCompassRose}" Margin="0,0,0,10"
+                                             OnContent="ASR compass rose" OffContent="ASR compass rose"
+                                             ToolTip="Magnetic azimuth scale round the ASR. Defaults per radar model: on for stand-alone/tactical displays (FPN-63 era, MPN-25, ATNAVICS), off for STARS (FPN-68, GPN-22, FPN-67)." />
                             <ui:ToggleSwitch IsChecked="{Binding UseUkBands}" Margin="0,0,0,10"
                                              OnContent="Deviation terms: UK RA 3291 (feet)" OffContent="Deviation terms: US Navy (target quarters)"
                                              ToolTip="US Navy: slightly/well read from quarters of the radar target (NAVEDTRA 14342A Table 10-1). UK: fixed 60/100 ft and 2°/5° lines." />

@@ -42,7 +42,8 @@ public sealed class PlanRenderer : IDisposable
     }
 
     public void Render(SKCanvas c, float w, float h, ParGeometry? geo, AsrSimulator? asr, AirportRecord? airport,
-        RadarPreset preset, IReadOnlyList<TargetTrack> targets, double now, double rangeNm, string? selected, string? weather = null)
+        RadarPreset preset, IReadOnlyList<TargetTrack> targets, double now, double rangeNm, string? selected, string? weather = null,
+        bool compassRose = false)
     {
         c.Clear(SKColors.Black);
         _hits.Clear();
@@ -73,16 +74,34 @@ public sealed class PlanRenderer : IDisposable
                 c.DrawLine(P(start.X, start.Y), P(start.X + Math.Sin(hd) * len, start.Y + Math.Cos(hd) * len), _ink.Line(Map, 2f));
             }
         }
+        // PAR coverage: the azimuth sector from the antenna out to the radar's range.
+        SKPoint Map2(ApproachPoint a) { var e = frame.EcefToEnu(geo.ToEcef(a)); return P(e.X, e.Y); }
+        double coverFt = preset.MaxRangeNm * Units.FeetPerNm;
+        var ant = Map2(geo.AntennaPoint);
+        using (var cone = new SKPathBuilder())
+        {
+            cone.MoveTo(ant);
+            for (double az = -preset.AzLeftDeg; az <= preset.AzRightDeg + 0.01; az += 1)
+                cone.LineTo(Map2(geo.FromPolar(new RadarPolar(coverFt, az, 0))));
+            cone.Close();
+            using var path = cone.Detach();
+            c.DrawPath(path, _ink.Line(MapDim, 1f));
+        }
+
+        // Extended runway centreline (final approach course) with a tick each mile, longer every five.
+        int courseNm = (int)Math.Ceiling(preset.MaxRangeNm);
         var tdEnu = frame.EcefToEnu(geo.ToEcef(new ApproachPoint(0, 0, 0)));
-        var farEnu = frame.EcefToEnu(geo.ToEcef(new ApproachPoint(15 * Units.FeetPerNm, 0, 0)));
-        c.DrawLine(P(tdEnu.X, tdEnu.Y), P(farEnu.X, farEnu.Y), _ink.Line(MapDim, 1f));
-        for (int nm = 1; nm <= 15; nm++)
+        var farEnu = frame.EcefToEnu(geo.ToEcef(new ApproachPoint(courseNm * Units.FeetPerNm, 0, 0)));
+        c.DrawLine(P(tdEnu.X, tdEnu.Y), P(farEnu.X, farEnu.Y), _ink.Line(Map, 1f));
+        for (int nm = 1; nm <= courseNm; nm++)
         {
             var e = frame.EcefToEnu(geo.ToEcef(new ApproachPoint(nm * Units.FeetPerNm, 0, 0)));
             double half = (nm % 5 == 0 ? 450 : 225) * Units.MetersPerFoot;
             double px = Math.Cos(outbound) * half, py = -Math.Sin(outbound) * half;
-            c.DrawLine(P(e.X - px, e.Y - py), P(e.X + px, e.Y + py), _ink.Line(MapDim, 1f));
+            c.DrawLine(P(e.X - px, e.Y - py), P(e.X + px, e.Y + py), _ink.Line(Map, 1f));
         }
+
+        if (compassRose) DrawCompassRose(c, rangeNm, geo.Runway.TrueHeadingDeg - geo.Runway.MagneticCourseDeg);
 
 
         // Targets: history trail, beacon slash, data block.
@@ -131,6 +150,24 @@ public sealed class PlanRenderer : IDisposable
         string station = airport?.MetarId ?? "";
         c.DrawText($"{station} {weather ?? ""}".Trim(), 8, 31, SKTextAlign.Left, _ink.Font, _ink.TextPaint(Ssa));
         c.DrawText($"{rangeNm:0}", 8, h - 8, SKTextAlign.Left, _ink.Font, _ink.TextPaint(Ssa.Fade(0.7)));
+    }
+
+    /// <summary>Magnetic azimuth scale round the radar at the selected range: ticks every 5°, longer every 10°,
+    /// labelled every 30°.</summary>
+    private void DrawCompassRose(SKCanvas c, double rangeNm, double variationDeg)
+    {
+        float r = (float)(rangeNm * Units.MetersPerNm * _pxPerM);
+        var line = _ink.Line(Map, 1f);
+        c.DrawCircle(_cx, _cy, r, line);
+        for (int mag = 0; mag < 360; mag += 5)
+        {
+            double a = Units.DegToRad(mag + variationDeg);
+            float sx = (float)Math.Sin(a), sy = (float)-Math.Cos(a);
+            float len = mag % 10 == 0 ? 10 : 5;
+            c.DrawLine(_cx + sx * r, _cy + sy * r, _cx + sx * (r - len), _cy + sy * (r - len), line);
+            if (mag % 30 == 0)
+                c.DrawText($"{mag:000}", _cx + sx * (r - 22), _cy + sy * (r - 22) + 4, SKTextAlign.Center, _ink.FontSmall, _ink.TextPaint(Map));
+        }
     }
 
     private SKPoint P(double eastM, double northM) => new((float)(_cx + eastM * _pxPerM), (float)(_cy - northM * _pxPerM));

@@ -42,14 +42,21 @@ public sealed class AppSettings
     public bool ShowSafetyLimits { get; set; } = true;
     public bool ShowCourseWedge { get; set; }
     public bool ShowScan { get; set; } = true;
+    /// <summary>ASR compass rose; null = the radar model's default.</summary>
+    public bool? ShowCompassRose { get; set; }
     public bool ShowAdvisories { get; set; } = true;
     /// <summary>Suggested calls are a training aid; off for real VATSIM traffic unless asked for.</summary>
     public bool ShowAdvisoriesOnNetwork { get; set; }
     /// <summary>Side panel (selected target, training radio and traffic).</summary>
     public bool ShowPlanView { get; set; } = true;
-    /// <summary>ASR scope pane beside the PAR.</summary>
-    public bool ShowAsr { get; set; } = true;
-    public double AsrWidth { get; set; } = 520;
+    /// <summary>The main scope area shows the ASR instead of the PAR (flip).</summary>
+    public bool AsrFlipped { get; set; }
+    /// <summary>ASR in its own window, with its placement.</summary>
+    public bool AsrPoppedOut { get; set; }
+    public double? AsrWindowLeft { get; set; }
+    public double? AsrWindowTop { get; set; }
+    public double AsrWindowWidth { get; set; } = 720;
+    public double AsrWindowHeight { get; set; } = 760;
     public double PlanRangeNm { get; set; } = 20;
     public double SidePanelWidth { get; set; } = 360;
     public TrainingDifficulty TrainingDifficulty { get; set; } = TrainingDifficulty.Normal;

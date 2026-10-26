@@ -97,7 +97,13 @@
                                   ToolTip="Pause / resume training traffic (P). Network traffic keeps moving.">
                         <ui:SymbolIcon Symbol="Pause24" />
                     </ToggleButton>
-                    <ToggleButton Style="{StaticResource ToolbarToggle}" Content="ASR" IsChecked="{Binding ShowAsr}" ToolTip="Show the ASR (surveillance) scope" />
+                    <ToggleButton Style="{StaticResource ToolbarToggle}" Content="ASR" IsChecked="{Binding ShowAsr}"
+                                  IsEnabled="{Binding AsrPoppedOut, Converter={StaticResource InverseBool}}"
+                                  ToolTip="Flip the scope between PAR and ASR (F)" />
+                    <ToggleButton Style="{StaticResource ToolbarToggle}" IsChecked="{Binding AsrPoppedOut}" Margin="0,0,8,0"
+                                  ToolTip="ASR in its own window (drag it to another screen)">
+                        <ui:SymbolIcon Symbol="WindowNew24" />
+                    </ToggleButton>
                     <ToggleButton Style="{StaticResource ToolbarToggle}" IsChecked="{Binding ShowPlanView}" ToolTip="Show side panel">
                         <ui:SymbolIcon Symbol="PanelRight24" />
                     </ToggleButton>
@@ -113,38 +119,32 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" MinWidth="480" />
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition x:Name="AsrColumn" Width="520" MinWidth="0" MaxWidth="1400" />
-                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition x:Name="SideColumn" Width="360" MinWidth="0" MaxWidth="700" />
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" CornerRadius="8" Background="{StaticResource ScopeBackgroundBrush}" ClipToBounds="True"
                     BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1">
-                <skia:SKElement x:Name="ParView" PaintSurface="ParView_PaintSurface" MouseLeftButtonDown="ParView_MouseDown" Cursor="Cross" />
+                <!-- One scope area: PAR, or the ASR flipped in (F); the ASR can also pop out to its own window. -->
+                <Grid>
+                    <skia:SKElement x:Name="ParView" PaintSurface="ParView_PaintSurface" MouseLeftButtonDown="ParView_MouseDown" Cursor="Cross" />
+                    <Grid x:Name="AsrHost" Visibility="Collapsed">
+                        <skia:SKElement x:Name="PlanView" PaintSurface="PlanView_PaintSurface" MouseLeftButtonDown="PlanView_MouseDown" Cursor="Cross" />
+                        <ComboBox IsSynchronizedWithCurrentItem="False" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" Width="90"
+                                  ItemsSource="{Binding PlanRanges}" SelectedItem="{Binding PlanRangeNm}" ToolTip="ASR range">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Converter={StaticResource RangeLabel}}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </Grid>
+                </Grid>
             </Border>
 
-            <GridSplitter x:Name="AsrSplitter" Grid.Column="1" Width="8" HorizontalAlignment="Stretch" Background="Transparent"
-                          Cursor="SizeWE" ResizeBehavior="PreviousAndNext" DragCompleted="AsrSplitter_DragCompleted" />
-
-            <Grid Grid.Column="2" Visibility="{Binding ShowAsr, Converter={StaticResource BoolToVisibility}}">
-                <Border CornerRadius="8" ClipToBounds="True" Background="{StaticResource ScopeBackgroundBrush}"
-                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1">
-                    <skia:SKElement x:Name="PlanView" PaintSurface="PlanView_PaintSurface" MouseLeftButtonDown="PlanView_MouseDown" Cursor="Cross" />
-                </Border>
-                <ComboBox IsSynchronizedWithCurrentItem="False" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" Width="90"
-                          ItemsSource="{Binding PlanRanges}" SelectedItem="{Binding PlanRangeNm}" ToolTip="ASR range">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Converter={StaticResource RangeLabel}}" />
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-            </Grid>
-
-            <GridSplitter x:Name="SideSplitter" Grid.Column="3" Width="8" HorizontalAlignment="Stretch" Background="Transparent"
+            <GridSplitter x:Name="SideSplitter" Grid.Column="1" Width="8" HorizontalAlignment="Stretch" Background="Transparent"
                           Cursor="SizeWE" ResizeBehavior="PreviousAndNext" DragCompleted="SideSplitter_DragCompleted" />
 
-            <ScrollViewer Grid.Column="4" Margin="2,0,0,0" VerticalScrollBarVisibility="Auto"
+            <ScrollViewer Grid.Column="2" Margin="2,0,0,0" VerticalScrollBarVisibility="Auto"
                           Visibility="{Binding ShowPlanView, Converter={StaticResource BoolToVisibility}}">
                 <StackPanel>
 
@@ -238,11 +238,11 @@
 
                             <TextBlock Text="APPROACH" Style="{StaticResource SectionLabel}" Margin="0,8,0,4" />
                             <ui:Button Content="Coordinate missed approach" Command="{Binding CoordinateMissedCommand}" HorizontalAlignment="Stretch"
-                                       ToolTip="After a missed approach: tell approach the heading and altitude, then switch the pilot ('contact approach')." />
+                                       ToolTip="After a missed approach: hand the aircraft back to approach (heading, altitude), then switch the pilot ('contact approach'). Accept approach's handoffs by saying '(callsign) radar contact'." />
 
                             <ui:ToggleSwitch IsChecked="{Binding PilotVoices}" OnContent="Pilot and tower voices" OffContent="Pilot and tower voices" Margin="0,10,0,0" />
                             <TextBlock Margin="0,8,0,0" Style="{StaticResource MetricLabel}" TextWrapping="Wrap"
-                                       Text="Space talk (start with 'Tower…' or 'Approach…' to coordinate) · ←/→ heading ±1° (Shift ±5°) · D begin descent · Q/W/E slightly/–/well above · A on glidepath · Z/X/C slightly/–/well below · G wheels · M missed approach · T tower · P pause · Tab next target" />
+                                       Text="Space talk (start with 'Tower…' or 'Approach…' to coordinate) · ←/→ heading ±1° (Shift ±5°) · D begin descent · Q/W/E slightly/–/well above · A on glidepath · Z/X/C slightly/–/well below · G wheels · M missed approach · T tower · P pause · F flip PAR/ASR · Tab next target" />
                         </StackPanel>
                     </ui:CardExpander>
 

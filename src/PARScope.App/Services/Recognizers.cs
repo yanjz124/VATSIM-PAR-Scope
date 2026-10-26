@@ -52,7 +52,7 @@ public sealed class WhisperRecognizer(GgmlType model) : IPhraseRecognizer
         "Do not acknowledge further transmissions. Too low for safe approach, execute missed approach. " +
         "Wind three one zero at seven, runway two four right, cleared to land. Navy, Marine, Army, Reach, niner. " +
         "In the event of missed approach, climb and maintain two thousand, turn left heading one eight zero. Contact approach. " +
-        "Tower, final, Navy one two three four, four mile final, full stop. Approach, final, Banshee two one, missed approach, runway heading, climbing to two thousand.";
+        "Tower, final, Navy one two three four, four mile final, full stop. Approach, final, handoff, missed approach, Banshee two one, climbing to two thousand, runway heading. Navy one two three four, radar contact.";
 
     private WhisperFactory? _factory;
     private WhisperProcessor? _processor;
@@ -202,7 +202,7 @@ public sealed class WindowsGrammarRecognizer : IPhraseRecognizer
               Opt(G(Opt(G("turn", new Choices("left", "right"))), "heading", digit, digit, digit))),
             G("climb and maintain", digit, "thousand", Opt(G(digit, "hundred"))),
             G(new Choices("contact", "switch to"), new Choices("approach", "departure")),
-            G("radar contact"),
+            G(Opt(G(new Choices(CallsignWords()), Opt(digit), Opt(digit), Opt(digit), Opt(digit), Opt(digit))), "radar contact"),
             // Interphone: "tower, final, navy one two three four, four mile final, full stop".
             G(new Choices("tower", "local", "approach", "departure"), Opt("final"),
               Opt(G(new Choices(CallsignWords()), Opt(digit), Opt(digit), Opt(digit), Opt(digit), Opt(digit))),

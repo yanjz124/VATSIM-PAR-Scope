@@ -33,6 +33,7 @@ public partial class MainWindow : FluentWindow
         _statusTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(250), DispatcherPriority.Background, (_, _) => _vm.RefreshStatus(), Dispatcher);
         Loaded += async (_, _) =>
         {
+            UpdateScopes();
             CompositionTarget.Rendering += OnRendering;
             _statusTimer.Start();
             _vm.StartVoice();
@@ -54,8 +55,9 @@ public partial class MainWindow : FluentWindow
 
         _vm.Engine.Tick();
         _vm.UpdateAdvisory();
-        ParView.InvalidateVisual();
         if (_vm.ShowAsr) PlanView.InvalidateVisual();
+        else ParView.InvalidateVisual();
+        _asrWindow?.Invalidate();
     }
 
     private void ParView_PaintSurface(object? sender, SKPaintSurfaceEventArgs e)
@@ -84,16 +86,19 @@ public partial class MainWindow : FluentWindow
         c.Restore();
     }
 
-    private void PlanView_PaintSurface(object? sender, SKPaintSurfaceEventArgs e)
+    private void PlanView_PaintSurface(object? sender, SKPaintSurfaceEventArgs e) => PaintPlan(_plan, PlanView, e);
+
+    /// <summary>Draws the ASR; shared by the embedded view and the pop-out window.</summary>
+    internal void PaintPlan(PlanRenderer plan, FrameworkElement view, SKPaintSurfaceEventArgs e)
     {
-        float scale = DpiScale(PlanView, e);
-        _plan.SetFont(_vm.ScopeFont);
+        float scale = DpiScale(view, e);
+        plan.SetFont(_vm.ScopeFont);
         var c = e.Surface.Canvas;
         c.Save();
         c.Scale(scale);
         var engine = _vm.Engine;
-        _plan.Render(c, e.Info.Width / scale, e.Info.Height / scale, engine.Geometry, engine.Asr, engine.Airport,
-            engine.Preset, engine.Targets, engine.Now, _vm.PlanRangeNm, _vm.SelectedCallsign, _vm.MetarStars);
+        plan.Render(c, e.Info.Width / scale, e.Info.Height / scale, engine.Geometry, engine.Asr, engine.Airport,
+            engine.Preset, engine.Targets, engine.Now, _vm.PlanRangeNm, _vm.SelectedCallsign, _vm.MetarStars, _vm.ShowCompassRose);
         c.Restore();
     }
 
@@ -105,9 +110,16 @@ public partial class MainWindow : FluentWindow
     private void ParView_MouseDown(object sender, MouseButtonEventArgs e) => Pick(_par.Hits, e.GetPosition(ParView));
     private void PlanView_MouseDown(object sender, MouseButtonEventArgs e) => Pick(_plan.Hits, e.GetPosition(PlanView));
 
+    internal void PickFrom(IReadOnlyList<HitTarget> hits, Point p) => SelectNearest(hits, p);
+
     private void Pick(IReadOnlyList<HitTarget> hits, Point p)
     {
         Keyboard.Focus(this);
+        SelectNearest(hits, p);
+    }
+
+    private void SelectNearest(IReadOnlyList<HitTarget> hits, Point p)
+    {
         var best = hits
             .Select(h => (h.Callsign, D: Math.Pow(h.X - p.X, 2) + Math.Pow(h.Y - p.Y, 2)))
             .Where(h => h.D < 22 * 22)
@@ -122,6 +134,18 @@ public partial class MainWindow : FluentWindow
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
         base.OnPreviewKeyDown(e);
+        HandleScopeKey(e);
+    }
+
+    protected override void OnPreviewKeyUp(KeyEventArgs e)
+    {
+        base.OnPreviewKeyUp(e);
+        HandleScopeKeyUp(e);
+    }
+
+    /// <summary>Scope and radio keys; also used by the pop-out ASR window.</summary>
+    internal void HandleScopeKey(KeyEventArgs e)
+    {
         if (Keyboard.FocusedElement is System.Windows.Controls.TextBox) return;
         bool shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
         switch (e.Key)
@@ -146,6 +170,7 @@ public partial class MainWindow : FluentWindow
             case Key.M: _vm.KeyCall("execute missed approach"); break;
             case Key.T: _vm.RequestTowerCommand.Execute(null); break;
             case Key.P: _vm.TogglePause(); break;
+            case Key.F: _vm.FlipScope(); break;
             case Key.Left: _vm.NudgeHeading(shift ? -5 : -1); break;
             case Key.Right: _vm.NudgeHeading(shift ? 5 : 1); break;
             default: return;
@@ -153,9 +178,8 @@ public partial class MainWindow : FluentWindow
         e.Handled = true;
     }
 
-    protected override void OnPreviewKeyUp(KeyEventArgs e)
+    internal void HandleScopeKeyUp(KeyEventArgs e)
     {
-        base.OnPreviewKeyUp(e);
         if (e.Key == Key.Space && Keyboard.FocusedElement is not System.Windows.Controls.TextBox)
         {
             _vm.ReleaseToTalk();
@@ -224,28 +248,39 @@ public partial class MainWindow : FluentWindow
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(MainViewModel.ShowPlanView) or nameof(MainViewModel.ShowAsr)) UpdateSidePanel();
+        if (e.PropertyName == nameof(MainViewModel.ShowPlanView)) UpdateSidePanel();
+        if (e.PropertyName is nameof(MainViewModel.ShowAsr) or nameof(MainViewModel.AsrPoppedOut)) UpdateScopes();
     }
 
-    /// <summary>PAR | ASR | side panel; the ASR and side panel each hide and keep their dragged widths.</summary>
     private void UpdateSidePanel()
     {
-        AsrColumn.Width = _vm.ShowAsr ? new GridLength(Math.Clamp(_settings.AsrWidth, 240, 1400)) : new GridLength(0);
-        AsrSplitter.Visibility = _vm.ShowAsr ? Visibility.Visible : Visibility.Collapsed;
         SideColumn.Width = _vm.ShowPlanView ? new GridLength(Math.Clamp(_settings.SidePanelWidth, 300, 700)) : new GridLength(0);
         SideSplitter.Visibility = _vm.ShowPlanView ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private void AsrSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
-    {
-        _settings.AsrWidth = AsrColumn.ActualWidth;
-        if (_vm.ShowPlanView) _settings.SidePanelWidth = SideColumn.ActualWidth;
-    }
-
-    private void SideSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
-    {
+    private void SideSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e) =>
         _settings.SidePanelWidth = SideColumn.ActualWidth;
-        if (_vm.ShowAsr) _settings.AsrWidth = AsrColumn.ActualWidth;
+
+    private AsrWindow? _asrWindow;
+
+    /// <summary>The main scope area shows the PAR or, flipped, the ASR; the ASR may also be in its own window.</summary>
+    private void UpdateScopes()
+    {
+        ParView.Visibility = _vm.ShowAsr ? Visibility.Collapsed : Visibility.Visible;
+        AsrHost.Visibility = _vm.ShowAsr ? Visibility.Visible : Visibility.Collapsed;
+
+        if (_vm.AsrPoppedOut && _asrWindow == null && IsLoaded)
+        {
+            _asrWindow = new AsrWindow(_vm, _settings, this) { Owner = this };
+            _asrWindow.Closed += (_, _) => { _asrWindow = null; _vm.AsrPoppedOut = false; };
+            _asrWindow.Show();
+        }
+        else if (!_vm.AsrPoppedOut && _asrWindow != null)
+        {
+            var w = _asrWindow;
+            _asrWindow = null;
+            w.Close();
+        }
     }
 
     private void RestorePlacement()
@@ -269,6 +304,7 @@ public partial class MainWindow : FluentWindow
         _settings.WindowLeft = r.Left; _settings.WindowTop = r.Top;
         _settings.WindowWidth = r.Width; _settings.WindowHeight = r.Height;
         _settings.WindowMaximized = WindowState == WindowState.Maximized;
+        if (_asrWindow != null) { _asrWindow.SavePlacement(); _settings.AsrPoppedOut = true; }
         _vm.SaveSettings();
         base.OnClosing(e);
     }

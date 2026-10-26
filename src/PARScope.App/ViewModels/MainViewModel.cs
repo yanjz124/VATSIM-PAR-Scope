@@ -50,10 +50,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         Difficulty = settings.TrainingDifficulty;
         Engine.Training.Difficulty = Difficulty;
         ShowScan = settings.ShowScan;
+        ShowCompassRose = settings.ShowCompassRose ?? SelectedPreset.AsrCompassRose;
         ShowAdvisories = settings.ShowAdvisories;
         ShowAdvisoriesOnNetwork = settings.ShowAdvisoriesOnNetwork;
         ShowPlanView = settings.ShowPlanView;
-        ShowAsr = settings.ShowAsr;
+        ShowAsr = settings.AsrFlipped;
+        AsrPoppedOut = settings.AsrPoppedOut;
         PlanRangeNm = settings.PlanRangeNm;
         HistoryDots = settings.HistoryDots;
         UseVatsimMetar = settings.MetarSource == MetarSource.Vatsim;
@@ -152,6 +154,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             ShowScan = value.SweepTrace;
             LogRange = value.LogRangeDefault;
+            ShowCompassRose = value.AsrCompassRose;
         }
         _settings.PresetId = value.Id;
         Reconfigure();
@@ -333,7 +336,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] public partial bool HasTraining { get; set; }
     [ObservableProperty] public partial bool SuggestionsVisible { get; set; }
     [ObservableProperty] public partial bool ShowPlanView { get; set; }
+    /// <summary>Main scope area flipped to the ASR.</summary>
     [ObservableProperty] public partial bool ShowAsr { get; set; }
+    [ObservableProperty] public partial bool AsrPoppedOut { get; set; }
     [ObservableProperty] public partial double PlanRangeNm { get; set; }
     [ObservableProperty] public partial int HistoryDots { get; set; }
     [ObservableProperty] public partial bool UseVatsimMetar { get; set; }
@@ -354,10 +359,25 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     partial void OnUseUkBandsChanged(bool value) =>
         _settings.Bands = _settings.Bands with { Standard = value ? DeviationStandard.UkRa3291 : DeviationStandard.UsNavyTargetQuarters };
     partial void OnShowScanChanged(bool value) => _settings.ShowScan = value;
+    /// <summary>ASR azimuth scale; defaults per radar model, overridable.</summary>
+    [ObservableProperty] public partial bool ShowCompassRose { get; set; }
+    partial void OnShowCompassRoseChanged(bool value) => _settings.ShowCompassRose = value;
     partial void OnShowAdvisoriesChanged(bool value) => _settings.ShowAdvisories = value;
     partial void OnShowAdvisoriesOnNetworkChanged(bool value) => _settings.ShowAdvisoriesOnNetwork = value;
     partial void OnShowPlanViewChanged(bool value) => _settings.ShowPlanView = value;
-    partial void OnShowAsrChanged(bool value) => _settings.ShowAsr = value;
+    partial void OnShowAsrChanged(bool value) => _settings.AsrFlipped = value;
+    partial void OnAsrPoppedOutChanged(bool value)
+    {
+        _settings.AsrPoppedOut = value;
+        if (value) ShowAsr = false;
+    }
+
+    /// <summary>F key: flip the main scope between PAR and ASR (pop the ASR back in first if it is out).</summary>
+    public void FlipScope()
+    {
+        if (AsrPoppedOut) AsrPoppedOut = false;
+        ShowAsr = !ShowAsr;
+    }
     partial void OnPlanRangeNmChanged(double value) => _settings.PlanRangeNm = value;
     partial void OnHistoryDotsChanged(int value) => _settings.HistoryDots = value;
     partial void OnUseVatsimMetarChanged(bool value)
@@ -510,13 +530,44 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         StatusMessage = $"{ac.Callsign} ({ac.TypeCode}{(perf != null ? $", cat {perf.ApproachCategory}" : ", type not in FAA database")}, {ac.SpeedKt:0} kt) handed off {ac.RangeFt / Units.FeetPerNm:0.0} NM out";
         Select(ac.Callsign);
 
-        // Approach hands the aircraft off on the interphone, then the pilot switches to the final frequency
-        // and checks in (NAVAIR 00-80T-112 ¶25.3.1.1).
-        string handoff = ApproachSim.HandoffToFinal(ac.Callsign, ac.RangeFt / Units.FeetPerNm,
-            Units.Norm360(rw.MagneticCourseDeg + ac.CommandedHeadingRelDeg), ac.HeightFt + rw.ThresholdElevFt);
+        // Approach offers the handoff on the interphone (7110.65 §5-4-5). Once final says "radar contact",
+        // approach switches the pilot, who checks in (NAVAIR 00-80T-112 ¶25.3.1.1).
+        string handoff = _approach.OfferHandoff(ac.Callsign, ac.RangeFt / Units.FeetPerNm,
+            Units.Norm360(rw.MagneticCourseDeg + ac.CommandedHeadingRelDeg), ac.HeightFt + rw.ThresholdElevFt, Engine.Training.SimTime);
         _ = SayLaterAsync(0.5, () => { Log("APPROACH", handoff); _voice.Approach(handoff); });
-        string call = ac.CheckInCall(FacilityName, rw.MagneticCourseDeg, rw.ThresholdElevFt);
-        _ = SayLaterAsync(9, () => { if (Engine.Training.Find(ac.Callsign) != null) PilotSays(ac.Callsign, call); });
+    }
+
+    /// <summary>"(Callsign) radar contact [initials]" accepts approach's handoff; the pilot then checks in.</summary>
+    private bool TryAcceptHandoff(string text, string via)
+    {
+        if (_approach.Pending.Count == 0 || !Phraseology.Normalise(text).Contains(" radar contact")) return false;
+        var offered = Engine.Training.Aircraft.Where(a => _approach.IsPending(a.Callsign)).ToList();
+        var ac = Interphone.FindAircraft(text, offered) ?? (offered.Count == 1 ? offered[0] : null);
+        Log("FINAL", $"(approach line) {text.Trim()}");
+        if (ac == null)
+        {
+            _session.Write($"          ({via}) radar contact, but which aircraft? Offered: {string.Join(", ", offered.Select(a => a.Callsign))}");
+            Reply("APPROACH", "Say again callsign.", _voice.Approach);
+            return true;
+        }
+        _session.Write($"          ({via}) accepted handoff of {ac.Callsign}");
+        Reply("APPROACH", _approach.Accept(ac.Callsign) ?? "Roger.", _voice.Approach);
+        _ = SayLaterAsync(7, () =>
+        {
+            if (Engine.Training.Find(ac.Callsign) is not { } a || Engine.Runway is not { } rw) return;
+            PilotSays(a.Callsign, a.CheckInCall(FacilityName, rw.MagneticCourseDeg, rw.ThresholdElevFt));
+        });
+        return true;
+    }
+
+    /// <summary>Approach repeats a handoff final has not answered.</summary>
+    private void RepeatUnansweredHandoffs()
+    {
+        if (Engine.Training.Paused || _approach.DueRepeat(Engine.Training.SimTime) is not { } p) return;
+        if (Engine.Training.Find(p.Callsign) == null) { _approach.Forget(p.Callsign); return; }
+        _session.Write($"NOTE     handoff of {p.Callsign} not accepted; approach calls again (call {p.Calls})");
+        Log("APPROACH", p.Text);
+        _voice.Approach(p.Text);
     }
 
     [RelayCommand]
@@ -725,6 +776,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// </summary>
     public void ProcessTransmission(string text, string via)
     {
+        if (TryAcceptHandoff(text, via)) return;
         if (Interphone.Parse(text) is { } call) { ProcessInterphone(call, via); return; }
 
         var t = Phraseology.Parse(text);
@@ -772,7 +824,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             if (!ac.GoingAround) Reply(who, $"{RadioSpeech.Callsign(ac.Callsign)}, say again when they're missed.", _voice.Approach);
             else ApproachCoordination(ac, spoken: true);
         }
-        else Reply(who, $"Roger, {string.Join(' ', _approach.Initials.ToCharArray())}.", _voice.Approach);
+        else Reply(who, $"Roger, {_approach.SpokenInitials}.", _voice.Approach);
     }
 
     private void Reply(string who, string text, Action<string> voice) =>
@@ -913,7 +965,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
 
         RefreshSelection();
-        if (HasTraining) SnapshotTraining();
+        if (HasTraining) { SnapshotTraining(); RepeatUnansweredHandoffs(); }
         _ = RefreshMetarIfDueAsync(now);
     }
 

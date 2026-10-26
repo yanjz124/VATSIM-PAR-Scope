@@ -114,7 +114,15 @@ public class RadioTests
             Assert.InRange(ac.RangeFt / PARScope.Core.Geo.Units.FeetPerNm, 12, 15);
             Assert.InRange(ac.HeightFt, 1900, 3000);
         }
-        Assert.Contains("one four miles", ApproachSim.HandoffToFinal("VV1234", 14.2, 243, 2500));
+        Assert.Equal("Final, approach, handoff, one four mile final, Navy one two three four, two thousand five hundred, heading two four three.",
+            ApproachSim.HandoffToFinal("VV1234", 14.2, 243, 2500));
+        var app = new ApproachSim();
+        app.OfferHandoff("VV1234", 14, 243, 2500, now: 0);
+        Assert.Null(app.DueRepeat(10));
+        Assert.Equal(2, app.DueRepeat(21)!.Calls);
+        Assert.NotNull(app.Accept("VV1234"));
+        Assert.Null(app.DueRepeat(60));
+        Assert.StartsWith("Navy one two three four, radar contact", app.Coordinate("VV1234"));
     }
 
     [Theory]
