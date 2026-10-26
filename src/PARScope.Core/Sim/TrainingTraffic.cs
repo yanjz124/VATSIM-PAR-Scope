@@ -95,13 +95,26 @@ public sealed class TrainingTraffic
         new("CONVOY", 4, ["B737", "C30J"]),
     ];
 
-    /// <summary>Half the random arrivals use a squadron tactical callword, half a service/mission callsign.</summary>
+    /// <summary>Name of the field being worked; squadrons based there fly most of its traffic.</summary>
+    public string? HomeAirportName
+    {
+        get => _homeAirportName;
+        set { _homeAirportName = value; _homeUnits = MilitaryCallsigns.BasedAt(value); }
+    }
+    private string? _homeAirportName;
+    private IReadOnlyList<TacticalCallsign> _homeUnits = [];
+
+    /// <summary>
+    /// Half the random arrivals use a squadron tactical callword, half a service/mission callsign. Where
+    /// squadrons are based at the field, most tactical arrivals are theirs (the rest are visitors).
+    /// </summary>
     private CallsignStyle PickStyle()
     {
         var tactical = MilitaryCallsigns.All;
         if (tactical.Count > 0 && _rng.NextDouble() < 0.5)
         {
-            var t = tactical[_rng.Next(tactical.Count)];
+            var pool = _homeUnits.Count > 0 && _rng.NextDouble() < 0.75 ? _homeUnits : tactical;
+            var t = pool[_rng.Next(pool.Count)];
             return new CallsignStyle(t.Callword, 2, [t.TypeCode], t.FlightNumbers);
         }
         return Styles[_rng.Next(Styles.Length)];
@@ -121,30 +134,21 @@ public sealed class TrainingTraffic
     public bool Paused { get; set; }
     public TrainingDifficulty Difficulty { get; set; } = TrainingDifficulty.Normal;
 
-    /// <summary>Aircraft that go missed (or fly a touch and go / low approach) rejoin approach's radar pattern and
-    /// are handed off again for another approach, as in GCA pattern work.</summary>
+    /// <summary>Aircraft that go missed (or fly a touch and go / low approach) are vectored round approach's radar
+    /// pattern and handed off again for another approach, as in GCA pattern work. They stay on radar throughout.</summary>
     public bool ReturnForAnotherApproach { get; set; } = true;
-    /// <summary>Simulated time in approach's pattern before the next handoff, seconds (compressed from a real pattern).</summary>
-    public double PatternSec { get; set; } = 120;
-    private readonly List<(string Callsign, string TypeCode, PilotMode Mode, double Skill, double Due)> _returning = [];
 
-    /// <summary>Aircraft back from the pattern and due to be handed off again; they are spawned 12–15 NM out.</summary>
-    public IReadOnlyList<SimAircraft> SpawnDueReturns()
+    /// <summary>Aircraft that have flown approach's pattern back to final, reset for another approach; approach
+    /// then offers them to the final controller.</summary>
+    public IReadOnlyList<SimAircraft> TakeReturningAircraft()
     {
-        var due = _returning.Where(r => r.Due <= SimTime && Find(r.Callsign) == null).ToList();
-        var spawned = new List<SimAircraft>();
-        foreach (var r in due)
-        {
-            _returning.Remove(r);
-            var ac = SpawnRandom(r.Mode, r.Callsign, r.TypeCode, r.Skill);
-            ac.AnotherApproach = true;
-            spawned.Add(ac);
-        }
-        return spawned;
+        var back = _aircraft.Where(a => a.PatternDone).ToList();
+        foreach (var a in back) a.ResetForApproach();
+        return back;
     }
 
-    /// <summary>Callsigns in approach's pattern and the simulated seconds until each comes back.</summary>
-    public IEnumerable<(string Callsign, double InSec)> InPattern => _returning.Select(r => (r.Callsign, Math.Max(0, r.Due - SimTime)));
+    /// <summary>Aircraft in approach's pattern and the leg they are on.</summary>
+    public IEnumerable<(string Callsign, string Leg)> InPattern => _aircraft.Where(a => a.InPattern).Select(a => (a.Callsign, a.PatternLegName));
     /// <summary>Ceiling (ft AGL) and visibility (SM) at the field, e.g. from the live METAR; null = good weather.
     /// Pilots compare them with the decision height to decide whether they can see the runway.</summary>
     public (double? CeilingFt, double? VisibilitySm) FieldWeather { get; set; }
@@ -227,17 +231,9 @@ public sealed class TrainingTraffic
         });
     }
 
-    public void Remove(string callsign)
-    {
-        _aircraft.RemoveAll(a => a.Callsign == callsign);
-        _returning.RemoveAll(r => r.Callsign == callsign);
-    }
+    public void Remove(string callsign) => _aircraft.RemoveAll(a => a.Callsign == callsign);
 
-    public void Clear()
-    {
-        _aircraft.Clear();
-        _returning.Clear();
-    }
+    public void Clear() => _aircraft.Clear();
 
     public SimAircraft? Find(string callsign) => _aircraft.FirstOrDefault(a => a.Callsign.Equals(callsign, StringComparison.OrdinalIgnoreCase));
 
@@ -251,15 +247,17 @@ public sealed class TrainingTraffic
         if (!Paused && dt > 0)
         {
             SimTime += dt;
-            foreach (var a in _aircraft) a.Step(dt, SimTime, geo, FieldWeather);
+            foreach (var a in _aircraft)
+            {
+                a.ReturnsToPattern = ReturnForAnotherApproach;
+                a.Step(dt, SimTime, geo, FieldWeather);
+            }
         }
 
+        // A full-stop landing ends the sortie; anything that climbed out is flying approach's pattern instead.
         foreach (var gone in _aircraft.Where(a => a.Finished).ToList())
         {
             _aircraft.Remove(gone);
-            // A full-stop landing ends the sortie; anything that climbed out comes round again.
-            if (ReturnForAnotherApproach && gone.GoingAround)
-                _returning.Add((gone.Callsign, gone.TypeCode, gone.Mode, gone.SkillLevel, SimTime + PatternSec * (0.8 + 0.4 * _rng.NextDouble())));
             yield return new TargetRemoved(gone.Callsign);
         }
 
@@ -352,6 +350,23 @@ public sealed class SimAircraft
 
     /// <summary>Back from approach's pattern for another approach (says so on check-in).</summary>
     public bool AnotherApproach { get; internal set; }
+
+    /// <summary>Continued at decision height with the runway in sight: flying the last part visually, lining up
+    /// with the runway and following the glidepath on their own.</summary>
+    public bool Visual { get; private set; }
+
+    // ---- Approach's radar pattern (after a missed approach) ----
+    public enum PatternLeg { Upwind, Crosswind, Downwind, Base, Intercept }
+    /// <summary>Set by the traffic sim: missed approaches join approach's pattern instead of leaving.</summary>
+    internal bool ReturnsToPattern { get; set; }
+    /// <summary>With approach, being vectored round for another approach (off the final frequency).</summary>
+    public bool InPattern { get; private set; }
+    /// <summary>Back on final, ready to be handed off again.</summary>
+    public bool PatternDone { get; private set; }
+    public PatternLeg Leg { get; private set; }
+    public string PatternLegName => Leg switch { PatternLeg.Intercept => "turning final", _ => Leg.ToString().ToLowerInvariant() };
+    private int _patternSide = 1;
+    private double _patternEntryFt, _patternSpeedKt, _approachSpeedKt, _patternSec;
 
     /// <summary>Gear reported down to the final controller (check-in or wheels check), so the reminder can be dropped (§2-1-25).</summary>
     public bool GearReportedDown { get; private set; }
@@ -646,7 +661,7 @@ public sealed class SimAircraft
             : gpDev < -60 ? "too low"
             : VerticalSpeedFpm < -1400 ? "unstable"
             : null;
-        if (reason == null) return;
+        if (reason == null) { Visual = true; return; }
         GoAroundReason = reason;
         StartMissed(MissedHeadingRelDeg, MissedClimbToFt ?? 2000);
         Calls.Enqueue($"Going around, {reason}, {RadioSpeech.Callsign(Callsign)}.");
@@ -655,6 +670,7 @@ public sealed class SimAircraft
     internal void Step(double dt, double now, ParGeometry geo, (double? CeilingFt, double? VisibilitySm) wx = default)
     {
         _wx = wx;
+        if (_approachSpeedKt == 0) _approachSpeedKt = SpeedKt;
         if (!_decided && Descending && !GoingAround && !Landed && RangeFt <= geo.DecisionHeightRangeFt) DecideAtMinimums(geo, wx);
         // Low approach: go around over the runway without touching down.
         if (Clearance == LandingIntent.LowApproach && !GoingAround && !Landed && RangeFt <= geo.ThresholdRangeFt && HeightFt <= 100)
@@ -670,9 +686,15 @@ public sealed class SimAircraft
         if (Descending) _vsBias = Math.Clamp(_vsBias + _vsDriftSign * _opt.VsDriftFpmPerMin / 60 * dt, -400, 400);
         if (_opt.GustKt > 0) _gust = Math.Clamp(_gust + Gauss() * _opt.GustKt * Math.Sqrt(dt) - _gust * 0.3 * dt, -_opt.GustKt, _opt.GustKt * 1.5);
 
-        if (Mode == PilotMode.SelfFlying && !GoingAround) SelfFly(geo);
+        // Flying visually or on approach's vectors: no more creep off the controller's heading and rate.
+        if (Visual || InPattern) { _headingBias = 0; _vsBias = 0; }
+        if (Visual) { _headingWander = 0; _vsWander = 0; }
 
-        if (GoingAround)
+        if (Visual && !GoingAround && !Landed) VisualFly(geo);
+        else if (Mode == PilotMode.SelfFlying && !GoingAround) SelfFly(geo);
+
+        if (InPattern) FlyPattern(dt);
+        else if (GoingAround)
         {
             // Climb to the missed approach altitude and level off; headings as assigned.
             CommandedVsFpm = Math.Clamp((ClimbToFt - AltitudeAboveThresholdFt) * 3, -500, 1500);
@@ -739,7 +761,93 @@ public sealed class SimAircraft
             }
         }
         if (HeightFt < 0 && !Landed) HeightFt = 0; // flew into the ground short: hold at surface
-        if (HandedOff || RangeFt < (GoingAround ? -10 : -3) * Units.FeetPerNm || RangeFt > 30 * Units.FeetPerNm) Finished = true;
+        // A missed approach handed to approach (or flown well past the field without a word) joins the pattern.
+        if (GoingAround && ReturnsToPattern && !InPattern && !Landed && (HandedOff || RangeFt < -4 * Units.FeetPerNm)) JoinPattern();
+        if (!InPattern && (HandedOff || RangeFt < (GoingAround ? -10 : -3) * Units.FeetPerNm || RangeFt > 30 * Units.FeetPerNm)) Finished = true;
+    }
+
+    /// <summary>
+    /// The last part of the approach once the pilot has the runway at decision height: line up with the
+    /// runway and follow the glidepath (visual slope) to touchdown, like any pilot landing visually.
+    /// </summary>
+    private void VisualFly(ParGeometry geo)
+    {
+        double crossTarget = Math.Clamp(-CrossFt / 20.0, -10, 10);
+        CommandedHeadingRelDeg = Math.Clamp(crossTarget - (TrackRelDeg - HeadingRelDeg), -20, 20);
+        double gpErr = HeightFt - geo.GlidepathHeightFt(Math.Max(RangeFt, 0));
+        double nominal = -GroundSpeedKt * Units.FeetPerNm / 60.0 * Math.Tan(Units.DegToRad(geo.Site.GlidepathDeg));
+        CommandedVsFpm = HeightFt < 30 ? -150 : Math.Clamp(nominal - gpErr * 3, -1200, -100); // flare
+    }
+
+    /// <summary>
+    /// Approach takes the aircraft after a missed approach and vectors it round a radar pattern back to final:
+    /// upwind, a crosswind turn to 2½ NM abeam, downwind, base and a 30° intercept about 11–13 NM out, at
+    /// the missed approach altitude. On radar the whole way.
+    /// </summary>
+    private void JoinPattern()
+    {
+        InPattern = true;
+        HandedOff = true;
+        Leg = PatternLeg.Upwind;
+        _patternSec = 0;
+        _patternSide = Math.Abs(CrossFt) > 1500 ? Math.Sign(CrossFt) : (_rng.Next(2) == 0 ? -1 : 1);
+        // Base 12-14 NM out, so the handoff comes about 11-13 NM out with time for the brief, like a new arrival.
+        _patternEntryFt = (12 + _rng.NextDouble() * 2) * Units.FeetPerNm;
+        // Faster round the pattern than on final (jets about 1.5× approach speed), slowing on base.
+        _patternSpeedKt = Math.Clamp(_approachSpeedKt * 1.5, 160, 250);
+    }
+
+    private void FlyPattern(double dt)
+    {
+        double nm = Units.FeetPerNm, side = _patternSide * CrossFt;
+        // Turns are led by the turn radius (standard rate, 3°/s) so each leg rolls out where it should.
+        double radius = GroundSpeedKt * nm / 3600 / (3 * Math.PI / 180);
+        _patternSec += dt;
+        switch (Leg)
+        {
+            case PatternLeg.Upwind:
+                if (_patternSec > 30 && (RangeFt < -nm || _patternSec > 90)) Leg = PatternLeg.Crosswind;
+                break;
+            case PatternLeg.Crosswind:
+                CommandedHeadingRelDeg = 90 * _patternSide;
+                if (side >= 2.5 * nm - radius) Leg = PatternLeg.Downwind;
+                break;
+            case PatternLeg.Downwind:
+                CommandedHeadingRelDeg = 180;
+                if (RangeFt >= _patternEntryFt - radius) Leg = PatternLeg.Base;
+                break;
+            case PatternLeg.Base:
+                CommandedHeadingRelDeg = -90 * _patternSide;
+                if (side <= 1.3 * nm + 0.5 * radius) Leg = PatternLeg.Intercept;
+                break;
+            case PatternLeg.Intercept:
+                CommandedHeadingRelDeg = -30 * _patternSide;
+                if (side <= 0.15 * nm + 0.13 * radius) { CommandedHeadingRelDeg = 0; PatternDone = true; }
+                break;
+        }
+        CommandedVsFpm = Math.Clamp((ClimbToFt - AltitudeAboveThresholdFt) * 3, -1000, 1500);
+        double target = Leg >= PatternLeg.Base ? _approachSpeedKt : _patternSpeedKt;
+        SpeedKt += Math.Clamp(target - SpeedKt, -1.5 * dt, 2 * dt);
+    }
+
+    /// <summary>Back on final from approach's pattern: a fresh approach with the same pilot and aircraft.</summary>
+    internal void ResetForApproach()
+    {
+        InPattern = PatternDone = GoingAround = HandedOff = Landed = Visual = _decided = _levelled = false;
+        NoAcknowledge = GearReportedDown = false;
+        AnotherApproach = true;
+        Clearance = Mode == PilotMode.SelfFlying ? LandingIntent.FullStop : null;
+        Descending = Mode == PilotMode.SelfFlying;
+        GoAroundReason = null;
+        MissedHeadingRelDeg = null;
+        MissedClimbToFt = null;
+        ClimbToFt = 2000;
+        CommandedVsFpm = 0;
+        CommandedHeadingRelDeg = HeadingRelDeg;
+        _headingBias = _vsBias = 0;
+        _rollSec = 0;
+        _spawnHeightFt = Math.Max(HeightFt, 1);
+        _pending.Clear();
     }
 
     /// <summary>Simple ILS-like pilot: intercept and track the centreline and glidepath with lag and error.</summary>

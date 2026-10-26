@@ -17,6 +17,18 @@ public class RadioTests
     [InlineData("N52TX", "November five two Tango X-ray")]
     [InlineData("GABCD", "Golf Alpha Bravo Charlie Delta")]
     [InlineData("G-ABCD", "Golf Alpha Bravo Charlie Delta")]
+    // Airlines: telephony callsign and the flight number in group form (7110.65 §2-4-20).
+    [InlineData("UAL1234", "United twelve thirty-four")]
+    [InlineData("FFT211", "Frontier Flight two eleven")]
+    [InlineData("AAL100", "American one hundred")]
+    [InlineData("DAL1200", "Delta twelve hundred")]
+    [InlineData("SWA3", "Southwest three")]
+    [InlineData("BAW1103", "Speedbird eleven zero three")]
+    [InlineData("SKW5051", "SkyWest fifty fifty-one")]
+    [InlineData("JBU2000", "JetBlue two thousand")]
+    [InlineData("UAL51A", "United fifty-one Alpha")]
+    [InlineData("RCH481", "Reach four eight one")] // military airlift keeps single digits
+    [InlineData("BAT21", "Bat two one")]
     public void Military_callsigns_are_spoken_per_7110_65(string cs, string spoken)
     {
         Assert.Equal(spoken, RadioSpeech.Callsign(cs));
@@ -129,7 +141,7 @@ public class RadioTests
 
         Assert.StartsWith("Switching", ac.Receive(Phraseology.Parse("contact approach"), sim.SimTime, 243, 700).Reply);
         for (double t = 120.1; t <= 130; t += 0.1) sim.Step(t).ToList();
-        Assert.Empty(sim.Aircraft);
+        Assert.True(Assert.Single(sim.Aircraft).InPattern); // with approach now, still on radar
     }
 
     [Fact]
@@ -340,25 +352,55 @@ public class RadioTests
         Assert.False(Phraseology.Parse("tower clearance not received, if runway or approach lights not in sight, execute missed approach").ConditionalMissedApproach);
     }
     [Fact]
-    public void Missed_approach_comes_back_for_another_approach()
+    public void Missed_approach_flies_approachs_pattern_on_radar_and_comes_back()
     {
-        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site), PatternSec = 30 };
-        var ac = sim.SpawnRandom(PilotMode.ControllerDirected, "VV1234", "P8");
+        const double nm = PARScope.Core.Geo.Units.FeetPerNm;
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
+        var ac = sim.Spawn(new SpawnOptions { Callsign = "VV1234", TypeCode = "P8", RangeNm = 3, HeightOffsetFt = 0, SpeedKt = 140, Skill = 1, Mode = PilotMode.ControllerDirected });
         ac.Receive(Phraseology.Parse("execute missed approach"), 0, 243, 700);
-        for (double t = 0; t <= 20; t += 0.1) sim.Step(t).ToList();
+        for (double t = 0.1; t <= 20; t += 0.1) sim.Step(t).ToList();
         ac.Receive(Phraseology.Parse("contact approach"), sim.SimTime, 243, 700);
-        for (double t = 20.1; t <= 30; t += 0.1) sim.Step(t).ToList();
-        Assert.Empty(sim.Aircraft);
-        Assert.Single(sim.InPattern);
 
-        Assert.Empty(sim.SpawnDueReturns()); // still being vectored round
-        for (double t = 30.1; t <= 80; t += 0.1) sim.Step(t).ToList();
-        var back = Assert.Single(sim.SpawnDueReturns());
-        Assert.Equal("VV1234", back.Callsign);
-        Assert.Equal("P8", back.TypeCode);
-        Assert.InRange(back.RangeFt / PARScope.Core.Geo.Units.FeetPerNm, 12, 15);
-        Assert.EndsWith("for another approach.", back.CheckInCall("Miramar", 243, 0));
+        // Stays on radar the whole way round, flying upwind, crosswind, downwind, base and intercept.
+        var legs = new List<SimAircraft.PatternLeg>();
+        double maxRange = 0, maxAbeam = 0, t1 = 20.1;
+        for (; t1 <= 1500 && sim.TakeReturningAircraft().Count == 0; t1 += 0.1)
+        {
+            var reports = sim.Step(t1).ToList();
+            Assert.DoesNotContain(reports, r => r is TargetRemoved);
+            Assert.Single(sim.Aircraft);
+            if (ac.InPattern && (legs.Count == 0 || legs[^1] != ac.Leg)) legs.Add(ac.Leg);
+            maxRange = Math.Max(maxRange, ac.RangeFt);
+            maxAbeam = Math.Max(maxAbeam, Math.Abs(ac.CrossFt));
+        }
+        Assert.Equal(Enum.GetValues<SimAircraft.PatternLeg>(), legs);
+        Assert.InRange(maxAbeam / nm, 2.4, 3.5);
+        Assert.InRange(maxRange / nm, 12, 15);
+        Assert.InRange(t1, 200, 900); // a few minutes round, not instant
+
+        // Back on final for another approach: same aircraft, fresh approach.
+        Assert.Same(ac, Assert.Single(sim.Aircraft));
+        Assert.False(ac.InPattern || ac.GoingAround || ac.HandedOff || ac.Descending);
+        Assert.InRange(ac.RangeFt / nm, 10, 14);
+        Assert.InRange(Math.Abs(ac.CrossFt) / nm, 0, 0.5);
+        Assert.EndsWith("for another approach.", ac.CheckInCall("Miramar", 243, 0));
         Assert.Empty(sim.InPattern);
+    }
+
+    [Fact]
+    public void Continuing_at_decision_height_the_pilot_lines_up_and_lands_visually()
+    {
+        // Off to the side and a little high at DH, but within the limits to continue.
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
+        var geo = sim.Geometry!;
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 1.2, HeightOffsetFt = 30, CrossFt = 120, SpeedKt = 130, Skill = 1, GearDown = true, Mode = PilotMode.ControllerDirected });
+        ac.Receive(Phraseology.Parse("begin descent"), 0, 243, 700);
+        ac.Receive(Phraseology.Parse("runway two four right, cleared to land"), 0, 243, 700);
+        for (double t = 0.1; t <= 120 && !ac.Landed; t += 0.1) sim.Step(t).ToList();
+        Assert.True(ac.Visual);
+        Assert.True(ac.Landed);
+        Assert.False(ac.GoingAround);
+        Assert.InRange(Math.Abs(ac.CrossFt), 0, 40);
     }
 
     [Fact]
@@ -504,6 +546,29 @@ public class AircraftPerformanceTests
         Assert.Equal("VM4321", ac.Callsign);
         Assert.Equal("C30J", ac.TypeCode);
         Assert.InRange(ac.SpeedKt, 128, 136);
+    }
+
+    [Fact]
+    public void Squadrons_based_at_the_field_are_found_by_name()
+    {
+        Assert.Contains(MilitaryCallsigns.BasedAt("MIRAMAR MCAS (JOSEPH J FOSS FLD)"), c => c.Callword == "BAT");
+        var oceana = MilitaryCallsigns.BasedAt("OCEANA NAS (APOLLO SOUCEK FLD)");
+        Assert.NotEmpty(oceana);
+        Assert.All(oceana, c => Assert.Contains("Oceana", c.Unit));
+        Assert.Empty(MilitaryCallsigns.BasedAt("NAVAL AIR STATION"));
+
+        // Most tactical arrivals at a field with based squadrons are theirs.
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site), HomeAirportName = "OCEANA NAS (APOLLO SOUCEK FLD)" };
+        var words = MilitaryCallsigns.All.Select(m => m.Callword).ToHashSet();
+        int home = 0, tactical = 0;
+        for (int i = 0; i < 400; i++)
+        {
+            var ac = sim.SpawnRandom(PilotMode.ControllerDirected);
+            string word = new(ac.Callsign.TakeWhile(char.IsLetter).ToArray());
+            if (words.Contains(word)) { tactical++; if (oceana.Any(o => o.Callword == word)) home++; }
+            sim.Remove(ac.Callsign);
+        }
+        Assert.InRange(home / (double)tactical, 0.65, 0.9);
     }
 
     [Fact]

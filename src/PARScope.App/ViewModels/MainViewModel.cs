@@ -656,14 +656,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private void HandOffReturningAircraft()
     {
         if (Engine.Runway is not { } rw) return;
-        foreach (var ac in Engine.Training.SpawnDueReturns())
+        foreach (var ac in Engine.Training.TakeReturningAircraft())
         {
             _tower.Forget(ac.Callsign);
             _approach.Forget(ac.Callsign);
             _session.Write($"NOTE     {ac.Callsign} back from approach's pattern for another approach");
             OfferToFinal(ac, rw);
         }
-        var pattern = Engine.Training.InPattern.Select(p => $"{p.Callsign} {(int)p.InSec / 60}:{(int)p.InSec % 60:00}").ToList();
+        var pattern = Engine.Training.InPattern.Select(p => $"{p.Callsign} {p.Leg}").ToList();
         PatternText = pattern.Count == 0 ? "" : "In approach's pattern: " + string.Join("   ", pattern);
     }
 
@@ -1141,6 +1141,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         var t = Phraseology.Parse(text);
         var target = to ?? CallTarget;
+        if (target is { InPattern: true })
+        {
+            // On approach's frequency until handed off again.
+            Log("FINAL", text.ToUpperInvariant() + "  (no reply: with approach)");
+            StatusMessage = $"{target.Callsign} is with approach in the pattern";
+            return;
+        }
         Log("FINAL", text.ToUpperInvariant() + (t.IsEmpty ? "  (not understood)" : ""));
         _session.Write($"          ({via}) to {target?.Callsign ?? "no aircraft selected"}; understood as: {Understood(t)}");
         _lastTxTime = Engine.Training.SimTime;
@@ -1230,7 +1237,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>Who a call or key is for: the selected training aircraft, else the only one.</summary>
     private SimAircraft? CallTarget =>
         (SelectedCallsign is { } cs ? Engine.Training.Find(cs) : null)
-        ?? (Engine.Training.Aircraft.Count == 1 ? Engine.Training.Aircraft[0] : null);
+        ?? (Engine.Training.Aircraft.Where(a => !a.InPattern).ToList() is [var only] ? only : null);
 
     /// <summary>The target for a key or button, or a status prompt to select one.</summary>
     private SimAircraft? KeyTarget()

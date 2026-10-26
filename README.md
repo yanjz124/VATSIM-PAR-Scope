@@ -121,9 +121,10 @@ descent").
   information only (the pilot just stops drifting off the assigned heading), so correct with headings.
 * "In the event of missed approach, climb and maintain two thousand, turn left heading one eight zero"
   is read back and remembered; "execute missed approach" makes them fly it.
-* At **decision height** the pilot lands only with the runway in sight (live ceiling and visibility),
+* At **decision height** the pilot continues only with the runway in sight (live ceiling and visibility),
   a landing clearance, gear down and a stable approach. Otherwise they go around and say why, e.g.
-  "Going around, no landing clearance". Touch and go, low approach and option clearances are flown.
+  "Going around, no landing clearance". If they continue, they fly the rest visually, lining up with the
+  runway and following the glidepath to touchdown. Touch and go, low approach and option clearances are flown.
 
 ### Coordination
 
@@ -136,8 +137,9 @@ instead of the pilot. Wording can be loose; the aircraft is found by its callsig
   repeated every 20 seconds.
 * **Tower**: request a clearance (full stop, touch and go, low approach, option) and relay it.
 * **Missed approach**: hand the aircraft back to approach, then tell the pilot "contact approach".
-  Aircraft that go missed, or fly a touch and go or low approach, are vectored round by approach and
-  handed off to you again about two minutes later for another approach (pattern work). Full-stop
+  Aircraft that go missed, or fly a touch and go or low approach, are vectored round approach's radar
+  pattern (upwind, crosswind, downwind about 2½ NM abeam, base) and handed off to you again 11–13 NM out
+  for another approach a few minutes later. They stay on the ASR the whole way. Full-stop
   landings end there. Turn this off in the Training traffic panel.
 
 ### Keys

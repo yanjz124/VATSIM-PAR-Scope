@@ -79,6 +79,7 @@ public sealed class ScopeEngine : IDisposable
         Preset = preset;
         Geometry = new ParGeometry(runway, site);
         Training.Geometry = Geometry;
+        Training.HomeAirportName = airport.Name;
         Radar = new RadarSimulator(preset, Geometry) { ClutterEnabled = ClutterEnabled, MtiEnabled = MtiEnabled };
         Asr = new AsrSimulator(GeoPoint.FromFeet(runway.ThresholdLat, runway.ThresholdLon, runway.ThresholdElevFt));
     }

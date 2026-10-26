@@ -17,6 +17,28 @@ public static class MilitaryCallsigns
 
     public static IReadOnlyList<TacticalCallsign> All => Table.Value;
 
+    /// <summary>Words in airport names that say nothing about which base it is.</summary>
+    private static readonly HashSet<string> GenericWords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "AIR", "AIRPORT", "ARPT", "BASE", "FIELD", "FLD", "NAVAL", "STATION", "MARINE", "CORPS", "FORCE", "JOINT",
+        "INTL", "INTERNATIONAL", "REGIONAL", "RGNL", "MUNICIPAL", "MUNI", "COUNTY", "ARMY", "NATIONAL", "GUARD",
+        "MCAS", "NAS", "AFB", "ARB", "ANGB", "NAF", "OLF", "AAF", "RAF", "ANG", "ARS", "THE", "AND",
+    };
+
+    /// <summary>
+    /// Units based at an airport, matched by its distinctive name words against the unit's base
+    /// ("MIRAMAR MCAS (JOSEPH J FOSS FLD)" finds "VMFA(AW)-242 MCAS Miramar CA").
+    /// </summary>
+    public static IReadOnlyList<TacticalCallsign> BasedAt(string? airportName)
+    {
+        if (string.IsNullOrWhiteSpace(airportName)) return [];
+        var words = airportName.Split([' ', '(', ')', '/', '-', ',', '.'], StringSplitOptions.RemoveEmptyEntries)
+            .Where(w => w.Length >= 4 && !GenericWords.Contains(w)).ToList();
+        if (words.Count == 0) return [];
+        return All.Where(c => c.Unit.Split([' ', '(', ')', '/', '-', ','], StringSplitOptions.RemoveEmptyEntries)
+            .Any(u => words.Contains(u, StringComparer.OrdinalIgnoreCase))).ToList();
+    }
+
     private static IReadOnlyList<TacticalCallsign> Load()
     {
         var list = new List<TacticalCallsign>();
