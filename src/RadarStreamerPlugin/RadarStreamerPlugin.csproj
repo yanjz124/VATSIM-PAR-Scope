@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- vPilot loads plugins in-process, so this must stay on .NET Framework. -->
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>RadarStreamerPlugin</RootNamespace>
+    <AssemblyName>RadarStreamerPlugin</AssemblyName>
+    <Version>2.0.0</Version>
+    <Product>VATSIM PAR Scope</Product>
+    <Description>vPilot plugin that streams traffic (including VATSIM Velocity fast positions) to the PAR scope over UDP.</Description>
+    <Deterministic>true</Deterministic>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- vPilot install folder. Override with VPILOT_DIR if vPilot lives elsewhere. -->
+  <PropertyGroup>
+    <VpilotDir Condition="'$(VPILOT_DIR)' != ''">$(VPILOT_DIR)</VpilotDir>
+    <VpilotDir Condition="'$(VpilotDir)' == ''">$(LOCALAPPDATA)\vPilot</VpilotDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Both assemblies are supplied by vPilot at runtime; never copy them next to the plugin. -->
+    <Reference Include="RossCarlson.Vatsim.Vpilot.Plugins">
+      <HintPath>$(VpilotDir)\RossCarlson.Vatsim.Vpilot.Plugins.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="bbv.Common.EventBroker">
+      <HintPath>$(VpilotDir)\bbv.Common.EventBroker.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="RadarStreamerPlugin.ini" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

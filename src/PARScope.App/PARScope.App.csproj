@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- SkiaSharp.Views.WPF ships for the Windows 10 SDK target. -->
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>PARScope</AssemblyName>
+    <RootNamespace>PARScope.App</RootNamespace>
+    <ApplicationIcon>Assets\PARScope.ico</ApplicationIcon>
+    <Version>2.0.0</Version>
+    <Product>VATSIM PAR Scope</Product>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PARScope.Core\PARScope.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="SkiaSharp.Views.WPF" Version="4.153.1" />
+    <PackageReference Include="System.Speech" Version="10.0.14" />
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\PARScope.ico" />
+  </ItemGroup>
+
+</Project>

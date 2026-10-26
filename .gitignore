@@ -116,3 +116,6 @@ VATSIM-PAR-Scope-*.sha256.txt
 # CI / publishing settings
 *.publishsettings
 
+
+# Local Claude Code settings
+.claude/settings.local.json

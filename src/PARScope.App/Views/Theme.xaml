@@ -1,0 +1,90 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:views="clr-namespace:PARScope.App.Views">
+
+    <!-- Status accents (kept close to the scope palette so the chrome and the radar read as one system). -->
+    <SolidColorBrush x:Key="StatusGoodBrush" Color="#3DDC6E" />
+    <SolidColorBrush x:Key="StatusCautionBrush" Color="#F0A030" />
+    <SolidColorBrush x:Key="StatusBadBrush" Color="#FF4D4D" />
+    <SolidColorBrush x:Key="StatusIdleBrush" Color="#5E7480" />
+    <SolidColorBrush x:Key="StatusNeutralBrush" Color="#B4C6D0" />
+    <SolidColorBrush x:Key="CategoryVfrBrush" Color="#3DDC6E" />
+    <SolidColorBrush x:Key="CategoryMvfrBrush" Color="#3B82E6" />
+    <SolidColorBrush x:Key="CategoryIfrBrush" Color="#FF4D4D" />
+    <SolidColorBrush x:Key="CategoryLifrBrush" Color="#D946EF" />
+    <SolidColorBrush x:Key="ScopeBackgroundBrush" Color="#05080B" />
+
+
+    <views:StatusBrushConverter x:Key="StatusBrush" />
+    <views:RangeLabelConverter x:Key="RangeLabel" />
+    <views:CategoryLabelConverter x:Key="CategoryLabel" />
+    <views:NotNullToVisibilityConverter x:Key="NotNullToVisibility" />
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    <views:InverseBoolConverter x:Key="InverseBool" />
+
+    <!-- Small caps-style section label used across the side panel. -->
+    <Style x:Key="SectionLabel" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+        <Setter Property="Margin" Value="0,0,0,6" />
+    </Style>
+
+    <Style x:Key="MetricLabel" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+    </Style>
+
+    <!-- Tabular figures keep changing numbers from shifting sideways. -->
+    <Style x:Key="MetricValue" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="ToolbarToggle" TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+        <Setter Property="Padding" Value="10,5" />
+        <Setter Property="Margin" Value="0,0,4,0" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <!-- Range scale selector: a segmented row of buttons, like the range-select keys on a PAR console. -->
+    <Style x:Key="SegmentedList" TargetType="ListBox">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="ItemsPanel">
+            <Setter.Value>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="ItemContainerStyle">
+            <Setter.Value>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                                <Border x:Name="Bd" Padding="10,5" Margin="0,0,2,0" CornerRadius="4" TextElement.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                        Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1">
+                                    <ContentPresenter TextElement.FontSize="12" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                        <Setter TargetName="Bd" Property="TextElement.Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                                    </Trigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>
