@@ -47,7 +47,7 @@ public class RadioTests
         Assert.Null(r3.Reply);
 
         var r4 = ac.Receive(Phraseology.Parse("too high for safe approach, if runway or approach lights not in sight execute missed approach"), 3, 243, 700);
-        Assert.Contains("going missed", r4.Reply);
+        Assert.StartsWith("Going missed", r4.Reply);
     }
 
     [Theory]
@@ -60,6 +60,61 @@ public class RadioTests
     public void Do_not_acknowledge_variants_are_understood(string text)
     {
         Assert.True(Phraseology.Parse(text).DoNotAcknowledge);
+    }
+
+    [Fact]
+    public void Hard_pilots_drift_off_an_assigned_heading_until_reassigned()
+    {
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 10, Skill = 1, HeadingDriftDegPerMin = 6, Mode = PilotMode.ControllerDirected });
+        for (double t = 0; t <= 60; t += 0.1) sim.Step(t).ToList();
+        Assert.InRange(Math.Abs(ac.HeadingRelDeg), 4, 8);
+
+        ac.Receive(Phraseology.Parse("turn right heading two four three"), sim.SimTime, 243, 700);
+        for (double t = 60.1; t <= 75; t += 0.1) sim.Step(t).ToList();
+        Assert.InRange(Math.Abs(ac.HeadingRelDeg), 0, 2.5);
+    }
+
+    [Fact]
+    public void Missed_approach_instructions_are_remembered_then_flown()
+    {
+        var p = Phraseology.Parse("in the event of missed approach, climb and maintain two thousand five hundred, turn left heading one eight zero");
+        Assert.True(p.MissedApproachInstructions);
+        Assert.False(p.MissedApproach);
+        Assert.Equal(2500, p.ClimbToFt);
+        Assert.Equal(180, p.HeadingDeg);
+        Assert.Equal(3000, Phraseology.Parse("climb and maintain 3,000").ClimbToFt);
+        Assert.True(Phraseology.Parse("contact approach").ContactApproach);
+
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 6, Skill = 1, Mode = PilotMode.ControllerDirected });
+        var r1 = ac.Receive(p, 0, 243, 700, thresholdElevFt: 100);
+        Assert.StartsWith("Missed approach, climb and maintain two thousand five hundred, heading one eight zero", r1.Reply);
+        Assert.Equal(0, ac.CommandedHeadingRelDeg); // not flown yet
+
+        var r2 = ac.Receive(Phraseology.Parse("execute missed approach"), 1, 243, 700, thresholdElevFt: 100);
+        Assert.StartsWith("Going missed", r2.Reply);
+        for (double t = 0; t <= 120; t += 0.1) sim.Step(t).ToList();
+        Assert.True(ac.GoingAround);
+        Assert.Equal(-63, ac.CommandedHeadingRelDeg, 1);
+        Assert.InRange(ac.HeightFt, 2300, 2450); // 2,500 MSL with a 100 ft threshold, levelling
+
+        Assert.StartsWith("Switching", ac.Receive(Phraseology.Parse("contact approach"), sim.SimTime, 243, 700).Reply);
+        for (double t = 120.1; t <= 130; t += 0.1) sim.Step(t).ToList();
+        Assert.Empty(sim.Aircraft);
+    }
+
+    [Fact]
+    public void Arrivals_are_handed_off_far_out_below_the_glidepath()
+    {
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
+        for (int i = 0; i < 20; i++)
+        {
+            var ac = sim.SpawnRandom(PilotMode.ControllerDirected);
+            Assert.InRange(ac.RangeFt / PARScope.Core.Geo.Units.FeetPerNm, 12, 15);
+            Assert.InRange(ac.HeightFt, 1900, 3000);
+        }
+        Assert.Contains("one four miles", ApproachSim.HandoffToFinal("VV1234", 14.2, 243, 2500));
     }
 
     [Fact]

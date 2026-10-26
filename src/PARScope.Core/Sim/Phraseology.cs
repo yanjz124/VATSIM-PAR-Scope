@@ -24,9 +24,16 @@ public sealed record Transmission(string Text)
     public bool WheelsDown { get; init; }
     /// <summary>Relayed tower clearance: cleared to land / touch and go / low approach / option.</summary>
     public bool ClearedToLand { get; init; }
+    /// <summary>"Climb and maintain (altitude)", feet MSL.</summary>
+    public double? ClimbToFt { get; init; }
+    /// <summary>"In the event of missed approach, …": instructions to remember, not to fly now (§5-10-2).</summary>
+    public bool MissedApproachInstructions { get; init; }
+    /// <summary>"Contact approach/departure": frequency change off final.</summary>
+    public bool ContactApproach { get; init; }
 
     public bool IsEmpty => HeadingDeg is null && Glidepath == GlidepathCall.None && !BeginDescent && !MissedApproach && CourseCall is null
-                           && !HowDoYouHear && !DoNotAcknowledge && !WheelsDown && !ClearedToLand;
+                           && !HowDoYouHear && !DoNotAcknowledge && !WheelsDown && !ClearedToLand && ClimbToFt is null
+                           && !MissedApproachInstructions && !ContactApproach;
 }
 
 /// <summary>
@@ -57,7 +64,16 @@ public static partial class Phraseology
         var c = CourseRx().Match(s);
         if (c.Success) course = c.Value.ToUpperInvariant();
 
-        bool missed = MissedRx().IsMatch(s);
+        bool instructions = MissedInstructionsRx().IsMatch(s);
+        bool missed = !instructions && MissedRx().IsMatch(s);
+        double? climb = null;
+        var cl = ClimbRx().Match(s);
+        if (cl.Success && int.TryParse(cl.Groups["a"].Value, out int a))
+        {
+            double ft = cl.Groups["k"].Success ? a * 1000 + (int.TryParse(cl.Groups["h"].Value, out int hh) ? hh * 100 : 0)
+                : cl.Groups["h"].Success ? a * 100 : a;
+            if (ft is >= 500 and <= 20000) climb = ft;
+        }
         bool descend = !missed && DescentRx().IsMatch(s);
 
         return new Transmission(text.Trim())
@@ -72,6 +88,9 @@ public static partial class Phraseology
             DoNotAcknowledge = NoAckRx().IsMatch(s),
             WheelsDown = s.Contains(" wheels should be down") || s.Contains(" check wheels down"),
             ClearedToLand = ClearedRx().IsMatch(s),
+            ClimbToFt = climb,
+            MissedApproachInstructions = instructions,
+            ContactApproach = ContactRx().IsMatch(s),
         };
     }
 
@@ -107,7 +126,8 @@ public static partial class Phraseology
     /// <summary>Lower-cases, strips punctuation, and collapses spoken digit runs into numerals.</summary>
     public static string Normalise(string text)
     {
-        var words = PunctRx().Replace(text.ToLowerInvariant(), " ").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        // "2,000" from speech engines is one number, not "2 000".
+        var words = PunctRx().Replace(ThousandsCommaRx().Replace(text.ToLowerInvariant(), ""), " ").Split(' ', StringSplitOptions.RemoveEmptyEntries);
         var outWords = new List<string>();
         var run = new System.Text.StringBuilder();
         foreach (var w in words)
@@ -131,5 +151,10 @@ public static partial class Phraseology
     [GeneratedRegex(@"\bexecute missed approach\b|\bgo around\b|\bwave ?off\b|\btower clearance (?:not received|cancell?ed)\b")] private static partial Regex MissedRx();
     // "Do not acknowledge further transmissions" (§5-10-10) and the ways people actually say it.
     [GeneratedRegex(@"\b(?:do not|don t|dont|no need to|not necessary to) (?:acknowledge|read ?back)\b|\backnowledg(?:e|ement)s? not (?:required|necessary)\b|\bno (?:further )?(?:acknowledgements?|acknowledgments?|readbacks?)\b")] private static partial Regex NoAckRx();
+    [GeneratedRegex(@"(?<=\d),(?=\d{3}\b)")] private static partial Regex ThousandsCommaRx();
+    [GeneratedRegex(@"\b(?:in the event of (?:a )?missed approach|if (?:you )?(?:go |are )?missed approach|missed approach instructions)\b")] private static partial Regex MissedInstructionsRx();
+    // "climb and maintain 2 thousand 5 hundred" after digit merging, or "climb and maintain 2500".
+    [GeneratedRegex(@"\bclimb (?:and maintain |to )?(?<a>\d+)(?: (?<k>thousand))?(?: (?<h>\d) hundred)?\b")] private static partial Regex ClimbRx();
+    [GeneratedRegex(@"\b(?:contact|switch to|monitor) (?:approach|departure|arrival|radar)\b")] private static partial Regex ContactRx();
     [GeneratedRegex(@"\bcleared (?:to land|for (?:the )?option|touch and go|low approach)\b")] private static partial Regex ClearedRx();
 }

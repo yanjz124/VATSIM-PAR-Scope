@@ -35,11 +35,14 @@ public sealed class RadioVoice : IDisposable
     public IReadOnlyList<string> Voices { get; }
     public string? PilotVoice { get; set; }
     public string? TowerVoice { get; set; }
+    /// <summary>Approach on the interphone: a third voice if one is installed, else the tower's.</summary>
+    public string? ApproachVoice => Voices.FirstOrDefault(v => v != PilotVoice && v != TowerVoice) ?? TowerVoice;
     public string? OutputDeviceId { get; set; }
     public bool Enabled { get; set; } = true;
 
     public void Pilot(string text) => Enqueue(text, PilotVoice);
     public void Tower(string text) => Enqueue(text, TowerVoice);
+    public void Approach(string text) => Enqueue(text, ApproachVoice);
 
     private void Enqueue(string text, string? voice)
     {

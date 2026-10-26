@@ -12,12 +12,41 @@ public enum PilotMode
     ControllerDirected,
 }
 
+/// <summary>Training scenario difficulty: how hard the pilots and the weather make the talk-down.</summary>
+public enum TrainingDifficulty { Easy, Normal, Hard, Expert }
+
+/// <summary>Spawn and pilot parameters for a difficulty level.</summary>
+public sealed record DifficultyProfile(
+    double SkillLo, double SkillHi, int WindKtLo, int WindKtHi, double CrossFt, double InterceptDeg,
+    double HeadingDriftDegPerMin, double VsDriftFpmPerMin, double WindVeerDeg, double WindShearKt, double GustKt)
+{
+    public static DifficultyProfile For(TrainingDifficulty d) => d switch
+    {
+        TrainingDifficulty.Easy => new(0.8, 1.0, 0, 8, 400, 5, 0, 0, 0, 0, 0),
+        TrainingDifficulty.Normal => new(0.4, 0.9, 0, 19, 800, 10, 0, 0, 0, 0, 0),
+        // Pilots let heading and rate creep (gyro precession, divided attention); wind veers and drops on descent.
+        TrainingDifficulty.Hard => new(0.3, 0.6, 8, 25, 1200, 15, 3, 120, 25, 8, 3),
+        _ => new(0.15, 0.4, 15, 32, 1600, 20, 6, 220, 45, 14, 7),
+    };
+
+    public static string Describe(TrainingDifficulty d) => d switch
+    {
+        TrainingDifficulty.Easy => "Light wind, precise pilots, close to the centreline.",
+        TrainingDifficulty.Normal => "Moderate wind, average pilots.",
+        TrainingDifficulty.Hard => "Strong wind that shifts on descent; pilots drift off heading and rate unless corrected.",
+        _ => "Gusty wind with shear; sloppy, slow pilots who drift steadily. Expect constant corrections.",
+    };
+}
+
 public sealed record SpawnOptions
 {
     public double RangeNm { get; init; } = 8;
     public double CrossFt { get; init; } = 0;
     /// <summary>Height relative to the glidepath at the spawn range (negative = below).</summary>
     public double HeightOffsetFt { get; init; } = -300;
+    /// <summary>Height above the threshold to spawn level at (a GCA pattern altitude); overrides <see cref="HeightOffsetFt"/>.
+    /// Kept at least 300 ft under the glidepath so the aircraft intercepts it from below.</summary>
+    public double? AltitudeFt { get; init; }
     /// <summary>Approach speed; 0 = typical for the aircraft type chosen.</summary>
     public double SpeedKt { get; init; }
     public double InterceptAngleDeg { get; init; } = 0;
@@ -26,6 +55,16 @@ public sealed record SpawnOptions
     public double Skill { get; init; } = 0.6;
     public double WindFromDeg { get; init; } = 0;
     public double WindKt { get; init; } = 0;
+    /// <summary>Steady heading creep while holding a heading, °/min; reset when a new heading is assigned.</summary>
+    public double HeadingDriftDegPerMin { get; init; }
+    /// <summary>Steady descent-rate creep, fpm per minute; mostly corrected after each glidepath call.</summary>
+    public double VsDriftFpmPerMin { get; init; }
+    /// <summary>Wind veer between the spawn height and the surface, degrees (surface wind backs by this much).</summary>
+    public double WindVeerDeg { get; init; }
+    /// <summary>Extra wind at the spawn height over the surface wind, knots.</summary>
+    public double WindShearKt { get; init; }
+    /// <summary>Gust amplitude, knots.</summary>
+    public double GustKt { get; init; }
     public string? TypeCode { get; init; }
     /// <summary>Custom callsign; null = generated.</summary>
     public string? Callsign { get; init; }
@@ -78,6 +117,7 @@ public sealed class TrainingTraffic
     public IReadOnlyList<SimAircraft> Aircraft => _aircraft;
     public ParGeometry? Geometry { get; set; }
     public bool Paused { get; set; }
+    public TrainingDifficulty Difficulty { get; set; } = TrainingDifficulty.Normal;
     /// <summary>Simulation clock, seconds: stops while paused, so pilot reaction delays wait out a pause.</summary>
     public double SimTime { get; private set; }
 
@@ -105,7 +145,7 @@ public sealed class TrainingTraffic
         {
             RangeFt = rangeFt,
             CrossFt = o.CrossFt,
-            HeightFt = geo.GlidepathHeightFt(rangeFt) + o.HeightOffsetFt,
+            HeightFt = o.AltitudeFt is double alt ? Math.Min(alt, geo.GlidepathHeightFt(rangeFt) - 300) : geo.GlidepathHeightFt(rangeFt) + o.HeightOffsetFt,
             TrackRelDeg = -o.InterceptAngleDeg * Math.Sign(o.CrossFt == 0 ? 1 : o.CrossFt),
             SpeedKt = o.SpeedKt > 0 ? o.SpeedKt : ApproachSpeed(type),
             GearDown = _rng.NextDouble() < 0.5,
@@ -118,19 +158,28 @@ public sealed class TrainingTraffic
 
     public SimAircraft SpawnRandom(PilotMode mode, string? callsign = null, string? typeCode = null)
     {
+        var d = DifficultyProfile.For(Difficulty);
+        double Between(double lo, double hi) => lo + _rng.NextDouble() * (hi - lo);
         return Spawn(new SpawnOptions
         {
             Callsign = callsign,
             TypeCode = typeCode,
-            RangeNm = 8 + _rng.NextDouble() * 4,
-            CrossFt = (_rng.NextDouble() - 0.5) * 1600,
-            HeightOffsetFt = -400 + _rng.NextDouble() * 300,
+            // Handed to final 12-15 NM out at 2,000-3,000 ft: time for the radio check, approach brief and
+            // missed approach instructions before glidepath intercept (about 6-9 NM on a 3° path).
+            RangeNm = 12 + _rng.NextDouble() * 3,
+            CrossFt = (_rng.NextDouble() - 0.5) * 2 * d.CrossFt,
+            AltitudeFt = 2000 + _rng.Next(0, 11) * 100,
             SpeedKt = 0, // from the callsign style's aircraft
-            InterceptAngleDeg = _rng.NextDouble() * 10,
+            InterceptAngleDeg = _rng.NextDouble() * d.InterceptDeg,
             Mode = mode,
-            Skill = 0.4 + _rng.NextDouble() * 0.5,
+            Skill = Between(d.SkillLo, d.SkillHi),
             WindFromDeg = _rng.Next(0, 36) * 10,
-            WindKt = _rng.Next(0, 20),
+            WindKt = _rng.Next(d.WindKtLo, d.WindKtHi + 1),
+            HeadingDriftDegPerMin = d.HeadingDriftDegPerMin * Between(0.6, 1.2),
+            VsDriftFpmPerMin = d.VsDriftFpmPerMin * Between(0.6, 1.2),
+            WindVeerDeg = d.WindVeerDeg * Between(0.5, 1.0),
+            WindShearKt = d.WindShearKt * Between(0.5, 1.0),
+            GustKt = d.GustKt,
         });
     }
 
@@ -179,6 +228,8 @@ public sealed class SimAircraft
     private readonly SpawnOptions _opt;
     private readonly Random _rng;
     private double _headingWander, _vsWander;
+    private double _headingBias, _vsBias, _gust, _spawnHeightFt = double.NaN;
+    private readonly int _driftSign, _vsDriftSign;
     private readonly Queue<(double At, Action Do)> _pending = new();
 
     internal SimAircraft(string callsign, string typeCode, SpawnOptions opt, Random rng)
@@ -189,6 +240,8 @@ public sealed class SimAircraft
         _rng = rng;
         Mode = opt.Mode;
         Descending = opt.Mode == PilotMode.SelfFlying;
+        _driftSign = rng.Next(2) == 0 ? -1 : 1;
+        _vsDriftSign = rng.Next(2) == 0 ? -1 : 1;
     }
 
     public string Callsign { get; }
@@ -218,6 +271,20 @@ public sealed class SimAircraft
     /// <summary>Told "DO NOT ACKNOWLEDGE FURTHER TRANSMISSIONS" (§5-10-10): no more readbacks.</summary>
     public bool NoAcknowledge { get; private set; }
     public bool ClearedToLand { get; private set; }
+    /// <summary>Missed approach instructions given in advance: heading (relative to course) and height above threshold.</summary>
+    public double? MissedHeadingRelDeg { get; private set; }
+    public double? MissedClimbToFt { get; private set; }
+    /// <summary>Height above the threshold the pilot levels at after going missed.</summary>
+    public double ClimbToFt { get; private set; } = 2000;
+    /// <summary>Told to contact approach/departure; leaves the frequency shortly after reading back.</summary>
+    public bool HandedOff { get; private set; }
+
+    /// <summary>Surface wind for this arrival (true direction, knots) and the pilot's current uncorrected drift.</summary>
+    public double WindFromDeg => _opt.WindFromDeg;
+    public double WindKt => _opt.WindKt;
+    public double SkillLevel => _opt.Skill;
+    public double HeadingDriftDeg => _headingBias;
+    public double VsDriftFpm => _vsBias;
 
     private double ReactionDelay => 1.0 + (1 - _opt.Skill) * 2.0 + _rng.NextDouble();
 
@@ -248,18 +315,55 @@ public sealed class SimAircraft
     /// adjusting rate of descent in proportion to glidepath calls. A missed approach is always acknowledged
     /// (NAVEDTRA 14342A ch. 10). Actions happen after a human reaction delay.
     /// </summary>
-    public PilotResponse Receive(Transmission t, double now, double courseMagDeg, double recommendedFpm)
+    public PilotResponse Receive(Transmission t, double now, double courseMagDeg, double recommendedFpm, double thresholdElevFt = 0)
     {
         double delay = ReactionDelay;
         var actions = new List<string>();
         var readback = new List<string>();
         string cs = RadioSpeech.Callsign(Callsign);
         bool wasNoAcknowledge = NoAcknowledge;
+        double? hdgRel = t.HeadingDeg is double hd ? Units.Norm180(hd - courseMagDeg) : null;
+        double? climbAgl = t.ClimbToFt is double c ? c - thresholdElevFt : null;
+        string Climb(double agl) => $"climb and maintain {RadioSpeech.Altitude(agl + thresholdElevFt)}";
+        string Hdg(double rel) => $"heading {RadioSpeech.Heading(Units.Norm360(rel + courseMagDeg))}";
 
+        if (t.MissedApproachInstructions)
+        {
+            // Remembered for later; read back like any instruction (before "do not acknowledge").
+            if (hdgRel is double mh) MissedHeadingRelDeg = mh;
+            if (climbAgl is double ma) MissedClimbToFt = ma;
+            LastReadback = "missed approach instructions noted";
+            var parts = new List<string> { "missed approach" };
+            if (climbAgl is double ra) parts.Add(Climb(ra));
+            if (hdgRel is double rh) parts.Add(Hdg(rh));
+            string? rb = NoAcknowledge ? null : $"{char.ToUpperInvariant(parts[0][0])}{string.Join(", ", parts)[1..]}, {cs}.";
+            return new PilotResponse(LastReadback, rb);
+        }
         if (t.MissedApproach)
         {
-            _pending.Enqueue((now + delay, () => GoingAround = true));
-            return new PilotResponse("going missed", $"{cs}, going missed.");
+            // Fly what this transmission says, else the missed approach instructions given earlier, else
+            // runway heading and 2,000 ft. A missed approach is always acknowledged.
+            double? heading = hdgRel ?? MissedHeadingRelDeg;
+            double climb = climbAgl ?? MissedClimbToFt ?? 2000;
+            _pending.Enqueue((now + delay, () => StartMissed(heading, climb)));
+            NoAcknowledge = false;
+            var parts = new List<string> { "going missed" };
+            if (climbAgl is double ra) parts.Add(Climb(ra));
+            if (hdgRel is double rh) parts.Add(Hdg(rh));
+            LastReadback = $"going missed, {(heading is double h2 ? $"heading {Units.Norm360(h2 + courseMagDeg):000}" : "runway heading")}, climbing to {climb + thresholdElevFt:0} ft";
+            return new PilotResponse(LastReadback, $"{char.ToUpperInvariant(parts[0][0])}{string.Join(", ", parts)[1..]}, {cs}.");
+        }
+        if (t.ContactApproach)
+        {
+            _pending.Enqueue((now + delay + 4, () => HandedOff = true));
+            LastReadback = "switching to approach";
+            return new PilotResponse(LastReadback, $"Switching, {cs}.");
+        }
+        if (climbAgl is double climbTo && GoingAround)
+        {
+            _pending.Enqueue((now + delay, () => ClimbToFt = climbTo));
+            actions.Add($"climbing to {climbTo + thresholdElevFt:0} ft");
+            readback.Add(Climb(climbTo));
         }
         if (t.HowDoYouHear)
         {
@@ -281,7 +385,7 @@ public sealed class SimAircraft
         if (t.HeadingDeg is double hdg)
         {
             double rel = Units.Norm180(hdg - courseMagDeg);
-            _pending.Enqueue((now + delay, () => CommandedHeadingRelDeg = rel));
+            _pending.Enqueue((now + delay, () => { CommandedHeadingRelDeg = rel; _headingBias = 0; }));
             actions.Add($"heading {hdg:000}");
             readback.Add($"heading {RadioSpeech.Heading(hdg)}");
         }
@@ -311,7 +415,7 @@ public sealed class SimAircraft
             if (t.GlidepathTrend == CallTrend.Correcting) adjust *= 0.4;
             if (t.GlidepathTrend == CallTrend.Rapidly) adjust *= 1.4;
             double vs = NominalVs(recommendedFpm) + adjust;
-            _pending.Enqueue((now + delay, () => CommandedVsFpm = vs));
+            _pending.Enqueue((now + delay, () => { CommandedVsFpm = vs; _vsBias *= 0.3; }));
             actions.Add($"{-vs:0} fpm");
         }
         LastReadback = string.Join(", ", actions);
@@ -336,10 +440,19 @@ public sealed class SimAircraft
     public void SetHeading(double headingMagDeg, double courseMagDeg, double now)
     {
         double rel = Units.Norm180(headingMagDeg - courseMagDeg);
-        _pending.Enqueue((now + ReactionDelay, () => CommandedHeadingRelDeg = rel));
+        _pending.Enqueue((now + ReactionDelay, () => { CommandedHeadingRelDeg = rel; _headingBias = 0; }));
     }
 
-    public void GoAround(double now) => _pending.Enqueue((now + ReactionDelay, () => GoingAround = true));
+    public void GoAround(double now) => _pending.Enqueue((now + ReactionDelay, () => StartMissed(MissedHeadingRelDeg, MissedClimbToFt ?? 2000)));
+
+    private void StartMissed(double? headingRel, double climbToFt)
+    {
+        if (GoingAround) return;
+        GoingAround = true;
+        ClimbToFt = climbToFt;
+        CommandedHeadingRelDeg = headingRel ?? 0;
+        _headingBias = 0;
+    }
 
     private static double NominalVs(double recommendedFpm) => -Math.Abs(recommendedFpm);
 
@@ -351,13 +464,17 @@ public sealed class SimAircraft
         double sloppiness = 1 - _opt.Skill;
         _headingWander = Math.Clamp(_headingWander + Gauss() * 0.6 * sloppiness * Math.Sqrt(dt), -4, 4);
         _vsWander = Math.Clamp(_vsWander + Gauss() * 60 * sloppiness * Math.Sqrt(dt), -250, 250);
+        // Harder scenarios: steady creep away from the assigned heading and rate until the controller corrects it.
+        _headingBias = Math.Clamp(_headingBias + _driftSign * _opt.HeadingDriftDegPerMin / 60 * dt, -15, 15);
+        if (Descending) _vsBias = Math.Clamp(_vsBias + _vsDriftSign * _opt.VsDriftFpmPerMin / 60 * dt, -400, 400);
+        if (_opt.GustKt > 0) _gust = Math.Clamp(_gust + Gauss() * _opt.GustKt * Math.Sqrt(dt) - _gust * 0.3 * dt, -_opt.GustKt, _opt.GustKt * 1.5);
 
         if (Mode == PilotMode.SelfFlying && !GoingAround) SelfFly(geo);
 
         if (GoingAround)
         {
-            CommandedHeadingRelDeg = 0;
-            CommandedVsFpm = 1500;
+            // Climb to the missed approach altitude and level off; headings as assigned.
+            CommandedVsFpm = Math.Clamp((ClimbToFt - HeightFt) * 3, -500, 1500);
             SpeedKt = Math.Min(SpeedKt + 2 * dt, 180);
         }
         else if (!Descending)
@@ -366,19 +483,23 @@ public sealed class SimAircraft
         }
 
         // Half-standard-rate turns for small corrections, standard rate otherwise.
-        double hdgErr = Units.Norm180(CommandedHeadingRelDeg + _headingWander - HeadingRelDeg);
+        double hdgErr = Units.Norm180(CommandedHeadingRelDeg + _headingWander + _headingBias - HeadingRelDeg);
         double rate = Math.Abs(hdgErr) < 5 ? 1.5 : 3.0;
         HeadingRelDeg += Math.Clamp(hdgErr, -rate * dt, rate * dt);
 
-        double vsTarget = CommandedVsFpm + (Descending ? _vsWander : 0);
+        double vsTarget = CommandedVsFpm + (Descending ? _vsWander + _vsBias : 0);
         VerticalSpeedFpm += Math.Clamp(vsTarget - VerticalSpeedFpm, -400 * dt, 400 * dt);
 
-        // Wind triangle in the approach frame. Wind "from" is a true direction.
-        double windTo = Units.DegToRad(_opt.WindFromDeg + 180 - geo.Runway.TrueHeadingDeg);
+        // Wind triangle in the approach frame. Wind "from" is a true direction (the surface wind); aloft it is
+        // stronger and veered, blending to the surface wind on descent, plus gusts.
+        if (double.IsNaN(_spawnHeightFt)) _spawnHeightFt = Math.Max(HeightFt, 1);
+        double aloft = Math.Clamp(HeightFt / _spawnHeightFt, 0, 1);
+        double windKt = Math.Max(0, _opt.WindKt + _opt.WindShearKt * aloft + _gust);
+        double windTo = Units.DegToRad(_opt.WindFromDeg + _opt.WindVeerDeg * aloft + 180 - geo.Runway.TrueHeadingDeg);
         double h = Units.DegToRad(HeadingRelDeg);
         // Approach frame: inbound component (toward the runway) and right component.
-        double vin = SpeedKt * Math.Cos(h) + _opt.WindKt * Math.Cos(windTo);
-        double vright = SpeedKt * Math.Sin(h) + _opt.WindKt * Math.Sin(windTo);
+        double vin = SpeedKt * Math.Cos(h) + windKt * Math.Cos(windTo);
+        double vright = SpeedKt * Math.Sin(h) + windKt * Math.Sin(windTo);
         GroundSpeedKt = Math.Sqrt(vin * vin + vright * vright);
         TrackRelDeg = Units.RadToDeg(Math.Atan2(vright, vin));
 
@@ -401,7 +522,7 @@ public sealed class SimAircraft
             if (SpeedKt < 30) Finished = true;
         }
         if (HeightFt < 0 && !Landed) HeightFt = 0; // flew into the ground short: hold at surface
-        if (RangeFt < -3 * Units.FeetPerNm || RangeFt > 30 * Units.FeetPerNm) Finished = true;
+        if (HandedOff || RangeFt < (GoingAround ? -10 : -3) * Units.FeetPerNm || RangeFt > 30 * Units.FeetPerNm) Finished = true;
     }
 
     /// <summary>Simple ILS-like pilot: intercept and track the centreline and glidepath with lag and error.</summary>
@@ -418,7 +539,7 @@ public sealed class SimAircraft
         CommandedVsFpm = nominal - Math.Clamp(gpErr * 3, -500, 500);
 
         // Missed approach at DH if badly off course.
-        if (RangeFt < geo.DecisionHeightRangeFt && Math.Abs(CrossFt) > 300) GoingAround = true;
+        if (RangeFt < geo.DecisionHeightRangeFt && Math.Abs(CrossFt) > 300) StartMissed(MissedHeadingRelDeg, MissedClimbToFt ?? 2000);
     }
 
     private double Gauss()

@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Json;
 using PARScope.Core.Par;
+using PARScope.Core.Sim;
 using PARScope.Core.Weather;
 
 namespace PARScope.App.Services;
@@ -44,9 +45,14 @@ public sealed class AppSettings
     public bool ShowAdvisories { get; set; } = true;
     /// <summary>Suggested calls are a training aid; off for real VATSIM traffic unless asked for.</summary>
     public bool ShowAdvisoriesOnNetwork { get; set; }
+    /// <summary>Side panel (selected target, training radio and traffic).</summary>
     public bool ShowPlanView { get; set; } = true;
+    /// <summary>ASR scope pane beside the PAR.</summary>
+    public bool ShowAsr { get; set; } = true;
+    public double AsrWidth { get; set; } = 520;
     public double PlanRangeNm { get; set; } = 20;
-    public double SidePanelWidth { get; set; } = 380;
+    public double SidePanelWidth { get; set; } = 360;
+    public TrainingDifficulty TrainingDifficulty { get; set; } = TrainingDifficulty.Normal;
     /// <summary>Side-panel section open/closed state.</summary>
     public Dictionary<string, bool> Panels { get; set; } = new();
     public int HistoryDots { get; set; } = 8;

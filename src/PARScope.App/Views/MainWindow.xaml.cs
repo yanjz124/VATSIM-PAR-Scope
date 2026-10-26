@@ -4,7 +4,6 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
-using Microsoft.Win32;
 using PARScope.App.Rendering;
 using PARScope.App.Services;
 using PARScope.App.ViewModels;
@@ -56,7 +55,7 @@ public partial class MainWindow : FluentWindow
         _vm.Engine.Tick();
         _vm.UpdateAdvisory();
         ParView.InvalidateVisual();
-        if (_vm.ShowPlanView) PlanView.InvalidateVisual();
+        if (_vm.ShowAsr) PlanView.InvalidateVisual();
     }
 
     private void ParView_PaintSurface(object? sender, SKPaintSurfaceEventArgs e)
@@ -211,30 +210,43 @@ public partial class MainWindow : FluentWindow
         }
     }
 
-    private void ImportNasr_Click(object sender, RoutedEventArgs e)
+    private SettingsWindow? _settingsWindow;
+
+    private void Settings_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new OpenFileDialog { Filter = "NASR APT CSV (*.zip)|*.zip", Title = "Import FAA NASR APT CSV zip" };
-        if (dlg.ShowDialog(this) == true) _vm.ImportNasr(dlg.FileName);
+        if (_settingsWindow is { IsLoaded: true }) { _settingsWindow.Activate(); return; }
+        _settingsWindow = new SettingsWindow(_vm) { Owner = this };
+        _settingsWindow.Closed += (_, _) => { _settingsWindow = null; Keyboard.Focus(this); };
+        _settingsWindow.Show();
     }
 
     // ---- Layout & persistence ----------------------------------------------------------------------
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MainViewModel.ShowPlanView)) UpdateSidePanel();
+        if (e.PropertyName is nameof(MainViewModel.ShowPlanView) or nameof(MainViewModel.ShowAsr)) UpdateSidePanel();
     }
 
+    /// <summary>PAR | ASR | side panel; the ASR and side panel each hide and keep their dragged widths.</summary>
     private void UpdateSidePanel()
     {
-        SideColumn.Width = _vm.ShowPlanView ? new GridLength(Math.Clamp(_settings.SidePanelWidth, 320, 900)) : new GridLength(0);
+        AsrColumn.Width = _vm.ShowAsr ? new GridLength(Math.Clamp(_settings.AsrWidth, 240, 1400)) : new GridLength(0);
+        AsrSplitter.Visibility = _vm.ShowAsr ? Visibility.Visible : Visibility.Collapsed;
+        SideColumn.Width = _vm.ShowPlanView ? new GridLength(Math.Clamp(_settings.SidePanelWidth, 300, 700)) : new GridLength(0);
         SideSplitter.Visibility = _vm.ShowPlanView ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    // Keep the ASR square: as the panel is dragged wider, the surveillance picture grows with it.
-    private void PlanHost_SizeChanged(object sender, SizeChangedEventArgs e) => PlanHost.Height = Math.Max(240, e.NewSize.Width);
+    private void AsrSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+    {
+        _settings.AsrWidth = AsrColumn.ActualWidth;
+        if (_vm.ShowPlanView) _settings.SidePanelWidth = SideColumn.ActualWidth;
+    }
 
-    private void SideSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e) =>
+    private void SideSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
+    {
         _settings.SidePanelWidth = SideColumn.ActualWidth;
+        if (_vm.ShowAsr) _settings.AsrWidth = AsrColumn.ActualWidth;
+    }
 
     private void RestorePlacement()
     {

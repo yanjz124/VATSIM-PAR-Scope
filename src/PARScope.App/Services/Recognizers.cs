@@ -50,7 +50,8 @@ public sealed class WhisperRecognizer(GgmlType model) : IPhraseRecognizer
         "Slightly above glidepath and coming down. Well below glidepath. On glidepath. Slightly left of course and correcting. " +
         "On course. Begin descent. Approaching glidepath. Wheels should be down. How do you hear me. " +
         "Do not acknowledge further transmissions. Too low for safe approach, execute missed approach. " +
-        "Wind three one zero at seven, runway two four right, cleared to land. Navy, Marine, Army, Reach, niner.";
+        "Wind three one zero at seven, runway two four right, cleared to land. Navy, Marine, Army, Reach, niner. " +
+        "In the event of missed approach, climb and maintain two thousand, turn left heading one eight zero. Contact approach.";
 
     private WhisperFactory? _factory;
     private WhisperProcessor? _processor;
@@ -189,6 +190,12 @@ public sealed class WindowsGrammarRecognizer : IPhraseRecognizer
             G("wind calm"),
             G(Opt(G("runway", digit, digit, Opt(new Choices("left", "right", "center")))),
               new Choices("cleared to land", "cleared touch and go", "cleared low approach", "cleared for the option")),
+            G(new Choices(G("in the event of missed approach"), G("missed approach instructions")),
+              Opt(G("climb and maintain", digit, "thousand", Opt(G(digit, "hundred")))),
+              Opt(G(Opt(G("turn", new Choices("left", "right"))), "heading", digit, digit, digit))),
+            G("climb and maintain", digit, "thousand", Opt(G(digit, "hundred"))),
+            G(new Choices("contact", "switch to"), new Choices("approach", "departure")),
+            G("radar contact"),
             G("tower clearance not received"),
             G("tower clearance canceled"),
             G("do not acknowledge", Opt(G("further", new Choices("transmissions", "instructions", "calls")))),

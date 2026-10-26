@@ -97,9 +97,13 @@
                                   ToolTip="Pause / resume training traffic (P). Network traffic keeps moving.">
                         <ui:SymbolIcon Symbol="Pause24" />
                     </ToggleButton>
+                    <ToggleButton Style="{StaticResource ToolbarToggle}" Content="ASR" IsChecked="{Binding ShowAsr}" ToolTip="Show the ASR (surveillance) scope" />
                     <ToggleButton Style="{StaticResource ToolbarToggle}" IsChecked="{Binding ShowPlanView}" ToolTip="Show side panel">
                         <ui:SymbolIcon Symbol="PanelRight24" />
                     </ToggleButton>
+                    <ui:Button Appearance="Transparent" Padding="8,5" Margin="4,0,0,0" Click="Settings_Click" ToolTip="Settings">
+                        <ui:SymbolIcon Symbol="Settings24" />
+                    </ui:Button>
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -107,9 +111,11 @@
         <!-- Scopes and side panel -->
         <Grid Grid.Row="2" Margin="12,0,12,0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" MinWidth="560" />
+                <ColumnDefinition Width="*" MinWidth="480" />
                 <ColumnDefinition Width="Auto" />
-                <ColumnDefinition x:Name="SideColumn" Width="380" MinWidth="0" MaxWidth="900" />
+                <ColumnDefinition x:Name="AsrColumn" Width="520" MinWidth="0" MaxWidth="1400" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition x:Name="SideColumn" Width="360" MinWidth="0" MaxWidth="700" />
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" CornerRadius="8" Background="{StaticResource ScopeBackgroundBrush}" ClipToBounds="True"
@@ -117,11 +123,28 @@
                 <skia:SKElement x:Name="ParView" PaintSurface="ParView_PaintSurface" MouseLeftButtonDown="ParView_MouseDown" Cursor="Cross" />
             </Border>
 
-            <!-- Drag to resize the side panel; the ASR view stays square and grows with it. -->
-            <GridSplitter x:Name="SideSplitter" Grid.Column="1" Width="8" HorizontalAlignment="Stretch" Background="Transparent"
+            <GridSplitter x:Name="AsrSplitter" Grid.Column="1" Width="8" HorizontalAlignment="Stretch" Background="Transparent"
+                          Cursor="SizeWE" ResizeBehavior="PreviousAndNext" DragCompleted="AsrSplitter_DragCompleted" />
+
+            <Grid Grid.Column="2" Visibility="{Binding ShowAsr, Converter={StaticResource BoolToVisibility}}">
+                <Border CornerRadius="8" ClipToBounds="True" Background="{StaticResource ScopeBackgroundBrush}"
+                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1">
+                    <skia:SKElement x:Name="PlanView" PaintSurface="PlanView_PaintSurface" MouseLeftButtonDown="PlanView_MouseDown" Cursor="Cross" />
+                </Border>
+                <ComboBox IsSynchronizedWithCurrentItem="False" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" Width="90"
+                          ItemsSource="{Binding PlanRanges}" SelectedItem="{Binding PlanRangeNm}" ToolTip="ASR range">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={StaticResource RangeLabel}}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </Grid>
+
+            <GridSplitter x:Name="SideSplitter" Grid.Column="3" Width="8" HorizontalAlignment="Stretch" Background="Transparent"
                           Cursor="SizeWE" ResizeBehavior="PreviousAndNext" DragCompleted="SideSplitter_DragCompleted" />
 
-            <ScrollViewer Grid.Column="2" Margin="2,0,0,0" VerticalScrollBarVisibility="Auto"
+            <ScrollViewer Grid.Column="4" Margin="2,0,0,0" VerticalScrollBarVisibility="Auto"
                           Visibility="{Binding ShowPlanView, Converter={StaticResource BoolToVisibility}}">
                 <StackPanel>
 
@@ -174,41 +197,6 @@
                         </StackPanel>
                     </ui:CardExpander>
 
-                    <ui:CardExpander Header="ASR" Icon="{ui:SymbolIcon GridCircles24}" Margin="0,0,0,6" IsExpanded="{Binding ExpandAsr}">
-                        <Grid>
-                            <Border x:Name="PlanHost" Height="360" CornerRadius="6" ClipToBounds="True" Background="{StaticResource ScopeBackgroundBrush}"
-                                    SizeChanged="PlanHost_SizeChanged">
-                                <skia:SKElement x:Name="PlanView" PaintSurface="PlanView_PaintSurface" MouseLeftButtonDown="PlanView_MouseDown" Cursor="Cross" />
-                            </Border>
-                            <ComboBox IsSynchronizedWithCurrentItem="False" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6" Width="90"
-                                      ItemsSource="{Binding PlanRanges}" SelectedItem="{Binding PlanRangeNm}">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Converter={StaticResource RangeLabel}}" />
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                        </Grid>
-                    </ui:CardExpander>
-
-                    <ui:CardExpander Icon="{ui:SymbolIcon WeatherPartlyCloudyDay24}" Margin="0,0,0,6" IsExpanded="{Binding ExpandWeather}">
-                        <ui:CardExpander.Header>
-                            <DockPanel LastChildFill="False">
-                                <TextBlock Text="Weather" VerticalAlignment="Center" />
-                                <Border DockPanel.Dock="Right" CornerRadius="4" Padding="6,1" Margin="0,0,8,0"
-                                        Background="{Binding MetarCategory, Converter={StaticResource StatusBrush}}">
-                                    <TextBlock Text="{Binding MetarCategory, Converter={StaticResource CategoryLabel}}" FontSize="11" FontWeight="Bold" Foreground="#05080B" />
-                                </Border>
-                            </DockPanel>
-                        </ui:CardExpander.Header>
-                        <StackPanel>
-                            <TextBlock Text="{Binding MetarSpoken}" FontSize="13" TextWrapping="Wrap" />
-                            <TextBlock Text="{Binding MetarRaw}" FontSize="11" TextWrapping="Wrap"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,4,0,8" />
-                            <ui:ToggleSwitch IsChecked="{Binding UseVatsimMetar}" OnContent="VATSIM METAR" OffContent="NOAA METAR" />
-                        </StackPanel>
-                    </ui:CardExpander>
-
                     <!-- Training radio: push-to-talk or typed transmissions, simulated pilot and tower. -->
                     <ui:CardExpander Header="Radio (training)" Icon="{ui:SymbolIcon Mic24}" Margin="0,0,0,6" IsExpanded="{Binding ExpandVoice}"
                                      Visibility="{Binding ShowRadio, Converter={StaticResource BoolToVisibility}}">
@@ -248,40 +236,13 @@
                                 <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding TowerIntents}" SelectedItem="{Binding TowerIntent}" />
                             </DockPanel>
 
+                            <TextBlock Text="APPROACH" Style="{StaticResource SectionLabel}" Margin="0,8,0,4" />
+                            <ui:Button Content="Coordinate missed approach" Command="{Binding CoordinateMissedCommand}" HorizontalAlignment="Stretch"
+                                       ToolTip="After a missed approach: tell approach the heading and altitude, then switch the pilot ('contact approach')." />
+
                             <ui:ToggleSwitch IsChecked="{Binding PilotVoices}" OnContent="Pilot and tower voices" OffContent="Pilot and tower voices" Margin="0,10,0,0" />
                             <TextBlock Margin="0,8,0,0" Style="{StaticResource MetricLabel}" TextWrapping="Wrap"
                                        Text="Space talk · ←/→ heading ±1° (Shift ±5°) · D begin descent · Q/W/E slightly/–/well above · A on glidepath · Z/X/C slightly/–/well below · G wheels · M missed approach · T tower · P pause · Tab next target" />
-                        </StackPanel>
-                    </ui:CardExpander>
-
-                    <ui:CardExpander Header="Audio (training)" Icon="{ui:SymbolIcon Speaker224}" Margin="0,0,0,6" IsExpanded="{Binding ExpandAudio}"
-                                     Visibility="{Binding TrainingMode, Converter={StaticResource BoolToVisibility}}">
-                        <StackPanel>
-                            <TextBlock Text="Microphone" Style="{StaticResource MetricLabel}" />
-                            <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding Microphones}" SelectedItem="{Binding SelectedMicrophone}" Margin="0,2,0,4" />
-                            <ProgressBar Value="{Binding MicLevel}" Maximum="1" Height="4" Margin="0,0,0,8" ToolTip="Input level while transmitting" />
-                            <TextBlock Text="Pilot and tower audio output" Style="{StaticResource MetricLabel}" />
-                            <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding Speakers}" SelectedItem="{Binding SelectedSpeaker}" Margin="0,2,0,8" />
-                            <TextBlock Text="Speech recognition" Style="{StaticResource MetricLabel}" />
-                            <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding Recognizers}" SelectedItem="{Binding SelectedRecognizer}" Margin="0,2,0,2"
-                                      ToolTip="Windows Speech: offline, standard phraseology only. Whisper: local OpenAI model, more tolerant of accents and wording; downloaded on first use." />
-                            <TextBlock Text="{Binding VoiceState}" Style="{StaticResource MetricLabel}" TextTrimming="CharacterEllipsis" Margin="0,0,0,8" />
-                            <Grid Margin="0,0,0,8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="8" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <TextBlock Text="Pilot voice" Style="{StaticResource MetricLabel}" />
-                                    <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding VoiceNames}" SelectedItem="{Binding PilotVoiceName}" />
-                                </StackPanel>
-                                <StackPanel Grid.Column="2">
-                                    <TextBlock Text="Tower voice" Style="{StaticResource MetricLabel}" />
-                                    <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding VoiceNames}" SelectedItem="{Binding TowerVoiceName}" />
-                                </StackPanel>
-                            </Grid>
-                            <ui:Button Content="Test voices" Icon="{ui:SymbolIcon Speaker224}" Command="{Binding TestVoicesCommand}" />
                         </StackPanel>
                     </ui:CardExpander>
 
@@ -290,9 +251,10 @@
                         <StackPanel>
                             <TextBlock TextWrapping="Wrap" Style="{StaticResource MetricLabel}" Margin="0,0,0,10"
                                        Text="Simulated arrivals for practising talk-downs. Controller-directed pilots hold heading and altitude until you talk to them: hold Space and speak (or type) headings, 'begin descent' and glidepath calls." />
+                            <TextBlock Text="Difficulty" Style="{StaticResource MetricLabel}" />
+                            <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding Difficulties}" SelectedItem="{Binding Difficulty}" Margin="0,2,0,2" />
+                            <TextBlock Text="{Binding DifficultyText}" Style="{StaticResource MetricLabel}" TextWrapping="Wrap" Margin="0,0,0,10" />
                             <ui:ToggleSwitch IsChecked="{Binding SpawnSelfFlying}" OnContent="Pilot flies the approach" OffContent="Controller-directed" Margin="0,0,0,8" />
-                            <ui:ToggleSwitch IsChecked="{Binding ShowAdvisories}" OnContent="Suggested calls for training traffic" OffContent="Suggested calls for training traffic" Margin="0,0,0,6" />
-                            <ui:ToggleSwitch IsChecked="{Binding ShowAdvisoriesOnNetwork}" OnContent="Suggested calls for VATSIM traffic" OffContent="Suggested calls for VATSIM traffic" Margin="0,0,0,10" />
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
@@ -311,93 +273,6 @@
                         </StackPanel>
                     </ui:CardExpander>
 
-                    <ui:CardExpander Header="Setup" Icon="{ui:SymbolIcon Settings24}" Margin="0,0,0,6" IsExpanded="{Binding ExpandSetup}">
-                        <StackPanel>
-                            <TextBlock Text="{Binding RunwayDetail}" TextWrapping="Wrap" Style="{StaticResource MetricLabel}" Margin="0,0,0,10" />
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="12" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
-                                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,8">
-                                    <TextBlock Text="Glidepath ° (approach plate)" Style="{StaticResource MetricLabel}" />
-                                    <ui:NumberBox Value="{Binding SiteGlidepath}" SmallChange="0.1" MaxDecimalPlaces="2" Minimum="2" Maximum="6" />
-                                </StackPanel>
-                                <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,8">
-                                    <TextBlock Text="TCH ft (approach plate)" Style="{StaticResource MetricLabel}" />
-                                    <ui:NumberBox Value="{Binding SiteTch}" SmallChange="1" MaxDecimalPlaces="0" Minimum="20" Maximum="100" />
-                                </StackPanel>
-                                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,0,8">
-                                    <TextBlock Text="Decision height ft (HAT)" Style="{StaticResource MetricLabel}" />
-                                    <ui:NumberBox Value="{Binding SiteDh}" SmallChange="10" MaxDecimalPlaces="0" Minimum="100" Maximum="1000" />
-                                </StackPanel>
-                                <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,8">
-                                    <TextBlock Text="Antenna setback ft" Style="{StaticResource MetricLabel}" ToolTip="Distance past touchdown along the runway" />
-                                    <ui:NumberBox Value="{Binding SiteSetback}" SmallChange="100" MaxDecimalPlaces="0" Minimum="0" Maximum="10000" />
-                                </StackPanel>
-                                <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,0,8">
-                                    <TextBlock Text="Antenna offset ft (+ right)" Style="{StaticResource MetricLabel}" />
-                                    <ui:NumberBox Value="{Binding SiteOffset}" SmallChange="50" MaxDecimalPlaces="0" Minimum="-2500" Maximum="2500" />
-                                </StackPanel>
-                                <StackPanel Grid.Row="2" Grid.Column="2" Margin="0,0,0,8">
-                                    <TextBlock Text="Antenna aim ° toward centreline" Style="{StaticResource MetricLabel}"
-                                               ToolTip="ICAO Annex 10 siting example: 15°/5° asymmetric scan, i.e. the sector turned 5° toward the runway centreline." />
-                                    <ui:NumberBox Value="{Binding SiteAim}" SmallChange="0.5" MaxDecimalPlaces="1" Minimum="0" Maximum="15" />
-                                </StackPanel>
-                            </Grid>
-                            <ui:ToggleSwitch IsChecked="{Binding UseDataFeed}" Margin="0,0,0,8"
-                                             OnContent="Use VATSIM data feed without vPilot" OffContent="Use VATSIM data feed without vPilot"
-                                             ToolTip="When no vPilot plugin is connected, show traffic from the public VATSIM data feed (updates every ~15 s). Off by default." />
-                            <ui:ToggleSwitch IsChecked="{Binding SimulateErrors}" Margin="0,0,0,8"
-                                             OnContent="Simulate radar errors" OffContent="Simulate radar errors"
-                                             ToolTip="Measurement noise (ICAO accuracy budget), multipath, ground clutter and missed paints. Off: targets plot exactly where the aircraft is, once per scan." />
-                            <DockPanel Margin="0,0,0,10">
-                                <TextBlock Text="Scope font" Style="{StaticResource MetricLabel}" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding ScopeFonts}" SelectedItem="{Binding ScopeFont}" />
-                            </DockPanel>
-                            <ui:ToggleSwitch IsChecked="{Binding UseUkBands}" Margin="0,0,0,10"
-                                             OnContent="Deviation terms: UK RA 3291 (feet)" OffContent="Deviation terms: US Navy (target quarters)"
-                                             ToolTip="US Navy: slightly/well read from quarters of the radar target (NAVEDTRA 14342A Table 10-1). UK: fixed 60/100 ft and 2°/5° lines." />
-                            <WrapPanel>
-                                <ui:Button Content="Apply" Appearance="Primary" Margin="0,0,6,0" Command="{Binding ApplySiteCommand}" />
-                                <ui:Button Content="Reset to defaults" Command="{Binding ResetSiteCommand}" />
-                            </WrapPanel>
-
-                            <Separator Margin="0,14,0,10" />
-                            <TextBlock Text="AIRPORT DATA" Style="{StaticResource SectionLabel}" />
-                            <TextBlock Text="{Binding AirportDbStatus}" TextWrapping="Wrap" Style="{StaticResource MetricLabel}" Margin="0,0,0,8" />
-                            <WrapPanel>
-                                <ui:Button Content="Update online" Icon="{ui:SymbolIcon ArrowDownload24}" Margin="0,0,6,0"
-                                           Command="{Binding UpdateAirportsCommand}" IsEnabled="{Binding IsUpdatingAirports, Converter={StaticResource InverseBool}}" />
-                                <ui:Button Content="Import NASR zip…" Icon="{ui:SymbolIcon FolderOpen24}" Click="ImportNasr_Click" />
-                            </WrapPanel>
-                        </StackPanel>
-                    </ui:CardExpander>
-                    <ui:CardExpander Header="Diagnostics" Icon="{ui:SymbolIcon Pulse24}" Margin="0,0,0,6" IsExpanded="{Binding ExpandDiagnostics}">
-                        <StackPanel>
-                            <TextBlock Style="{StaticResource MetricLabel}" TextWrapping="Wrap" Margin="0,0,0,8"
-                                       Text="Live update rates per aircraft: fast = VATSIM Velocity positions (up to 5 Hz), slow = 5-second updates or the 15-second data feed." />
-                            <Border Padding="8,6" CornerRadius="6" Background="{DynamicResource ControlFillColorSecondaryBrush}" MinHeight="60">
-                                <ItemsControl ItemsSource="{Binding RateLines}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" FontFamily="Consolas" FontSize="11" />
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </Border>
-                            <ui:ToggleSwitch IsChecked="{Binding RecordTraffic}" Margin="0,10,0,6"
-                                             OnContent="Record traffic log (CSV)" OffContent="Record traffic log (CSV)" />
-                            <TextBlock Text="{Binding DiagnosticsFolder}" Style="{StaticResource MetricLabel}" TextWrapping="Wrap" Margin="0,0,0,6" />
-                            <ui:Button Content="Open diagnostics folder" Icon="{ui:SymbolIcon FolderOpen24}" Command="{Binding OpenDiagnosticsCommand}" />
-                        </StackPanel>
-                    </ui:CardExpander>
                 </StackPanel>
             </ScrollViewer>
         </Grid>
@@ -408,11 +283,18 @@
             <DockPanel>
                 <TextBlock DockPanel.Dock="Right" Text="{Binding UtcText}" Margin="16,0,0,0" />
                 <TextBlock DockPanel.Dock="Right" Text="{Binding TrafficText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="16,0,0,0" />
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="16,0,0,0" ToolTip="{Binding MetarSpoken}">
+                    <Border CornerRadius="4" Padding="6,0" Margin="0,0,8,0" VerticalAlignment="Center"
+                            Background="{Binding MetarCategory, Converter={StaticResource StatusBrush}}">
+                        <TextBlock Text="{Binding MetarCategory, Converter={StaticResource CategoryLabel}}" FontSize="11" FontWeight="Bold" Foreground="#05080B" />
+                    </Border>
+                    <TextBlock Text="{Binding MetarRaw}" FontFamily="Consolas" TextTrimming="CharacterEllipsis" MaxWidth="560" VerticalAlignment="Center" />
+                </StackPanel>
                 <StackPanel Orientation="Horizontal" ToolTip="{Binding LinkDetail}">
                     <Ellipse Width="9" Height="9" Fill="{Binding Link, Converter={StaticResource StatusBrush}}" Margin="0,0,7,0" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding LinkText}" FontWeight="SemiBold" />
                     <TextBlock Text="{Binding RunwayTitle}" Margin="16,0,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                    <TextBlock Text="{Binding StatusMessage}" Margin="16,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="640"
+                    <TextBlock Text="{Binding StatusMessage}" Margin="16,0,0,0" TextTrimming="CharacterEllipsis" MaxWidth="420"
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                 </StackPanel>
             </DockPanel>
