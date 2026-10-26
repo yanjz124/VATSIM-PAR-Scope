@@ -40,7 +40,8 @@ if ($LASTEXITCODE) { throw "gh release create failed" }
 
 # Prune: newest first; keep -Keep releases of this major version, delete the rest (not their tags).
 $major = $Version.Split(".")[0]
-$old = gh release list --limit 100 --json tagName,createdAt | ConvertFrom-Json |
+# (Parenthesised so Windows PowerShell enumerates the JSON array instead of passing it on as one object.)
+$old = (gh release list --limit 100 --json tagName,createdAt | ConvertFrom-Json) |
   Where-Object { $_.tagName -like "v$major.*" } |
   Sort-Object { [datetime]$_.createdAt } -Descending |
   Select-Object -Skip $Keep
