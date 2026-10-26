@@ -119,6 +119,8 @@ descent").
 
 * Pilots read back until "do not acknowledge further transmissions", then only answer a radio check or
   a missed approach.
+* Headings: "turn left heading 050", or a relative turn, "turn two degrees left" / "turn right ten
+  degrees", from the heading last assigned.
 * Glidepath calls change the descent rate, starting from what the pilot is already flying: "…and
   holding" makes them correct more, "going above/below" firmly, "…coming down/up" keeps a correction
   that is working, "…rapidly" eases off, "on glidepath" returns to the normal rate. Course calls are

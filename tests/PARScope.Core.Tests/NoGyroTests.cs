@@ -107,6 +107,37 @@ public class NoGyroTests
         Assert.True(Phraseology.Parse("this will be a no gyro approach").NoGyroBrief);
     }
 
+    [Theory]
+    [InlineData("turn two degrees left", -2)]
+    [InlineData("TURN 5 DEGREES RIGHT", 5)]
+    [InlineData("turn left one zero degrees", -10)]
+    [InlineData("Navy one two three four, turn right three degrees", 3)]
+    public void Parses_relative_turns(string text, double deg)
+    {
+        var t = Phraseology.Parse(text);
+        Assert.Equal(deg, t.TurnByDeg);
+        Assert.Equal(0, t.NoGyroTurn); // not a no-gyro turn
+        Assert.False(t.IsEmpty);
+    }
+
+    [Fact]
+    public void Turns_by_the_degrees_given_and_reads_back()
+    {
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 10, Skill = 1, Mode = PilotMode.ControllerDirected });
+        void Run(double s) { double end = sim.SimTime + s; for (double t = sim.SimTime + 0.1; t <= end; t += 0.1) sim.Step(t).ToList(); }
+        Run(1);
+        double before = ac.CommandedHeadingRelDeg;
+        var r = ac.Receive(Phraseology.Parse("turn ten degrees right"), sim.SimTime, 243, 700);
+        Assert.StartsWith("Right one zero degrees", r.Reply);
+        Run(15);
+        Assert.Equal(before + 10, ac.CommandedHeadingRelDeg, 3);
+        Assert.InRange(ac.HeadingRelDeg - before, 9, 11);
+        ac.Receive(Phraseology.Parse("turn two degrees left"), sim.SimTime, 243, 700);
+        Run(10);
+        Assert.Equal(before + 8, ac.CommandedHeadingRelDeg, 3);
+    }
+
     [Fact]
     public void Turns_until_stop_turn_at_the_rate_given()
     {

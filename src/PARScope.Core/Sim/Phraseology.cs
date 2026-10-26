@@ -50,6 +50,8 @@ public sealed record Transmission(string Text)
     public bool LostCommsInstructions { get; init; }
     /// <summary>No-gyro (7110.65 §5-10-3): "turn left/right" with no heading, −1 left, +1 right; turn until told to stop.</summary>
     public int NoGyroTurn { get; init; }
+    /// <summary>"Turn (n) degrees left/right" (7110.65 §5-6-2): a turn by that many degrees, negative = left.</summary>
+    public double? TurnByDeg { get; init; }
     /// <summary>No-gyro: "stop turn".</summary>
     public bool StopTurn { get; init; }
     /// <summary>No-gyro rate: "make half standard rate turns" (true) or "standard rate turns" (false); null = not said.</summary>
@@ -60,7 +62,7 @@ public sealed record Transmission(string Text)
     public bool IsEmpty => HeadingDeg is null && Glidepath == GlidepathCall.None && !BeginDescent && !MissedApproach && CourseCall is null
                            && !HowDoYouHear && !DoNotAcknowledge && !WheelsDown && !ClearedToLand && ClimbToFt is null
                            && !MissedApproachInstructions && !ContactApproach && !ContactTower && !ApproachBrief && !RangeInfo && !LevelOff && !ResumeDescent && !LostCommsInstructions
-                           && NoGyroTurn == 0 && !StopTurn && HalfStandardRate is null && !NoGyroBrief;
+                           && NoGyroTurn == 0 && TurnByDeg is null && !StopTurn && HalfStandardRate is null && !NoGyroBrief;
 }
 
 /// <summary>
@@ -105,6 +107,9 @@ public static partial class Phraseology
         }
         bool descend = !missed && DescentRx().IsMatch(s);
         // No-gyro turns: "turn left/right" with no heading after it.
+        double? turnBy = null;
+        if (heading is null && TurnByRx().Match(s) is { Success: true } tb && DegreesWord(tb.Groups["n"].Success ? tb.Groups["n"].Value : tb.Groups["n2"].Value) is int deg && deg is > 0 and <= 180)
+            turnBy = ((tb.Groups["d"].Success ? tb.Groups["d"].Value : tb.Groups["d2"].Value) == "left" ? -1 : 1) * deg;
         int noGyro = 0;
         if (heading is null && NoGyroTurnRx().Match(s) is { Success: true } ng) noGyro = ng.Groups["d"].Value == "left" ? -1 : 1;
         bool? halfRate = HalfRateRx().IsMatch(s) ? true : StandardRateRx().IsMatch(s) ? false : null;
@@ -138,6 +143,7 @@ public static partial class Phraseology
             AcknowledgeRequested = AckRequestRx().IsMatch(s),
             LostCommsInstructions = lostComms,
             NoGyroTurn = noGyro,
+            TurnByDeg = turnBy,
             StopTurn = StopTurnRx().IsMatch(s),
             HalfStandardRate = halfRate,
             NoGyroBrief = s.Contains(" no gyro"),
@@ -200,6 +206,15 @@ public static partial class Phraseology
     // "turn left" / "turn right" not followed by a heading (or "stop turn").
     [GeneratedRegex(@"(?<!stop )\bturn (?<d>left|right)\b(?! heading)(?! \d)")] private static partial Regex NoGyroTurnRx();
     [GeneratedRegex(@"\bstop (?:the )?turn\b")] private static partial Regex StopTurnRx();
+    // "turn two degrees left" and "turn left two degrees".
+    [GeneratedRegex(@"\bturn (?:(?<n>\d{1,3}|ten|fifteen|twenty|thirty|forty|forty five|fifty|sixty|ninety) degrees? (?<d>left|right)|(?<d2>left|right) (?<n2>\d{1,3}|ten|fifteen|twenty|thirty|forty|forty five|fifty|sixty|ninety) degrees?)\b")] private static partial Regex TurnByRx();
+
+    /// <summary>Degrees as said: digits ("1 0", already joined to "10") or the round numbers controllers say as words.</summary>
+    private static int? DegreesWord(string w) => int.TryParse(w, out int n) ? n : w switch
+    {
+        "ten" => 10, "fifteen" => 15, "twenty" => 20, "thirty" => 30, "forty" => 40, "forty five" => 45,
+        "fifty" => 50, "sixty" => 60, "ninety" => 90, _ => null,
+    };
     [GeneratedRegex(@"\bhalf (?:a )?standard rate\b")] private static partial Regex HalfRateRx();
     [GeneratedRegex(@"(?<!half (?:a )?)\bstandard rate\b")] private static partial Regex StandardRateRx();
     [GeneratedRegex(@"\b(?:(?<going>going) |(?<mag>slightly|well) )?(?<side>above|below) (?:the )?glidepath\b")] private static partial Regex GlidepathRx();

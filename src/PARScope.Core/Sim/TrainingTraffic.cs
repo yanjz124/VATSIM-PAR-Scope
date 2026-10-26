@@ -652,6 +652,14 @@ public sealed class SimAircraft
             readback.Add(half ? "half standard rate" : "standard rate");
         }
         if (t.NoGyroBrief && t.HalfStandardRate is null) { actions.Add("no-gyro approach"); readback.Add("roger"); }
+        if (t.TurnByDeg is double by && t.HeadingDeg is null)
+        {
+            // From the heading they were assigned (or are holding), not from wherever a wander has taken them.
+            _pending.Enqueue((now + delay, () => { CommandedHeadingRelDeg = Units.Norm180(CommandedHeadingRelDeg + by); _headingBias = 0; _noGyroTurn = 0; }));
+            string words = $"{(by < 0 ? "left" : "right")} {RadioSpeech.Digits(((int)Math.Abs(by)).ToString())} degree{(Math.Abs(by) == 1 ? "" : "s")}";
+            actions.Add($"turning {words}");
+            readback.Add(words);
+        }
         if (t.NoGyroTurn != 0)
         {
             int dir = t.NoGyroTurn;

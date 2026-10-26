@@ -773,6 +773,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (t.ApproachBrief) parts.Add("approach brief");
         if (t.NoGyroTurn != 0) parts.Add($"no-gyro turn {(t.NoGyroTurn < 0 ? "left" : "right")}");
         if (t.StopTurn) parts.Add("stop turn");
+        if (t.TurnByDeg is double by) parts.Add($"turn {Math.Abs(by):0} degrees {(by < 0 ? "left" : "right")}");
         if (t.HalfStandardRate is bool half) parts.Add(half ? "half standard rate turns" : "standard rate turns");
         if (t.NoGyroBrief) parts.Add("no-gyro approach");
         if (t.RangeInfo) parts.Add("range information");
