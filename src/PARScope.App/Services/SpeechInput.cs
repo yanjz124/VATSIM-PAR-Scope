@@ -19,6 +19,9 @@ public sealed class SpeechInput : IDisposable
     public event Action<string>? StateChanged;
 
     public string State { get; private set; } = "Voice not started";
+    /// <summary>Name of the push-to-talk key, for the status text.</summary>
+    public string PttKeyName { get; set; } = "Space";
+    private string ReadyText => $"Hold {PttKeyName} to talk";
     public bool Ready { get; private set; }
 
     public string? MicrophoneId
@@ -47,7 +50,7 @@ public sealed class SpeechInput : IDisposable
             if (ct.IsCancellationRequested) { rec.Dispose(); return; }
             _recognizer = rec;
             Ready = status.EndsWith("ready");
-            SetState(Ready ? "Hold Space to talk" : status);
+            SetState(Ready ? ReadyText : status);
         }
         catch (Exception ex) when (ex is IOException or HttpRequestException or InvalidOperationException or OperationCanceledException)
         {
@@ -68,7 +71,7 @@ public sealed class SpeechInput : IDisposable
         if (!_recording) return;
         _recording = false;
         var samples = _recorder.Stop();
-        if (samples.Length < 16000 * 0.3) { SetState("Hold Space to talk"); return; } // under 0.3 s: a tap
+        if (samples.Length < 16000 * 0.3) { SetState(ReadyText); return; } // under 0.3 s: a tap
         var rec = _recognizer;
         if (rec == null) return;
         SetState("Recognising…");
@@ -76,7 +79,7 @@ public sealed class SpeechInput : IDisposable
         {
             string? text = await rec.RecognizeAsync(samples, _cts.Token);
             if (text is { Length: > 0 }) Heard?.Invoke(text);
-            SetState(text is { Length: > 0 } ? "Hold Space to talk" : "Not understood, try again");
+            SetState(text is { Length: > 0 } ? ReadyText : "Not understood, try again");
         }
         catch (Exception ex) when (ex is InvalidOperationException or OperationCanceledException)
         {

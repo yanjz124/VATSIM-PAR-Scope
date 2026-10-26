@@ -11,6 +11,12 @@ public class RadioTests
     [InlineData("VM4685", "Marine four six eight five")]
     [InlineData("R21456", "Army two one four five six")]
     [InlineData("REACH481", "Reach four eight one")]
+    [InlineData("PAT123", "Pat one two three")]
+    [InlineData("BANSHEE21", "Banshee two one")]
+    [InlineData("N123AB", "November one two three Alpha Bravo")]
+    [InlineData("N52TX", "November five two Tango X-ray")]
+    [InlineData("GABCD", "Golf Alpha Bravo Charlie Delta")]
+    [InlineData("G-ABCD", "Golf Alpha Bravo Charlie Delta")]
     public void Military_callsigns_are_spoken_per_7110_65(string cs, string spoken)
     {
         Assert.Equal(spoken, RadioSpeech.Callsign(cs));
@@ -122,7 +128,8 @@ public class RadioTests
         Assert.Equal(2, app.DueRepeat(21)!.Calls);
         Assert.NotNull(app.Accept("VV1234"));
         Assert.Null(app.DueRepeat(60));
-        Assert.StartsWith("Navy one two three four, radar contact", app.Coordinate("VV1234"));
+        Assert.Equal($"Navy one two three four, radar contact, {RadioSpeech.Spell(app.Initials)}.", app.Coordinate("VV1234"));
+        Assert.Matches("^[A-Z][a-z-]+ [A-Z][a-z-]+$", app.SpokenInitials);
     }
 
     [Theory]

@@ -22,7 +22,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <ui:TitleBar Grid.Row="0" Title="PAR Scope" Height="36">
+        <ui:TitleBar Grid.Row="0" Title="{Binding WindowTitle}" Height="36">
             <ui:TitleBar.Icon>
                 <ui:ImageIcon Source="pack://application:,,,/Assets/PARScope.ico" />
             </ui:TitleBar.Icon>
@@ -242,7 +242,7 @@
 
                             <ui:ToggleSwitch IsChecked="{Binding PilotVoices}" OnContent="Pilot and tower voices" OffContent="Pilot and tower voices" Margin="0,10,0,0" />
                             <TextBlock Margin="0,8,0,0" Style="{StaticResource MetricLabel}" TextWrapping="Wrap"
-                                       Text="Space talk (start with 'Tower…' or 'Approach…' to coordinate) · ←/→ heading ±1° (Shift ±5°) · D begin descent · Q/W/E slightly/–/well above · A on glidepath · Z/X/C slightly/–/well below · G wheels · M missed approach · T tower · P pause · F flip PAR/ASR · Tab next target" />
+                                       Text="{Binding KeysHint}" />
                         </StackPanel>
                     </ui:CardExpander>
 
@@ -250,7 +250,7 @@
                                      Visibility="{Binding TrainingMode, Converter={StaticResource BoolToVisibility}}">
                         <StackPanel>
                             <TextBlock TextWrapping="Wrap" Style="{StaticResource MetricLabel}" Margin="0,0,0,10"
-                                       Text="Simulated arrivals for practising talk-downs. Controller-directed pilots hold heading and altitude until you talk to them: hold Space and speak (or type) headings, 'begin descent' and glidepath calls." />
+                                       Text="Simulated arrivals for practising talk-downs. Controller-directed pilots hold heading and altitude until you talk to them: hold the push-to-talk key and speak (or type) headings, 'begin descent' and glidepath calls." />
                             <TextBlock Text="Difficulty" Style="{StaticResource MetricLabel}" />
                             <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding Difficulties}" SelectedItem="{Binding Difficulty}" Margin="0,2,0,2" />
                             <TextBlock Text="{Binding DifficultyText}" Style="{StaticResource MetricLabel}" TextWrapping="Wrap" Margin="0,0,0,10" />

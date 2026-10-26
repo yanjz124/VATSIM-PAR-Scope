@@ -19,6 +19,8 @@ public sealed class AppSettings
     /// <summary>Master switch for training aids (training traffic, radio, suggested calls). Off = plain VATSIM scope.</summary>
     public bool TrainingMode { get; set; }
     public string? MicrophoneId { get; set; }
+    /// <summary>Push-to-talk key (WPF Key name).</summary>
+    public string PttKey { get; set; } = "Space";
     public string? SpeakerId { get; set; }
     /// <summary>Speech engine id (see RecognizerOption.All).</summary>
     public string RecognizerId { get; set; } = "windows";
@@ -26,6 +28,10 @@ public sealed class AppSettings
     public string? TowerVoice { get; set; }
     /// <summary>Use the public 15 s VATSIM data feed when no vPilot plugin is streaming. Opt-in.</summary>
     public bool UseDataFeed { get; set; }
+    /// <summary>Look for a newer release on GitHub at start-up.</summary>
+    public bool CheckForUpdates { get; set; } = true;
+    /// <summary>Training arrivals use the live METAR surface wind instead of a random one.</summary>
+    public bool TrainingLiveWind { get; set; } = true;
     /// <summary>Record received traffic to CSV for update-rate diagnostics.</summary>
     public bool RecordTraffic { get; set; } = true;
     public string? AirportId { get; set; }

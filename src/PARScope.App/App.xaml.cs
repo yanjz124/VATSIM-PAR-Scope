@@ -10,6 +10,7 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        Updater.CleanUpOldFiles();
         var settings = AppSettings.Load();
         var vm = new MainViewModel(settings, new ScopeEngine())
         {

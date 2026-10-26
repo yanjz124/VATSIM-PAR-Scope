@@ -59,14 +59,45 @@ public static class RadioSpeech
         ["C"] = "Coast Guard",
     };
 
-    /// <summary>"VV1234" → "Navy one two three four", "REACH481" → "Reach four eight one".</summary>
+    private static readonly string[] Nato =
+    [
+        "Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliett", "Kilo", "Lima", "Mike",
+        "November", "Oscar", "Papa", "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey", "X-ray", "Yankee", "Zulu",
+    ];
+
+    /// <summary>Mission callsigns spoken as words although they are short.</summary>
+    private static readonly HashSet<string> ShortWords = new(StringComparer.OrdinalIgnoreCase) { "PAT", "SAM", "BAT", "CAT", "BUD", "AXE", "ACE", "APE", "BOW" };
+
+    /// <summary>A letter group spelled in the ICAO phonetic alphabet: "AB" → "Alpha Bravo".</summary>
+    public static string Spell(string letters) =>
+        string.Join(' ', letters.Where(char.IsLetter).Select(c => Nato[char.ToUpperInvariant(c) - 'A']));
+
+    /// <summary>
+    /// "VV1234" → "Navy one two three four", "REACH481" → "Reach four eight one", "BANSHEE21" → "Banshee two one",
+    /// "N123AB" → "November one two three Alpha Bravo". A leading service prefix is spoken as the service
+    /// (7110.65 §2-4-20); a leading word callsign as a word; other letters (registrations) phonetically.
+    /// </summary>
     public static string Callsign(string cs)
     {
-        string letters = new(cs.TakeWhile(char.IsLetter).ToArray());
-        string rest = cs[letters.Length..];
-        string word = ServicePrefixes.TryGetValue(letters.ToUpperInvariant(), out var spoken) ? spoken
-            : letters.Length == 0 ? "" : char.ToUpperInvariant(letters[0]) + letters[1..].ToLowerInvariant();
-        return $"{word} {Digits(rest)}".Trim();
+        if (!cs.Any(char.IsDigit)) return Spell(cs); // all letters: a registration such as G-ABCD
+        var parts = new List<string>();
+        int i = 0;
+        bool first = true;
+        while (i < cs.Length)
+        {
+            bool letters = char.IsLetter(cs[i]);
+            int j = i;
+            while (j < cs.Length && char.IsLetterOrDigit(cs[j]) && char.IsLetter(cs[j]) == letters) j++;
+            if (j == i) { i++; continue; } // separators such as '-'
+            string run = cs[i..j];
+            if (!letters) parts.Add(Digits(run));
+            else if (first && ServicePrefixes.TryGetValue(run.ToUpperInvariant(), out var service)) parts.Add(service);
+            else if (first && (run.Length >= 4 || ShortWords.Contains(run))) parts.Add(char.ToUpperInvariant(run[0]) + run[1..].ToLowerInvariant());
+            else parts.Add(Spell(run));
+            first = false;
+            i = j;
+        }
+        return string.Join(' ', parts);
     }
 
     public static string Wind(int? dir, int? speed, bool variable)

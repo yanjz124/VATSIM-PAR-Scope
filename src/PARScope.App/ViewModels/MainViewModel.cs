@@ -76,6 +76,45 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     // ---- Setup ---------------------------------------------------------------------------------
 
+    private (double? FromDeg, double Kt, double? GustKt)? _liveWind;
+
+    /// <summary>Training arrivals fly in the live METAR wind (Settings › Training).</summary>
+    public bool TrainingLiveWind
+    {
+        get => _settings.TrainingLiveWind;
+        set { _settings.TrainingLiveWind = value; OnPropertyChanged(); ApplyLiveWind(); }
+    }
+
+    private void ApplyLiveWind() => Engine.Training.SurfaceWind = _settings.TrainingLiveWind ? _liveWind : null;
+
+    public string WindowTitle => $"PAR Scope {Updater.DisplayVersion}";
+
+    public bool CheckForUpdates
+    {
+        get => _settings.CheckForUpdates;
+        set { _settings.CheckForUpdates = value; OnPropertyChanged(); }
+    }
+
+    /// <summary>A newer release, if the start-up check found one.</summary>
+    public async Task<ReleaseInfo?> CheckForUpdateAsync()
+    {
+        if (!_settings.CheckForUpdates) return null;
+        try { return await Updater.CheckAsync(Http, new CancellationTokenSource(TimeSpan.FromSeconds(15)).Token); }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException) { return null; }
+    }
+
+    public async Task InstallUpdateAsync(ReleaseInfo release)
+    {
+        try
+        {
+            await Updater.InstallAndRestartAsync(Http, release, new Progress<string>(s => StatusMessage = s), CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException or UnauthorizedAccessException or InvalidDataException or TaskCanceledException)
+        {
+            StatusMessage = $"Update failed: {ex.Message}";
+        }
+    }
+
     public async Task InitializeAsync()
     {
         Engine.StartNetwork(_settings.UdpPort);
@@ -683,6 +722,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _speech.StateChanged += s => App.Current.Dispatcher.BeginInvoke(() => VoiceState = s);
         _speech.Heard += text => App.Current.Dispatcher.BeginInvoke(() => ProcessTransmission(text, "voice, " + (SelectedRecognizer?.Name ?? "speech")));
         _speech.MicrophoneId = _settings.MicrophoneId;
+        _speech.PttKeyName = PttKeyText;
         _ = _speech.UseRecognizerAsync(_settings.RecognizerId);
     }
 
@@ -748,6 +788,39 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (!TrainingMode) return;
         ProcessTransmission(call, "key");
     }
+
+    /// <summary>Push-to-talk key, chosen in Settings › Audio.</summary>
+    public System.Windows.Input.Key PttKey
+    {
+        get => Enum.TryParse<System.Windows.Input.Key>(_settings.PttKey, out var k) ? k : System.Windows.Input.Key.Space;
+        set
+        {
+            _settings.PttKey = value.ToString();
+            _speech.PttKeyName = PttKeyText;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(PttKeyText));
+            OnPropertyChanged(nameof(KeysHint));
+            if (_speech.Ready) VoiceState = $"Hold {PttKeyText} to talk";
+        }
+    }
+
+    public string PttKeyText => PttKey switch
+    {
+        System.Windows.Input.Key.Space => "Space",
+        System.Windows.Input.Key.LeftCtrl => "Left Ctrl",
+        System.Windows.Input.Key.RightCtrl => "Right Ctrl",
+        System.Windows.Input.Key.LeftShift => "Left Shift",
+        System.Windows.Input.Key.RightShift => "Right Shift",
+        System.Windows.Input.Key.LeftAlt => "Left Alt",
+        System.Windows.Input.Key.RightAlt => "Right Alt",
+        System.Windows.Input.Key.Oem3 => "`",
+        var k => k.ToString(),
+    };
+
+    public string KeysHint =>
+        $"{PttKeyText} talk (start with 'Tower…' or 'Approach…' to coordinate) · ←/→ heading ±1° (Shift ±5°) · D begin descent · "
+        + "Q/W/E slightly/–/well above · A on glidepath · Z/X/C slightly/–/well below · G wheels · M missed approach · T tower · "
+        + "P pause · F flip PAR/ASR · Tab next target";
 
     public void PressToTalk()
     {
@@ -984,6 +1057,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             MetarWindPhrase = m is null ? "" : RadioSpeech.Wind(m.WindDirDeg, m.WindSpeedKt, m.WindVariable).ToUpperInvariant();
             MetarStars = m?.StarsShort;
             MetarCategory = m?.Category ?? FlightCategory.Unknown;
+            _liveWind = m is { WindSpeedKt: int kt } ? (m.WindVariable ? null : m.WindDirDeg, kt, m.GustKt) : null;
+            ApplyLiveWind();
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {

@@ -147,6 +147,12 @@ public sealed class WindowsGrammarRecognizer : IPhraseRecognizer
 
     /// <summary>One transmission is a sequence of up to six phrases, e.g.
     /// "turn right heading two four four, slightly below glidepath and coming up, on course".</summary>
+    private static readonly string[] NatoWords =
+    [
+        "alpha", "bravo", "charlie", "delta", "echo", "foxtrot", "golf", "hotel", "india", "juliett", "kilo", "lima", "mike",
+        "november", "oscar", "papa", "quebec", "romeo", "sierra", "tango", "uniform", "victor", "whiskey", "x-ray", "yankee", "zulu",
+    ];
+
     /// <summary>Spoken callsign words: service prefixes, mission callsigns and squadron callwords.</summary>
     private static string[] CallsignWords() =>
         new[] { "navy", "marine", "army", "air force", "coast guard", "reach", "pat", "convoy" }
@@ -202,7 +208,9 @@ public sealed class WindowsGrammarRecognizer : IPhraseRecognizer
               Opt(G(Opt(G("turn", new Choices("left", "right"))), "heading", digit, digit, digit))),
             G("climb and maintain", digit, "thousand", Opt(G(digit, "hundred"))),
             G(new Choices("contact", "switch to"), new Choices("approach", "departure")),
-            G(Opt(G(new Choices(CallsignWords()), Opt(digit), Opt(digit), Opt(digit), Opt(digit), Opt(digit))), "radar contact"),
+            // "(callsign) radar contact (operating initials)": initials are any two phonetic letters.
+            G(Opt(G(new Choices(CallsignWords()), Opt(digit), Opt(digit), Opt(digit), Opt(digit), Opt(digit))), "radar contact",
+              Opt(G(new Choices(NatoWords), new Choices(NatoWords)))),
             // Interphone: "tower, final, navy one two three four, four mile final, full stop".
             G(new Choices("tower", "local", "approach", "departure"), Opt("final"),
               Opt(G(new Choices(CallsignWords()), Opt(digit), Opt(digit), Opt(digit), Opt(digit), Opt(digit))),

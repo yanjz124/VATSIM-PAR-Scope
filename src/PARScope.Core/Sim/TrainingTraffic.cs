@@ -118,6 +118,9 @@ public sealed class TrainingTraffic
     public ParGeometry? Geometry { get; set; }
     public bool Paused { get; set; }
     public TrainingDifficulty Difficulty { get; set; } = TrainingDifficulty.Normal;
+    /// <summary>Surface wind for new arrivals (true direction, knots, gust knots), e.g. from the live METAR;
+    /// null = a random wind for the difficulty. A null direction means variable.</summary>
+    public (double? FromDeg, double Kt, double? GustKt)? SurfaceWind { get; set; }
     /// <summary>Simulation clock, seconds: stops while paused, so pilot reaction delays wait out a pause.</summary>
     public double SimTime { get; private set; }
 
@@ -160,6 +163,7 @@ public sealed class TrainingTraffic
     {
         var d = DifficultyProfile.For(Difficulty);
         double Between(double lo, double hi) => lo + _rng.NextDouble() * (hi - lo);
+        var live = SurfaceWind;
         return Spawn(new SpawnOptions
         {
             Callsign = callsign,
@@ -173,13 +177,13 @@ public sealed class TrainingTraffic
             InterceptAngleDeg = _rng.NextDouble() * d.InterceptDeg,
             Mode = mode,
             Skill = Between(d.SkillLo, d.SkillHi),
-            WindFromDeg = _rng.Next(0, 36) * 10,
-            WindKt = _rng.Next(d.WindKtLo, d.WindKtHi + 1),
+            WindFromDeg = live?.FromDeg ?? _rng.Next(0, 36) * 10,
+            WindKt = live?.Kt ?? _rng.Next(d.WindKtLo, d.WindKtHi + 1),
             HeadingDriftDegPerMin = d.HeadingDriftDegPerMin * Between(0.6, 1.2),
             VsDriftFpmPerMin = d.VsDriftFpmPerMin * Between(0.6, 1.2),
             WindVeerDeg = d.WindVeerDeg * Between(0.5, 1.0),
             WindShearKt = d.WindShearKt * Between(0.5, 1.0),
-            GustKt = d.GustKt,
+            GustKt = live?.GustKt is double g ? Math.Max(d.GustKt, g - live.Value.Kt) : d.GustKt,
         });
     }
 

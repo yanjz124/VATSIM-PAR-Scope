@@ -1,124 +1,202 @@
 # PAR Scope for VATSIM
 
-A Precision Approach Radar (PAR) final-controller display for VATSIM, modelled on real military GCA
-systems (AN/FPN-68, FPN-63, GPN-22, FPN-67, MPN-25). It shows network traffic through vPilot,
-including VATSIM Velocity 5 Hz fast positions, and has built-in training traffic you can talk down
-by voice.
+A Precision Approach Radar (PAR) final-controller scope for VATSIM, modelled on real US military GCA
+systems: AN/FPN-68, FPN-63, GPN-22, FPN-67, MPN-25 and TPN-31 ATNAVICS. It runs alongside CRC and gets
+live traffic through vPilot, including VATSIM Velocity 5 Hz fast positions.
 
-## What's in the box
+It also has a training mode: simulated arrivals you talk down by voice, with pilot, tower and approach
+voices, standard phraseology, handoffs and missed approaches. With training off it is a plain scope:
+no suggested calls, no simulated anything.
+
+## What's in the release
 
 | | |
 |---|---|
-| `PARScope.exe` | The scope: AZ-EL indicator, ASR plan view, METAR, training traffic. Windows 10/11; no .NET install needed. |
-| `Plugin\RadarStreamerPlugin.dll` + `.ini` | vPilot plugin that streams the traffic vPilot sees to the scope over UDP. |
-| `TrafficProbe.exe` | Optional diagnostic that shows the fast/slow update rate you are actually getting, per aircraft. |
+| `PARScope.exe` | The scope. Windows 10/11, no .NET install needed. |
+| `runtimes\win-x64\` | Speech-recognition libraries. Keep this folder next to `PARScope.exe`. |
+| `Plugin\RadarStreamerPlugin.dll` + `.ini` | vPilot plugin that streams the traffic vPilot sees to the scope. |
+| `TrafficProbe.exe` | Optional: shows the update rate you are actually getting, per aircraft. |
 
 ## Install
 
-1. Close vPilot.
-2. Copy `RadarStreamerPlugin.dll` and `RadarStreamerPlugin.ini` into `%LOCALAPPDATA%\vPilot\Plugins\`.
-   Windows may block an unsigned DLL. If so, right-click it, open Properties, and tick **Unblock**.
-3. Start vPilot and connect (as pilot, observer or tower view). Type `.debug` in vPilot to see the
-   plugin's messages. With Velocity data flowing it reports "Streaming … with Velocity fast positions".
-4. Run `PARScope.exe`. The first start downloads the airport database (OurAirports worldwide plus the
-   current FAA NASR cycle). Type an airport (`KNKX`, `NKX`, `EGQS`…) and pick the runway.
+1. Unzip the release anywhere.
+2. Close vPilot. Copy `RadarStreamerPlugin.dll` and `RadarStreamerPlugin.ini` into
+   `%LOCALAPPDATA%\vPilot\Plugins\`. If Windows blocks the DLL, right-click it, open **Properties**
+   and tick **Unblock**.
+3. Run `PARScope.exe`. The first start downloads the airport database (FAA NASR plus OurAirports
+   worldwide). Type an airport (`KNKX`, `NKX`, `EGQS`…) and pick the runway.
 
-The status bar shows the link: **green** means fast positions are streaming, **amber** means slow
-5-second updates only, **grey** means nothing has been received.
+You only need vPilot for live VATSIM traffic. Training mode works without it.
+
+**Updates**: at start-up the scope checks GitHub for a newer release and offers to install it; it
+restarts itself when done. The vPilot plugin is never changed automatically. If a release updates it,
+the new copy is in the `Plugin` folder next to the scope. Turn the check off in **Settings › Data**.
+The title bar shows the version and the commit it was built from.
 
 ## Using it alongside CRC
 
-CRC has no local data output, so the scope gets live traffic through vPilot's **tower view**
-connection. VATSIM Code of Conduct C7(b) allows a controller one extra tower-view observer connection,
-`(CID)_TV`, from an approved pilot client.
+CRC has no local data output, so the scope gets traffic from vPilot's **tower view** connection. The
+VATSIM Code of Conduct (C7(b)) allows a controller one extra tower-view connection, `(CID)_TV`.
 
 1. Connect to your position in CRC.
-2. Start your simulator and vPilot (with the plugin installed). In vPilot, type `.towerview`.
+2. Start your simulator and vPilot with the plugin installed, and type `.towerview` in vPilot.
 3. Run `PARScope.exe`. The status bar shows **vPilot tower view**.
 
-If no plugin is streaming, the scope falls back to the public VATSIM data feed. It uses no extra
-connection, but it only updates about every 15 s. The status bar shows **VATSIM data feed (15 s)**
-while that's active. It's fine for following traffic, but not for precision guidance.
+The status bar tells you what you are getting:
 
-Whether Velocity fast positions reach a tower-view connection, and over what range, depends on the
-VATSIM servers. Run `TrafficProbe.exe` (with the scope closed) to see the rates you actually get.
+* **5 Hz data**: Velocity fast positions are arriving.
+* **5 s updates only**: vPilot is connected but only the normal slow updates are arriving.
+* **VATSIM data feed (15 s)**: no vPilot; positions from the public data feed. Turn this on in
+  **Settings › Data**. Fine for watching traffic, too slow for precision guidance.
 
-## Using the scope
+Hover the status text for details, or open **Settings › Diagnostics** for live per-aircraft rates.
 
-* **Elevation** (top) and **azimuth** (bottom) share one range axis, with touchdown on the left.
-  * Elevation shows the glidepath cursor, the lower safe limit (TERPS obstacle clearance surface,
-    dashed amber), the DH marker, and the threshold and touchdown marks.
-  * Azimuth shows the course line, the 2° and 5° lines from touchdown, and the runway.
-* **Radar model** selector: each preset changes the scan rate, coverage, accuracy and display style.
-  The FPN-63 preset is a monochrome phosphor indicator with afterglow and no tracker. The FPN-68
-  preset is a colour digital display with tracks, history dots and data blocks.
-* **Range** 5/10/20 NM (PgUp/PgDn). **Log** compresses the range axis, like the USMC display it is
-  copied from. **MTI** rejects targets slower than 40 kt.
-* Targets plot exactly where the aircraft is, once per radar scan. **Simulate radar errors** (in
-  setup, off by default) adds measurement noise, multipath, ground clutter and missed paints for
-  training.
-* Click a target, or press **Tab**, to select it. The side panel shows its range from touchdown,
-  feet above or below the glidepath, feet left or right of course, and the recommended rate of descent.
-* **Approach and site setup** sets the glidepath angle, TCH, DH and antenna position for each runway.
-  Defaults come from the published data.
+## The scope
 
-The scope updates like a radar, not a moving map:
+* **Elevation** (top) and **azimuth** (bottom) share one range axis, touchdown on the left.
+  * Elevation: glidepath, lower safe limit, decision height, threshold and touchdown.
+  * Azimuth: final approach course, lateral safe limits and the runway. The antenna sits off to the
+    side of the runway and its sector is angled toward the centreline, so the left and right limits
+    are not symmetric.
+* **Radar model** changes the scan rate, coverage, accuracy and display. FPN-63 is a monochrome
+  analog indicator without a tracker; FPN-68 is a colour digital display with tracks and data blocks;
+  ATNAVICS copies the USMC expeditionary screen.
+* **Range** 5/10/20 NM (PgUp/PgDn). **Log** compresses the range axis the way real PAR displays do:
+  miles are spread out close in and bunched up far out. **MTI** hides targets slower than 40 kt.
+  **Safety** shows the safe limits. **Scan** shows the antenna sweep (on by default for analog models).
+* Targets are painted when the simulated beam crosses them. Between network updates aircraft are
+  dead-reckoned, so 5-second updates don't make targets jump. Radar noise and clutter are off unless
+  you turn on **Settings › Display › Simulate radar errors**.
+* Click a target or press **Tab** to select it. The side panel shows range from touchdown, feet
+  above/below the glidepath, feet left/right of course and, in training, the recommended descent rate.
+* **ASR**: press **F** (or the **ASR** button) to flip the scope to the surveillance picture, or use
+  the pop-out button to put it in its own window, e.g. on another monitor. It shows the PAR coverage
+  cone, the extended centreline and, for models whose ASR display had one, a compass rose.
+* **METAR** is always in the status bar (VATSIM or NOAA, chosen in **Settings › Data**), and wind and
+  altimeter are on the scope.
+* **Settings** (gear button): PAR siting for each runway (glidepath, TCH, DH, antenna position — set
+  them from the approach plate), display, data sources, training aids, audio and diagnostics.
 
-* Each target is painted when the simulated beam crosses it.
-* Between network updates, aircraft are dead-reckoned and smoothed, so a 5-second update rate doesn't
-  make targets jump.
+## Training mode
 
-See [docs/PAR-RESEARCH.md](docs/PAR-RESEARCH.md) for the sources behind each choice.
+Turn on **Training** in the toolbar. **Spawn arrival** adds an aircraft about 12–15 NM out at 2,000–3,000
+ft, which leaves time for the radio check, the approach brief and missed approach instructions before
+the glidepath.
 
-## Training traffic
+* **Difficulty**: Easy, Normal, Hard, Expert. On Hard and Expert pilots slowly drift off their heading
+  and descent rate until corrected, and the wind shifts as they descend.
+* **Wind**: arrivals fly in the live METAR surface wind and gusts, so you correct for real drift (turn
+  off in **Settings › Training** for a random wind).
+* **Controller-directed** pilots hold heading and altitude until told otherwise (a true PAR talk-down).
+  **Pilot flies the approach** pilots fly it themselves, with mistakes.
+* **Callsigns and types** are realistic: service prefixes (Navy, Marine, Army, Air Force, Reach…) and
+  squadron callsigns from the [Military Callsign List](https://henney.com/chm/callsign.htm). Approach
+  speeds come from the FAA Aircraft Characteristics Database. You can enter your own callsign and ICAO
+  type. Pilots, tower and approach say callsigns as on the radio: "Navy one two three four",
+  "Banshee two one", "November one two three Alpha Bravo".
 
-**Training traffic › Spawn arrival** adds a simulated aircraft on final. There are two pilot types:
+### Talking
 
-* **Controller-directed** pilots hold heading and altitude until you talk to them.
-* **Pilot flies the approach** pilots fly an ILS-style approach with human-like errors.
+Hold the push-to-talk key (**Space** by default; change it in **Settings › Audio**) and speak, or type
+in the transmission box. The scope or ASR window needs to have focus. Standard 7110.65 phraseology works, e.g.
+"turn left heading two four zero, slightly above glidepath and coming down".
 
-Talk to them with **push-to-talk**: hold **Space** and speak standard phraseology, e.g. "turn left
-heading two four zero, slightly above glidepath and coming down". This uses the offline Windows speech
-recogniser (English) with a PAR grammar. You can also type the same words in the transmission box.
+* Pilots read back until you say "do not acknowledge further transmissions", then only answer a radio
+  check or a missed approach.
+* Glidepath calls change their descent rate; course calls are information only, so correct course
+  with headings.
+* "In the event of missed approach, climb and maintain two thousand, turn left heading one eight zero"
+  is read back and remembered. "Execute missed approach" makes them fly it.
 
-Keyboard shortcuts: **D** begin descent, **←/→** heading ±1° (Shift ±5°).
+### Coordination
 
-**Suggested calls** (the computed 7110.65 transmission) are a training aid. They are on for training
-traffic and off for VATSIM traffic unless you enable them.
+Start a call with **Tower**, **Local**, **Approach** or **Departure** and it goes to that controller
+on the interphone instead of the pilot. Wording can be loose ("tower, final, 1234, touch and go"); the
+aircraft is picked out by its callsign or number, otherwise the selected one is used.
 
-Run `PARScope.exe --demo NKX 24R` to open straight into a runway with three self-flying arrivals.
+* **Handoff in**: approach calls "handoff, one four mile final, Navy one two three four, two thousand
+  five hundred, heading two four zero". Accept with "Navy one two three four, radar contact" plus your
+  operating initials (any you like); approach answers with theirs and switches the pilot, who checks
+  in. An unanswered handoff is repeated every 20 seconds.
+* **Tower**: ask for a landing clearance (full stop, touch and go, low approach or option) and relay it.
+  Without a clearance by 2 miles the suggested call is "tower clearance not received".
+* **Missed approach**: hand the aircraft back to approach (or press **Coordinate missed approach**),
+  then tell the pilot "contact approach".
+
+### Keys (training)
+
+| | |
+|---|---|
+| Space | Push to talk (configurable) |
+| ← / → | Heading −1° / +1° (Shift: 5°) |
+| D | Begin descent |
+| Q / W / E | Slightly above / above / well above glidepath |
+| A | On glidepath |
+| Z / X / C | Slightly below / below / well below glidepath |
+| G | Wheels should be down |
+| M | Execute missed approach |
+| T | Request tower clearance |
+| P | Pause / resume |
+| F | Flip PAR / ASR |
+| Tab, Esc | Next target, deselect |
+
+### Voices and speech recognition
+
+In **Settings › Audio** pick the microphone, the output device and the pilot and tower voices.
+Speech recognition can be:
+
+* **Windows Speech**: offline, fast, but only understands standard phraseology. No coordination calls
+  with callsigns it doesn't know.
+* **Whisper** (tiny, base or small): a local OpenAI model, downloaded on first use (75–470 MB). Much
+  more tolerant of accents and wording; use it for interphone calls.
+
+**Suggested calls** (the computed transmission for the selected target) are in **Settings › Training**.
+They are on for training traffic and off for VATSIM traffic.
+
+### Session log
+
+Every training session is logged to `%AppData%\VATSIM-PAR-Scope\diagnostics\training-*.log`: what
+you said, how it was understood, what the pilot did, and every 2 seconds each aircraft's position
+against the glidepath and course with the call the scope would have made. Useful for reviewing a
+talk-down afterwards.
 
 ## VATSIM Velocity (5 Hz) data
 
-vPilot's public plugin API only raises an update every ~5 seconds, even though vPilot receives
-Velocity fast positions at up to 5 Hz. The plugin taps vPilot's internal event bus to stream those fast
-positions, with their velocity vectors. It is read-only and never talks to the network. If a vPilot
-update breaks it, the plugin falls back to the 5-second events automatically. Details:
-[docs/VELOCITY.md](docs/VELOCITY.md).
+vPilot's plugin API only raises an update every ~5 seconds, although vPilot receives Velocity fast
+positions at up to 5 Hz. The plugin reads those fast positions from vPilot's internal event bus. It is
+read-only and never sends anything to the network. If a vPilot update breaks it, the plugin falls back
+to the 5-second updates. Details in [docs/VELOCITY.md](docs/VELOCITY.md).
 
-The VATSIM server only sends fast positions when a client nearby wants them. To see what you actually
-get, close the scope and run `TrafficProbe.exe`.
+The VATSIM servers only send fast positions to clients close enough to want them, so what a tower-view
+connection gets depends on the servers. Close the scope and run `TrafficProbe.exe` to see the rates
+you actually get.
+
+## Sources
+
+The models, symbology and phraseology follow FAA JO 7110.65, FAA Order 8260.3 (TERPS), ICAO Annex 10,
+NAVAIR 00-80T-112/114, NAVEDTRA 14342A, AFMAN 13-204v3 and 11-217, UK MAA RA 3291, the MCAS Cherry
+Point facility manual, and footage of in-service displays. See [docs/PAR-RESEARCH.md](docs/PAR-RESEARCH.md)
+for what came from where.
 
 ## Building from source
 
-Requires the .NET 10 SDK and vPilot installed. The plugin compiles against vPilot's own assemblies;
-set `VPILOT_DIR` if vPilot is not in `%LOCALAPPDATA%\vPilot`.
+Requires the .NET 10 SDK, and vPilot installed (the plugin compiles against vPilot's assemblies; set
+`VPILOT_DIR` if vPilot is not in `%LOCALAPPDATA%\vPilot`).
 
 ```powershell
 dotnet build VATSIM-PAR-Scope.sln
 dotnet test tests\PARScope.Core.Tests
-.\scripts\build-release.ps1 -Version 2.0.0   # release zip in .\release
+.\scripts\build-release.ps1 -Version 2.0.0   # zip in .\release
 ```
 
 | Project | |
 |---|---|
-| `src/PARScope.Core` | Geodesy (WGS-84/ECEF), traffic protocol and tracker, PAR geometry and TERPS surfaces, radar and ASR models, advisory and phraseology, airport data (NASR and OurAirports), METAR, training traffic. No UI dependencies; unit tested. |
-| `src/PARScope.App` | WPF on .NET 10, using [WPF UI](https://github.com/lepoco/wpfui) (Fluent design) and SkiaSharp for the scopes. |
-| `src/RadarStreamerPlugin` | vPilot plugin (.NET Framework 4.7.2, since vPilot loads it in-process). |
-| `tools/TrafficProbe` | Rate and velocity diagnostic. |
+| `src/PARScope.Core` | Geodesy, traffic protocol and tracking, PAR geometry, radar and ASR models, phraseology, airport data, METAR, training simulation. No UI; unit tested. |
+| `src/PARScope.App` | WPF on .NET 10 with [WPF UI](https://github.com/lepoco/wpfui) and SkiaSharp. |
+| `src/RadarStreamerPlugin` | vPilot plugin (.NET Framework 4.7.2). |
+| `tools/TrafficProbe` | Update-rate diagnostic. |
 
-The plugin and scope talk NDJSON over UDP port 49090 (protocol v2, documented in `Plugin.cs`). The
-scope still accepts the v1 messages from older plugin builds.
+The plugin and scope talk NDJSON over UDP port 49090 (protocol v2, documented in `Plugin.cs`).
 
 ## Licence
 

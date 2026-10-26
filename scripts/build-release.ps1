@@ -21,7 +21,7 @@ if ($LASTEXITCODE -ne 0) { throw "Tests failed" }
 
 $single = @("-r", "win-x64", "--self-contained", "true", "-p:PublishSingleFile=true",
             "-p:IncludeNativeLibrariesForSelfExtract=true", "-p:EnableCompressionInSingleFile=true",
-            "-p:DebugType=none", "-p:Version=$Version")
+            "-p:DebugType=none", "-p:Version=$Version", "-p:SourceRevisionId=$(git -C $root rev-parse HEAD)")
 
 Write-Host "Publishing PAR Scope..."
 dotnet publish (Join-Path $root "src\PARScope.App") -c Release @single -o $stage --nologo -v q

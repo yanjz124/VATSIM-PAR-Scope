@@ -21,7 +21,8 @@ public sealed class ApproachSim
     /// <summary>Approach controller's operating initials for this session.</summary>
     public string Initials { get; }
 
-    public string SpokenInitials => string.Join(' ', Initials.ToCharArray());
+    /// <summary>Operating initials in the phonetic alphabet: "Juliett Yankee".</summary>
+    public string SpokenInitials => RadioSpeech.Spell(Initials);
 
     public ApproachSim(Random? rng = null)
     {

@@ -28,6 +28,7 @@ public partial class MainWindow : FluentWindow
         _settings = settings;
         InitializeComponent();
         DataContext = vm;
+        Title = vm.WindowTitle;
         RestorePlacement();
 
         _statusTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(250), DispatcherPriority.Background, (_, _) => _vm.RefreshStatus(), Dispatcher);
@@ -38,6 +39,7 @@ public partial class MainWindow : FluentWindow
             _statusTimer.Start();
             _vm.StartVoice();
             await _vm.InitializeAsync();
+            await OfferUpdateAsync();
         };
         vm.PropertyChanged += OnViewModelChanged;
         vm.AirportResults.CollectionChanged += (_, _) => AirportPopup.IsOpen = AirportBox.IsKeyboardFocusWithin && vm.AirportResults.Count > 0;
@@ -147,6 +149,13 @@ public partial class MainWindow : FluentWindow
     internal void HandleScopeKey(KeyEventArgs e)
     {
         if (Keyboard.FocusedElement is System.Windows.Controls.TextBox) return;
+        // Alt-modified keys arrive as Key.System.
+        if ((e.Key == Key.System ? e.SystemKey : e.Key) == _vm.PttKey)
+        {
+            if (!e.IsRepeat) _vm.PressToTalk();
+            e.Handled = true;
+            return;
+        }
         bool shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
         switch (e.Key)
         {
@@ -154,11 +163,8 @@ public partial class MainWindow : FluentWindow
             case Key.PageDown: _vm.StepRange(+1); break;
             case Key.Tab: _vm.CycleSelection(); break;
             case Key.Escape: _vm.Select(null); break;
-            case Key.Space:
-                if (!e.IsRepeat) _vm.PressToTalk();
-                break;
             case Key.D: _vm.BeginDescent(); break;
-            // Standard glidepath calls and procedures (training): FAA JO 7110.65 §5-12-4, §2-1-25, §5-10-14.
+            // Standard glidepath calls and procedures (training): FAA JO 7110.65 搂5-12-4, 搂2-1-25, 搂5-10-14.
             case Key.Q: _vm.KeyCall("slightly above glidepath"); break;
             case Key.W: _vm.KeyCall("above glidepath"); break;
             case Key.E: _vm.KeyCall("well above glidepath"); break;
@@ -180,7 +186,7 @@ public partial class MainWindow : FluentWindow
 
     internal void HandleScopeKeyUp(KeyEventArgs e)
     {
-        if (e.Key == Key.Space && Keyboard.FocusedElement is not System.Windows.Controls.TextBox)
+        if ((e.Key == Key.System ? e.SystemKey : e.Key) == _vm.PttKey && Keyboard.FocusedElement is not System.Windows.Controls.TextBox)
         {
             _vm.ReleaseToTalk();
             e.Handled = true;
@@ -232,6 +238,17 @@ public partial class MainWindow : FluentWindow
             AirportPopup.IsOpen = false;
             Keyboard.Focus(this);
         }
+    }
+
+    private async Task OfferUpdateAsync()
+    {
+        if (await _vm.CheckForUpdateAsync() is not { } release) return;
+        var answer = System.Windows.MessageBox.Show(this,
+            $"PAR Scope {release.Version} is available (you have {Updater.DisplayVersion}).\n\n"
+            + "Update now? The scope restarts when it is done. The vPilot plugin is not changed; if the release notes "
+            + "say the plugin was updated, copy it from the Plugin folder into vPilot.",
+            "Update available", System.Windows.MessageBoxButton.YesNo, MessageBoxImage.Information);
+        if (answer == System.Windows.MessageBoxResult.Yes) await _vm.InstallUpdateAsync(release);
     }
 
     private SettingsWindow? _settingsWindow;

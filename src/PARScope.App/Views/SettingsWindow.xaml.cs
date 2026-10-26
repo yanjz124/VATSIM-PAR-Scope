@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Input;
 using Microsoft.Win32;
 using PARScope.App.ViewModels;
 using Wpf.Ui.Controls;
@@ -15,6 +16,27 @@ public partial class SettingsWindow : FluentWindow
         _vm = vm;
         InitializeComponent();
         DataContext = vm;
+    }
+
+    private bool _capturingPtt;
+
+    private void PttButton_Click(object sender, RoutedEventArgs e)
+    {
+        _capturingPtt = true;
+        PttButton.Content = "Press a key…";
+        PttHint.Text = "Esc to cancel";
+    }
+
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        base.OnPreviewKeyDown(e);
+        if (!_capturingPtt) return;
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (key != Key.Escape) _vm.PttKey = key;
+        _capturingPtt = false;
+        PttButton.Content = _vm.PttKeyText;
+        PttHint.Text = "";
+        e.Handled = true;
     }
 
     private void ImportNasr_Click(object sender, RoutedEventArgs e)
