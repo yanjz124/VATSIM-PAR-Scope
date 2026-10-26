@@ -14,6 +14,10 @@ public class RecognizerVariantTests
         var missed = Phraseology.Parse("YOUR MISSED APPROACH INSTRUCTIONS. FLY RUNWAY HEADING CLIMB MAINTAIN TWO THOUSAND.");
         Assert.Equal(2000, missed.ClimbToFt);
         Assert.Equal(1, Phraseology.Parse("ONE ONE MILES FROM TOUCHDOWN. TURN RIGHT.").NoGyroTurn);
+        var miss = Phraseology.Parse("ARMY SIX FOUR SIX SIX. MISS APPROACH INSTRUCTIONS. FLY RIDE AND CLIMB MAINTAIN TWO THOUSAND.");
+        Assert.True(miss.MissedApproachInstructions);
+        Assert.False(miss.MissedApproach);
+        Assert.True(Phraseology.Parse("DECISION HEIGHT.").RangeInfo);
     }
 }
 

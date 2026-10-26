@@ -252,7 +252,8 @@
                                 <ItemsControl ItemsSource="{Binding RadioLog}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding}" FontSize="11" TextTrimming="CharacterEllipsis" Height="16" />
+                                            <TextBlock Text="{Binding}" FontSize="11" TextTrimming="CharacterEllipsis" Height="16" ToolTip="{Binding}"
+                                                       Foreground="{Binding Converter={StaticResource RadioLogBrush}}" />
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>

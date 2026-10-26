@@ -186,6 +186,13 @@ public sealed class TrainingTraffic
     /// Pilots compare them with the decision height to decide whether they can see the runway.</summary>
     public (double? CeilingFt, double? VisibilitySm) FieldWeather { get; set; }
 
+    /// <summary>How approaches ended (landed where, touch and go, low approach, ground contact short), oldest first.</summary>
+    public IEnumerable<(string Callsign, string Text)> TakeResults()
+    {
+        foreach (var a in _aircraft)
+            while (a.Results.TryDequeue(out var text)) yield return (a.Callsign, text);
+    }
+
     /// <summary>Things pilots said on their own (e.g. why they are going around), oldest first.</summary>
     public IEnumerable<(string Callsign, string Text)> TakePilotCalls()
     {
@@ -381,6 +388,16 @@ public sealed class SimAircraft
     /// <summary>Why the pilot went around on their own at decision height, if they did.</summary>
     public string? GoAroundReason { get; private set; }
     internal Queue<string> Calls { get; } = new();
+    /// <summary>How the approach ended, for the controller (see <see cref="TrainingTraffic.TakeResults"/>).</summary>
+    internal System.Collections.Concurrent.ConcurrentQueue<string> Results { get; } = new();
+    private ApproachGrader _grade = new();
+
+    /// <summary>Grades a talk-down (controller-directed only) when it ends; the grade joins the results.</summary>
+    private void Grade(int outcomePoints, string outcome, bool fail = false)
+    {
+        if (Mode != PilotMode.ControllerDirected) return;
+        if (_grade.Finish(outcomePoints, outcome, GearReportedDown, fail) is { } line) Results.Enqueue(line);
+    }
     private bool _decided;
     private (double? CeilingFt, double? VisibilitySm) _wx;
 
@@ -475,6 +492,7 @@ public sealed class SimAircraft
     public PilotResponse Receive(Transmission t, double now, double courseMagDeg, double recommendedFpm, double thresholdElevFt = 0)
     {
         double delay = ReactionDelay;
+        if (Mode == PilotMode.ControllerDirected) _grade.Heard(t, now, RangeFt);
         var actions = new List<string>();
         var readback = new List<string>();
         string cs = RadioSpeech.Callsign(Callsign);
@@ -490,10 +508,12 @@ public sealed class SimAircraft
             if (hdgRel is double mh) MissedHeadingRelDeg = mh;
             if (climbAgl is double ma) MissedClimbToFt = ma;
             LastReadback = "missed approach instructions noted";
-            var parts = new List<string> { "missed approach" };
+            // Read back as instructions for later ("Roger, in the event of missed approach, …"), so it is not
+            // mistaken for the pilot going missed now.
+            var parts = new List<string> { "Roger, in the event of missed approach" };
             if (climbAgl is double ra) parts.Add(Climb(ra));
-            if (hdgRel is double rh) parts.Add(Hdg(rh));
-            string? rb = NoAcknowledge ? null : $"{char.ToUpperInvariant(parts[0][0])}{string.Join(", ", parts)[1..]}, {cs}.";
+            parts.Add(hdgRel is double rh ? Hdg(rh) : "runway heading");
+            string? rb = NoAcknowledge ? null : $"{string.Join(", ", parts)}, {cs}.";
             return new PilotResponse(LastReadback, rb);
         }
         if (t.MissedApproach && t.ConditionalMissedApproach && RunwayInSight)
@@ -513,6 +533,7 @@ public sealed class SimAircraft
             // runway heading and 2,000 ft. A missed approach is always acknowledged.
             double? heading = hdgRel ?? MissedHeadingRelDeg;
             double climb = climbAgl ?? MissedClimbToFt ?? 2000;
+            if (!GoingAround) Grade(5, "missed approach on the controller's instruction");
             _pending.Enqueue((now + delay, () => StartMissed(heading, climb)));
             NoAcknowledge = false;
             var parts = new List<string> { "going missed" };
@@ -733,6 +754,8 @@ public sealed class SimAircraft
             : null;
         if (reason == null) { Visual = true; return; }
         GoAroundReason = reason;
+        // Weather below minimums is nobody's fault; everything else was the controller's to prevent.
+        Grade(reason == "no runway environment" ? 10 : 0, $"went around: {reason}");
         StartMissed(MissedHeadingRelDeg, MissedClimbToFt ?? 2000);
         Calls.Enqueue($"Going around, {reason}, {RadioSpeech.Callsign(Callsign)}.");
     }
@@ -744,7 +767,11 @@ public sealed class SimAircraft
         if (!_decided && Descending && !GoingAround && !Landed && RangeFt <= geo.DecisionHeightRangeFt) DecideAtMinimums(geo, wx);
         // Low approach: go around over the runway without touching down.
         if (Clearance == LandingIntent.LowApproach && !GoingAround && !Landed && RangeFt <= geo.ThresholdRangeFt && HeightFt <= 100)
+        {
+            Results.Enqueue($"low approach, over the threshold at {HeightFt:0} ft, {Offset(CrossFt)}");
+            Grade(Math.Abs(CrossFt) <= (geo.Runway.WidthFt ?? 150) / 2 ? 10 : 5, "low approach");
             StartMissed(MissedHeadingRelDeg, MissedClimbToFt ?? 2000);
+        }
         while (_pending.Count > 0 && _pending.Peek().At <= now) _pending.Dequeue().Do();
 
         // Imperfect pilots: slow random walks on heading and rate.
@@ -817,8 +844,13 @@ public sealed class SimAircraft
         if (!Descending && !GoingAround && !Landed)
             HeightFt -= CurvatureDropFt(RangeFt - ThresholdRangeFt, CrossFt) - dropBefore;
 
+        if (Mode == PilotMode.ControllerDirected && Descending && !GoingAround && !Landed && !InPattern && RangeFt > geo.DecisionHeightRangeFt)
+            _grade.Sample(now, geo, RangeFt, CrossFt, HeightFt);
+
         if (!Landed && !GoingAround && HeightFt <= 0 && RangeFt < geo.ThresholdRangeFt + 200)
         {
+            Results.Enqueue(Touchdown(geo));
+            GradeTouchdown(geo);
             Landed = true;
             HeightFt = 0;
             Descending = false;
@@ -840,10 +872,47 @@ public sealed class SimAircraft
                 if (SpeedKt < 30) Finished = true;
             }
         }
-        if (HeightFt < 0 && !Landed) HeightFt = 0; // flew into the ground short: hold at surface
+        if (HeightFt <= 0 && !Landed && !GoingAround && !InPattern && RangeFt >= geo.ThresholdRangeFt + 200)
+        {
+            // Flew into the ground before the runway: the approach ends here.
+            Results.Enqueue($"hit the ground {(RangeFt - geo.ThresholdRangeFt) / Units.FeetPerNm:0.0} NM short of the runway, {Offset(CrossFt)}");
+            Grade(0, "ground contact short of the runway", fail: true);
+            HeightFt = 0;
+            Finished = true;
+            return;
+        }
+        if (HeightFt < 0 && !Landed) HeightFt = 0;
         // A missed approach handed to approach (or flown well past the field without a word) joins the pattern.
         if (GoingAround && ReturnsToPattern && !InPattern && !Landed && (HandedOff || RangeFt < -4 * Units.FeetPerNm)) JoinPattern();
         if (!InPattern && (HandedOff || RangeFt < (GoingAround ? -10 : -3) * Units.FeetPerNm || RangeFt > 30 * Units.FeetPerNm)) Finished = true;
+    }
+
+    private static string Offset(double crossFt) =>
+        Math.Abs(crossFt) < 10 ? "on the centerline" : $"{Math.Abs(crossFt):0} ft {(crossFt > 0 ? "right" : "left")} of centerline";
+
+    private void GradeTouchdown(ParGeometry geo)
+    {
+        double past = ThresholdRangeFt - RangeFt;
+        bool onRunway = past >= 0 && Math.Abs(CrossFt) <= (geo.Runway.WidthFt ?? 150) / 2
+                        && (geo.Runway.LengthFt is not double len || past <= len);
+        if (!onRunway) { Grade(0, "touched down off the runway", fail: past < 0); return; }
+        // Touchdown zone: the first 3,000 ft (AIM, FAA-H-8083-15).
+        if (-VerticalSpeedFpm > 900) Grade(7, "hard landing");
+        else if (past > 3000) Grade(7, "landed long, past the touchdown zone");
+        else Grade(10, "landed in the touchdown zone");
+    }
+
+    /// <summary>Where and how hard the aircraft touched down, as the result of the approach.</summary>
+    private string Touchdown(ParGeometry geo)
+    {
+        double past = ThresholdRangeFt - RangeFt;
+        double halfWidth = (geo.Runway.WidthFt ?? 150) / 2;
+        string what = Clearance is LandingIntent.TouchAndGo or LandingIntent.Option ? "touch and go" : "landed";
+        if (past < 0) return $"touched down {-past:0} ft short of the threshold, {Offset(CrossFt)}";
+        if (Math.Abs(CrossFt) > halfWidth) return $"touched down off the side of the runway, {Offset(CrossFt)}";
+        if (geo.Runway.LengthFt is double len && past > len) return "touched down beyond the end of the runway";
+        double sink = -VerticalSpeedFpm;
+        return $"{what}, {past:#,0} ft past the threshold, {Offset(CrossFt)}, {sink:0} fpm{(sink > 900 ? " (hard landing)" : "")}";
     }
 
     /// <summary>
@@ -914,6 +983,7 @@ public sealed class SimAircraft
     internal void ResetForApproach()
     {
         InPattern = PatternDone = GoingAround = HandedOff = Landed = Visual = _decided = _leveled = false;
+        _grade = new ApproachGrader();
         NoAcknowledge = GearReportedDown = false;
         AnotherApproach = true;
         Clearance = Mode == PilotMode.SelfFlying ? LandingIntent.FullStop : null;

@@ -58,6 +58,29 @@ public sealed class NotNullToVisibilityConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
 }
 
+/// <summary>Radio log line color: warnings (not understood, no reply) orange, approach results and grades green.</summary>
+public sealed class RadioLogBrushConverter : IValueConverter
+{
+    private static readonly System.Windows.Media.Brush Warning = Frozen(0xFF, 0xB0, 0x20);
+    private static readonly System.Windows.Media.Brush Result = Frozen(0x5C, 0xD6, 0x7A);
+
+    private static System.Windows.Media.Brush Frozen(byte r, byte g, byte b)
+    {
+        var brush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(r, g, b));
+        brush.Freeze();
+        return brush;
+    }
+
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        // Binding.DoNothing keeps the theme's (inherited) text color for ordinary lines.
+        value is not string s ? Binding.DoNothing
+        : s.Contains('⚠') ? Warning
+        : s.Contains(" RESULT: ") ? Result
+        : Binding.DoNothing;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
 public sealed class InverseBoolConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture) => value is not true;

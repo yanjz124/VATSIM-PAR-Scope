@@ -21,6 +21,7 @@
     <views:NotNullToVisibilityConverter x:Key="NotNullToVisibility" />
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     <views:InverseBoolConverter x:Key="InverseBool" />
+    <views:RadioLogBrushConverter x:Key="RadioLogBrush" />
 
     <!-- Small caps-style section label used across the side panel. -->
     <Style x:Key="SectionLabel" TargetType="TextBlock">

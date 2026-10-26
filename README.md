@@ -126,6 +126,22 @@ descent").
   "Going around, no landing clearance". If they continue, they fly the rest visually, lining up with the
   runway and following the glidepath to touchdown. Touch and go, low approach and option clearances are flown.
 
+### Results and grades
+
+When an approach ends, the radio log shows the result in green: where it touched down (feet past the
+threshold, left or right of the centerline, sink rate), a touch and go, a low approach, a go-around and why,
+or ground contact short of the runway. A talk-down you directed is then graded out of 100:
+
+| | |
+|---|---|
+| Precision (40) | Share of the final on glidepath and on course, with the scope's deviation bands |
+| Transmissions (30) | Longest silence on final (5 seconds or less), range information each mile |
+| Procedures (20) | Missed approach and lost communications instructions before descent, wheels check, landing clearance relayed by 2 miles |
+| Outcome (10) | Landed in the touchdown zone; a go-around the controller should have prevented scores 0 (weather does not count against you) |
+
+A 90+, B 80+, C 70+, D 60+; ground contact is an F. The grade lists what cost points, and the session log
+keeps it. Transmissions that were not understood are flagged in orange at the start of the line.
+
 ### Coordination
 
 Start a call with **Local** (or **Tower**), **Approach** or **Departure** and it goes to that controller

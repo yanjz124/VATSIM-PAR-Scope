@@ -129,7 +129,7 @@ public class RadioTests
         var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
         var ac = sim.Spawn(new SpawnOptions { RangeNm = 6, Skill = 1, Mode = PilotMode.ControllerDirected });
         var r1 = ac.Receive(p, 0, 243, 700, thresholdElevFt: 100);
-        Assert.StartsWith("Missed approach, climb and maintain two thousand five hundred, heading one eight zero", r1.Reply);
+        Assert.StartsWith("Roger, in the event of missed approach, climb and maintain two thousand five hundred, heading one eight zero", r1.Reply);
         Assert.Equal(0, ac.CommandedHeadingRelDeg); // not flown yet
 
         var r2 = ac.Receive(Phraseology.Parse("execute missed approach"), 1, 243, 700, thresholdElevFt: 100);
@@ -375,7 +375,7 @@ public class RadioTests
         }
         Assert.Equal(Enum.GetValues<SimAircraft.PatternLeg>(), legs);
         Assert.InRange(maxAbeam / nm, 2.4, 3.5);
-        Assert.InRange(maxRange / nm, 12, 15);
+        Assert.InRange(maxRange / nm, 11.5, 15); // base turned 12-14 NM out, led by the turn radius
         Assert.InRange(t1, 200, 900); // a few minutes round, not instant
 
         // Back on final for another approach: same aircraft, fresh approach.
@@ -475,7 +475,7 @@ public class RadioTests
     {
         var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
         var ac = sim.Spawn(new SpawnOptions { RangeNm = 6, Skill = 1, Mode = PilotMode.ControllerDirected });
-        Assert.StartsWith("Missed approach, climb and maintain", ac.Receive(Phraseology.Parse("IN THE EVENT OF MISSED APPROACH, CLIMB AND MAINTAIN 2500, FLY RUNWAY HEADING"), 0, 243, 700).Reply);
+        Assert.StartsWith("Roger, in the event of missed approach, climb and maintain two thousand five hundred, runway heading", ac.Receive(Phraseology.Parse("IN THE EVENT OF MISSED APPROACH, CLIMB AND MAINTAIN 2500, FLY RUNWAY HEADING"), 0, 243, 700).Reply);
         Assert.StartsWith("Roger", ac.Receive(Phraseology.Parse("IF NO TRANSMISSIONS ARE RECEIVED FOR ONE MINUTE IN THE PATTERN OR FIVE SECONDS ON FINAL APPROACH, ATTEMPT CONTACT WITH TOWER AND PROCEED VFR"), 0, 243, 700).Reply);
         Assert.StartsWith("Roger", ac.Receive(Phraseology.Parse("THIS WILL BE A P-A-R APPROACH TO RUNWAY 24R"), 0, 243, 700).Reply);
         Assert.False(ac.GoingAround);

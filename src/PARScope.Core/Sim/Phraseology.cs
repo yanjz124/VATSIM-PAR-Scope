@@ -218,12 +218,12 @@ public static partial class Phraseology
     [GeneratedRegex(@"\bif no transmissions? (?:are )?received\b|\blost comm(?:unication)?s?\b")] private static partial Regex LostCommsRx();
     // Instructions to remember, not to fly now: "in the event of missed approach…", 7110.65 §5-10-11 "your missed
     // approach procedure is…", §5-10-12 "after completing low approach/touch and go: climb and maintain…".
-    [GeneratedRegex(@"\b(?:in the event of (?:a )?missed approach|if (?:you )?(?:go |are )?missed approach|missed approach instructions|your missed approach procedure is|after (?:completing |your )?(?:a |the )?(?:low approach|touch and go|option)|climb ?out instructions)\b")] private static partial Regex MissedInstructionsRx();
+    [GeneratedRegex(@"\b(?:in the event of (?:a )?missed approach|if (?:you )?(?:go |are )?missed approach|miss(?:ed)? approach instructions|your missed approach procedure is|after (?:completing |your )?(?:a |the )?(?:low approach|touch and go|option)|climb ?out instructions)\b")] private static partial Regex MissedInstructionsRx();
     [GeneratedRegex(@"\bif (?:the )?(?:runway|approach lights|runway lights)\b[^.]*?\bnot in sight\b")] private static partial Regex NotInSightRx();
     [GeneratedRegex(@"\btower clearance (?:not received|cancell?ed)\b")] private static partial Regex TowerClearanceRx();
     [GeneratedRegex(@"\b(?:contact|switch to|monitor) (?:tower|ground)\b")] private static partial Regex ContactTowerRx();
     [GeneratedRegex(@"\bthis will be a (?:p a r|par|precision|copter p a r)\b")] private static partial Regex BriefRx();
-    [GeneratedRegex(@"\b(?:\d+ (?:and (?:one )?half )?miles? from touchdown|over (?:the )?approach lights|over (?:the )?landing threshold|at decision (?:altitude|height))\b")] private static partial Regex RangeInfoRx();
+    [GeneratedRegex(@"\b(?:\d+ (?:and (?:one )?half )?miles? from touchdown|over (?:the )?approach lights|over (?:the )?landing threshold|(?:at )?decision (?:altitude|height))\b")] private static partial Regex RangeInfoRx();
     // "climb and maintain 2 thousand 5 hundred" after digit merging, or "climb and maintain 2500".
     // "climb and maintain", and "climb maintain" as recognizers often hear it.
     [GeneratedRegex(@"\bclimb (?:(?:and )?maintain |to )?(?<a>\d+)(?: (?<k>thousand))?(?: (?<h>\d) hundred)?\b")] private static partial Regex ClimbRx();

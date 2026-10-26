@@ -1165,12 +1165,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (target is { InPattern: true } || (target != null && _approach.IsPending(target.Callsign)))
         {
             // On approach's frequency: in the pattern, or offered but not yet accepted ("radar contact").
-            Log("FINAL", text.ToUpperInvariant() + "  (no reply: still with approach)");
+            Log("FINAL", "⚠ NO REPLY, STILL WITH APPROACH ⚠  " + text.ToUpperInvariant());
             StatusMessage = target.InPattern ? $"{target.Callsign} is with approach in the pattern"
                 : $"{target.Callsign} is still with approach: accept the handoff first ({KeyOf("approach_step")})";
             return;
         }
-        Log("FINAL", text.ToUpperInvariant() + (t.IsEmpty ? "  (not understood)" : ""));
+        // Flag a transmission nobody understood at the front, where it is seen even when the text runs long.
+        Log("FINAL", (t.IsEmpty ? "⚠ NOT UNDERSTOOD ⚠  " : "") + text.ToUpperInvariant());
+        if (t.IsEmpty) StatusMessage = $"Not understood: \"{text.Trim()}\" (say it again, or use the keys)";
         _session.Write($"          ({via}) to {target?.Callsign ?? "no aircraft selected"}; understood as: {Understood(t)}");
         _lastTxTime = Engine.Training.SimTime;
         if (t.IsEmpty || target == null || Engine.Runway is not { } rw)
@@ -1376,6 +1378,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (HasTraining) { SnapshotTraining(); RepeatUnansweredHandoffs(); }
         HandOffReturningAircraft();
         foreach (var (cs, text) in Engine.Training.TakePilotCalls()) PilotSays(cs, text);
+        foreach (var (cs, text) in Engine.Training.TakeResults())
+        {
+            Log("RESULT", $"{cs} {text}");
+            StatusMessage = $"{cs} {text}";
+        }
         _speech.Vocabulary = string.Join(", ", Engine.Training.Aircraft.Select(a => RadioSpeech.Callsign(a.Callsign)));
         _ = RefreshMetarIfDueAsync(now);
     }
