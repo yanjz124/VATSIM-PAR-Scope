@@ -33,8 +33,9 @@ if ($LASTEXITCODE) { throw "pushing the tag failed" }
 
 $assets = @("PARScope-$Version.zip", "PARScope-Setup-$Version.exe", "PARScope-$Version.sha256.txt") |
   ForEach-Object { Join-Path $out $_ } | Where-Object { Test-Path $_ }
-$pre = if ($Version.Contains("-")) { @("--prerelease") } else { @() }
-gh release create $tag @assets @pre --title "vibe PAR $Version ($sha)" --notes-file $NotesFile
+$ghArgs = @("release", "create", $tag) + @($assets) + @("--title", "vibe PAR $Version ($sha)", "--notes-file", "$NotesFile")
+if ($Version.Contains("-")) { $ghArgs += "--prerelease" }
+& gh $ghArgs 2>&1 | Out-Host
 if ($LASTEXITCODE) { throw "gh release create failed" }
 
 # Prune: newest first; keep -Keep releases of this major version, delete the rest (not their tags).
