@@ -87,6 +87,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     private void ApplyLiveWind() => Engine.Training.SurfaceWind = _settings.TrainingLiveWind ? _liveWind : null;
 
+    public bool SpeechGpu
+    {
+        get => _settings.SpeechGpu;
+        set { _settings.SpeechGpu = value; OnPropertyChanged(); StatusMessage = "Restart the scope to apply the speech recognition change"; }
+    }
+
     public string WindowTitle => $"vibe PAR {Updater.DisplayVersion}";
 
     public bool CheckForUpdates
@@ -1046,6 +1052,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         RefreshSelection();
         if (HasTraining) { SnapshotTraining(); RepeatUnansweredHandoffs(); }
         foreach (var (cs, text) in Engine.Training.TakePilotCalls()) PilotSays(cs, text);
+        _speech.Vocabulary = string.Join(", ", Engine.Training.Aircraft.Select(a => RadioSpeech.Callsign(a.Callsign)));
         _ = RefreshMetarIfDueAsync(now);
     }
 

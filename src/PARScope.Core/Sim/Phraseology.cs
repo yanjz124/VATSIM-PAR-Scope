@@ -63,7 +63,7 @@ public static partial class Phraseology
 
         string? course = null;
         var c = CourseRx().Match(s);
-        if (c.Success) course = c.Value.ToUpperInvariant();
+        if (c.Success) course = c.Value.ToUpperInvariant().Replace("READ OF", "RIGHT OF");
 
         bool instructions = MissedInstructionsRx().IsMatch(s);
         bool missed = !instructions && MissedRx().IsMatch(s);
@@ -123,8 +123,8 @@ public static partial class Phraseology
         string rest = s[(m.Index + m.Length)..];
         var trend = going ? CallTrend.Worsening
             : rest.Contains("rapidly") ? CallTrend.Rapidly
-            : rest.Contains("coming down") || rest.Contains("coming up") ? CallTrend.Correcting
-            : rest.Contains("holding") ? CallTrend.Holding
+            : rest.Contains("coming down") || rest.Contains("coming up") || rest.Contains(" correct") ? CallTrend.Correcting
+            : rest.Contains(" hold") ? CallTrend.Holding
             : CallTrend.None;
         return (call, trend);
     }
@@ -145,18 +145,22 @@ public static partial class Phraseology
             outWords.Add(w);
         }
         if (run.Length > 0) outWords.Add(run.ToString());
-        return " " + string.Join(' ', outWords).Replace("glide path", "glidepath") + " ";
+        // Shortened and misheard forms controllers and recognisers produce: "well above glide", "glide slope".
+        string joined = " " + string.Join(' ', outWords) + " ";
+        return GlideRx().Replace(joined, "glidepath");
     }
 
     [GeneratedRegex(@"[^a-z0-9 ]")] private static partial Regex PunctRx();
     [GeneratedRegex(@"\bheading (?<h>\d{3})\b")] private static partial Regex HeadingRx();
     [GeneratedRegex(@"\bon glidepath\b")] private static partial Regex OnGlidepathRx();
     [GeneratedRegex(@"\b(?:(?<going>going) |(?<mag>slightly|well) )?(?<side>above|below) (?:the )?glidepath\b")] private static partial Regex GlidepathRx();
-    [GeneratedRegex(@"\b(?:on course|(?:going |slightly |well )?(?:left|right) of course)\b")] private static partial Regex CourseRx();
-    [GeneratedRegex(@"\bbegin descent\b|\bstart descent\b")] private static partial Regex DescentRx();
+    // "read of course" is a common mishearing of "right of course".
+    [GeneratedRegex(@"\b(?:on course|(?:going |slightly |well )?(?:left|right|read) of course)\b")] private static partial Regex CourseRx();
+    [GeneratedRegex(@"\b(?:begin|start|initiate|commence) (?:your )?descent\b")] private static partial Regex DescentRx();
+    [GeneratedRegex(@"\bglide(?: ?path| ?slope)?\b")] private static partial Regex GlideRx();
     [GeneratedRegex(@"\bexecute missed approach\b|\bgo around\b|\bwave ?off\b|\btower clearance (?:not received|cancell?ed)\b")] private static partial Regex MissedRx();
     // "Do not acknowledge further transmissions" (§5-10-10) and the ways people actually say it.
-    [GeneratedRegex(@"\b(?:do not|don t|dont|no need to|not necessary to) (?:acknowledge|read ?back)\b|\backnowledg(?:e|ement)s? not (?:required|necessary)\b|\bno (?:further )?(?:acknowledgements?|acknowledgments?|readbacks?)\b")] private static partial Regex NoAckRx();
+    [GeneratedRegex(@"\b(?:do not|don t|dont|to not|no need to|not necessary to) (?:acknowledge|read ?back)\b|\backnowledg(?:e|ement)s? not (?:required|necessary)\b|\bno (?:further )?(?:acknowledgements?|acknowledgments?|readbacks?)\b")] private static partial Regex NoAckRx();
     [GeneratedRegex(@"(?<=\d),(?=\d{3}\b)")] private static partial Regex ThousandsCommaRx();
     [GeneratedRegex(@"\b(?:in the event of (?:a )?missed approach|if (?:you )?(?:go |are )?missed approach|missed approach instructions)\b")] private static partial Regex MissedInstructionsRx();
     // "climb and maintain 2 thousand 5 hundred" after digit merging, or "climb and maintain 2500".

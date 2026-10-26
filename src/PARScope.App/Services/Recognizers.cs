@@ -39,31 +39,36 @@ public sealed record RecognizerOption(string Id, string Name)
 }
 
 /// <summary>
-/// OpenAI Whisper running locally (whisper.cpp via Whisper.net). Free-form recognition, primed with
-/// PAR phraseology so headings and glidepath terms come out right; the text then goes through the same
+/// OpenAI Whisper running locally (whisper.cpp via Whisper.net), on the graphics card (Vulkan) when one is
+/// usable, otherwise the CPU. Each call gets a fresh processor, with the audio context cut to the clip's
+/// length (Whisper otherwise always works on a 30 s window) and a short prompt naming the phraseology and
+/// the callsigns on frequency, so they come out spelled right. Text then goes through the same
 /// phraseology parser as typed input.
 /// </summary>
 public sealed class WhisperRecognizer(GgmlType model) : IPhraseRecognizer
 {
-    private const string Prompt =
-        "PAR final controller. Turn left heading two four zero. Turn right heading three six zero. " +
-        "Slightly above glidepath and coming down. Well below glidepath. On glidepath. Slightly left of course and correcting. " +
-        "On course. Begin descent. Approaching glidepath. Wheels should be down. How do you hear me. " +
-        "Do not acknowledge further transmissions. Too low for safe approach, execute missed approach. " +
-        "Wind three one zero at seven, runway two four right, cleared to land. Navy, Marine, Army, Reach, niner. " +
-        "In the event of missed approach, climb and maintain two thousand, turn left heading one eight zero. Contact approach. " +
-        "Tower, final, Navy one two three four, four mile final, full stop. Approach, final, handoff, missed approach, Banshee two one, climbing to two thousand, runway heading. Navy one two three four, radar contact.";
+    private const string BasePrompt =
+        "PAR final controller. Turn left heading two four zero. Slightly above glidepath and coming down. On course. " +
+        "Begin descent. Wheels should be down. Do not acknowledge further transmissions. Radar contact. " +
+        "Execute missed approach. Cleared to land.";
 
     private WhisperFactory? _factory;
-    private WhisperProcessor? _processor;
 
     public string Name => $"Whisper {model}";
+
+    /// <summary>"GPU" or "CPU", once loaded.</summary>
+    public string? Backend { get; private set; }
+
+    /// <summary>Spoken callsigns currently on frequency, e.g. "Bones six two, Navy one two three four".</summary>
+    public string Vocabulary { get; set; } = "";
+
+    private static int Threads => Math.Clamp(Environment.ProcessorCount - 1, 1, 8);
 
     private string ModelPath => Path.Combine(AppSettings.DataFolder, "models", $"ggml-{model.ToString().ToLowerInvariant()}.bin");
 
     public async Task<string> PrepareAsync(IProgress<string>? progress, CancellationToken ct)
     {
-        if (_processor != null) return $"{Name} ready";
+        if (_factory != null) return $"{Name} ready";
         if (!File.Exists(ModelPath))
         {
             progress?.Report($"Downloading {Name} model…");
@@ -75,28 +80,62 @@ public sealed class WhisperRecognizer(GgmlType model) : IPhraseRecognizer
             File.Move(tmp, ModelPath, overwrite: true);
         }
         progress?.Report($"Loading {Name}…");
-        await Task.Run(() =>
+        await Task.Run(async () =>
         {
             _factory = WhisperFactory.FromPath(ModelPath);
-            _processor = _factory.CreateBuilder().WithLanguage("en").WithPrompt(Prompt).WithNoContext().Build();
+            // Warm up short and long clips so the first real calls are not slowed by GPU start-up.
+            foreach (int seconds in new[] { 1, 12 })
+            {
+                using var p = Builder(16000 * seconds).Build();
+                await foreach (var _ in p.ProcessAsync(new float[16000 * seconds], ct)) { }
+            }
         }, ct);
+        Backend = Whisper.net.LibraryLoader.RuntimeOptions.LoadedLibrary is Whisper.net.LibraryLoader.RuntimeLibrary.Cpu
+            or Whisper.net.LibraryLoader.RuntimeLibrary.CpuNoAvx or null ? "CPU" : "GPU";
         return $"{Name} ready";
+    }
+
+    private WhisperProcessorBuilder Builder(int samples)
+    {
+        // 50 audio-context frames per second of audio, plus headroom, rounded up to a multiple of 128 so
+        // the GPU sees only a few sizes.
+        int ctx = Math.Clamp(((int)Math.Ceiling(samples / 16000.0 * 50) + 64 + 127) / 128 * 128, 128, 1500);
+        string prompt = Vocabulary.Length > 0 ? $"{BasePrompt} {Vocabulary}." : BasePrompt;
+        return _factory!.CreateBuilder().WithLanguage("en").WithPrompt(prompt).WithNoContext().WithSingleSegment()
+            .WithThreads(Threads).WithAudioContextSize(ctx);
     }
 
     public async Task<string?> RecognizeAsync(float[] samples16k, CancellationToken ct)
     {
-        if (_processor == null) return null;
-        var sb = new System.Text.StringBuilder();
-        await foreach (var seg in _processor.ProcessAsync(samples16k, ct)) sb.Append(seg.Text);
-        string text = sb.ToString().Trim();
-        return text.Length == 0 || text.StartsWith('[') ? null : text;
+        if (_factory == null) return null;
+        // Very short clips confuse the decoder; pad to one second.
+        if (samples16k.Length < 16000) Array.Resize(ref samples16k, 16000);
+        var audio = samples16k;
+        string text = await Task.Run(async () =>
+        {
+            using var processor = Builder(audio.Length).Build();
+            var sb = new System.Text.StringBuilder();
+            await foreach (var seg in processor.ProcessAsync(audio, ct)) sb.Append(seg.Text);
+            return sb.ToString().Trim();
+        }, ct);
+        return text.Length == 0 || text.StartsWith('[') || text.StartsWith('(') ? null : WithoutRepeats(text);
     }
 
-    public void Dispose()
+    /// <summary>Small Whisper models sometimes repeat the last phrase; drop a phrase identical to the one before.</summary>
+    internal static string WithoutRepeats(string text)
     {
-        _processor?.Dispose();
-        _factory?.Dispose();
+        var phrases = System.Text.RegularExpressions.Regex.Split(text, @"(?<=[.,!?])\s+");
+        var kept = new List<string>();
+        foreach (var p in phrases)
+        {
+            string key = new string(p.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+            if (kept.Count > 0 && key.Length > 0 && key == new string(kept[^1].Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant()) continue;
+            kept.Add(p);
+        }
+        return string.Join(" ", kept).TrimStart(' ', ',', '.');
     }
+
+    public void Dispose() => _factory?.Dispose();
 }
 
 /// <summary>

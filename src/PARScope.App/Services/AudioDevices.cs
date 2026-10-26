@@ -93,9 +93,22 @@ public sealed class PttRecorder : IDisposable
         byte[] raw;
         lock (_lock) { raw = _buffer?.ToArray() ?? []; _buffer = null; }
         Level = 0;
-        if (raw.Length == 0) return [];
+        return To16kMono(raw, _format);
+    }
 
-        ISampleProvider src = new RawSourceWaveStream(new MemoryStream(raw), _format).ToSampleProvider();
+    /// <summary>The audio so far, as 16 kHz mono, while still recording.</summary>
+    public float[] Snapshot()
+    {
+        var format = _format;
+        byte[] raw;
+        lock (_lock) raw = _buffer?.ToArray() ?? [];
+        return format == null ? [] : To16kMono(raw, format);
+    }
+
+    private static float[] To16kMono(byte[] raw, WaveFormat format)
+    {
+        if (raw.Length == 0) return [];
+        ISampleProvider src = new RawSourceWaveStream(new MemoryStream(raw), format).ToSampleProvider();
         if (src.WaveFormat.Channels > 1) src = new StereoToMonoSampleProvider(DownmixTo2(src)) { LeftVolume = 0.5f, RightVolume = 0.5f };
         if (src.WaveFormat.SampleRate != 16000) src = new WdlResamplingSampleProvider(src, 16000);
 

@@ -24,6 +24,8 @@ public sealed class AppSettings
     public string? SpeakerId { get; set; }
     /// <summary>Speech engine id (see RecognizerOption.All).</summary>
     public string RecognizerId { get; set; } = "windows";
+    /// <summary>Run Whisper on the graphics card when possible (applies at start-up).</summary>
+    public bool SpeechGpu { get; set; } = true;
     public string? PilotVoice { get; set; }
     public string? TowerVoice { get; set; }
     /// <summary>Use the public 15 s VATSIM data feed when no vPilot plugin is streaming. Opt-in.</summary>

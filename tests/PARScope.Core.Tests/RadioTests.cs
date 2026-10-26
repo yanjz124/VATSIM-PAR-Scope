@@ -214,6 +214,27 @@ public class RadioTests
         Assert.True(ac.HeightFt > 300);
     }
 
+    // Wordings from a real session log that the parser used to miss.
+    [Theory]
+    [InlineData("well above glide and holding", GlidepathCall.WellAbove, CallTrend.Holding)]
+    [InlineData("WELL ABOVE THE GLIDE AND HOLD.", GlidepathCall.WellAbove, CallTrend.Holding)]
+    [InlineData("above glide slope and coming down", GlidepathCall.Above, CallTrend.Correcting)]
+    [InlineData("slightly below glide path and correct", GlidepathCall.SlightlyBelow, CallTrend.Correcting)]
+    public void Shortened_glidepath_calls_are_understood(string text, GlidepathCall call, CallTrend trend)
+    {
+        var t = Phraseology.Parse(text);
+        Assert.Equal(call, t.Glidepath);
+        Assert.Equal(trend, t.GlidepathTrend);
+    }
+
+    [Fact]
+    public void Descent_and_no_ack_variants_are_understood()
+    {
+        Assert.True(Phraseology.Parse("INITIATE DESCENT.").BeginDescent);
+        Assert.True(Phraseology.Parse("commence descent").BeginDescent);
+        Assert.True(Phraseology.Parse("Bones six two, to not acknowledge further transmissions").DoNotAcknowledge);
+        Assert.Equal("SLIGHTLY RIGHT OF COURSE", Phraseology.Parse("well above glide, slightly read of course and correcting").CourseCall);
+    }
     [Fact]
     public void Pause_freezes_aircraft_and_holds_pilot_reactions()
     {

@@ -27,6 +27,8 @@
     <PackageReference Include="System.Speech" Version="10.0.14" />
     <PackageReference Include="Whisper.net" Version="1.9.1" />
     <PackageReference Include="Whisper.net.Runtime" Version="1.9.1" />
+    <!-- GPU speech recognition on any Vulkan-capable graphics card (NVIDIA, AMD, Intel); falls back to the CPU. -->
+    <PackageReference Include="Whisper.net.Runtime.Vulkan" Version="1.9.1" />
     <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
 

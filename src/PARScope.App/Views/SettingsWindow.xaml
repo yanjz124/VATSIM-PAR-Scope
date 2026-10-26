@@ -137,7 +137,10 @@
                             <TextBlock Text="Speech recognition" Style="{StaticResource MetricLabel}" />
                             <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding Recognizers}" SelectedItem="{Binding SelectedRecognizer}" Margin="0,2,0,2"
                                       ToolTip="Windows Speech: offline, standard phraseology only. Whisper: local OpenAI model, more tolerant of accents and wording; downloaded on first use." />
-                            <TextBlock Text="{Binding VoiceState}" Style="{StaticResource MetricLabel}" TextTrimming="CharacterEllipsis" Margin="0,0,0,8" />
+                            <TextBlock Text="{Binding VoiceState}" Style="{StaticResource MetricLabel}" TextTrimming="CharacterEllipsis" Margin="0,0,0,4" />
+                            <ui:ToggleSwitch IsChecked="{Binding SpeechGpu}" Margin="0,0,0,8"
+                                             OnContent="Run Whisper on the graphics card" OffContent="Run Whisper on the graphics card"
+                                             ToolTip="Much faster on most PCs; falls back to the CPU if the graphics card cannot be used. Turn off if speech recognition fails to start. Applies after a restart." />
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
