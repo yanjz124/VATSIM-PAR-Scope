@@ -33,8 +33,11 @@ talk simulated arrivals down by voice, with pilot, tower and approach on the oth
   coordinate with tower and approach on the same push-to-talk, in your own words.
 * Pilots read back, fly your headings and glidepath calls, drift on harder difficulties, fly in the
   live METAR wind, and at decision height land or go around (and tell you why) like real pilots.
-* Speech recognition runs locally (Whisper on your graphics card or CPU, or Windows Speech); TTS voices
-  for pilot, tower and approach.
+* Speech recognition runs locally (Whisper on your graphics card or CPU, or Windows Speech). Pilot,
+  tower and approach talk back in natural neural voices (Kokoro or Piper, run on your PC) or the
+  Windows voices, each pilot with their own voice, through a radio effect.
+* Every call and coordination has a hotkey and a button, so you can run a session without talking or
+  typing. Keys can be changed.
 * Every session is logged so you can review the talk-down afterwards.
 
 With **Training** off it is a plain scope: no suggested calls and nothing simulated.
@@ -51,7 +54,7 @@ With **Training** off it is a plain scope: no suggested calls and nothing simula
 Prefer not to install? The zip on the same page has `PARScope.exe` (keep the `runtimes` folder next to
 it) and the plugin in `Plugin\`, which you copy into `%LOCALAPPDATA%\vPilot\Plugins\` yourself.
 
-**Updates**: vibe PAR checks for a new release at start-up and offers to install it. With the
+**Updates**: vibe PAR checks for a new release at start-up and offers to install it (or check any time with **Check for updates now** in **Settings › Data**). With the
 installer, the update includes the plugin; with the zip, copy a changed plugin by hand. The title bar
 shows the version and the commit it was built from.
 
@@ -133,24 +136,47 @@ instead of the pilot. Wording can be loose; the aircraft is found by its callsig
 
 ### Keys
 
+Every call has a key, sent to the selected aircraft as if you had said it. **F1** (or **Key
+assignments** in the training panel or **Settings › Audio**) lists them all; click one to change it.
+The defaults:
+
 | | |
 |---|---|
-| Space (configurable) | Push to talk |
+| Space | Push to talk |
+| Enter | Send the suggested call |
 | ← / → | Heading −1° / +1° (Shift: 5°) |
 | D | Begin descent |
+| R | Range from touchdown |
 | Q / W / E | Slightly above / above / well above glidepath |
 | A | On glidepath |
 | Z / X / C | Slightly below / below / well below glidepath |
-| G | Wheels should be down |
-| M | Execute missed approach |
-| T | Request tower clearance |
-| P | Pause / resume |
-| F | Flip PAR / ASR |
-| Tab, Esc | Next target, deselect |
+| 1 2 3 · 4 · 5 6 7 (or numpad) | Well left / left / slightly left · on course · slightly right / right / well right |
+| with Shift / Ctrl / Alt | "…and correcting" / "…and holding" / "going…" (glidepath and course keys) |
+| H, B, L, K | Radio check, approach brief, lost communications, missed approach instructions |
+| N, G | Do not acknowledge further transmissions, wheels should be down |
+| V, Shift+V | Level off, resume normal rate of descent |
+| M, Shift+M | Execute missed approach, if runway not in sight execute missed approach |
+| Y, U | Relay tower's clearance, contact tower after landing |
+| T | Request clearance from tower |
+| Ctrl+R, J, Ctrl+M | Radar contact (accept handoff), contact approach, coordinate missed approach |
+| PgUp / PgDn, Tab, Esc | Range scale, next target, deselect |
+| P, F, F1 | Pause, flip PAR / ASR, key assignments |
+
+### Voices
+
+Chosen in **Settings › Audio**:
+
+* **Kokoro** (downloaded on first use, 330 MB): the most natural; about half real time on a CPU, and
+  each reply is synthesised while the pilot "thinks", so there is no extra wait.
+* **Piper LibriTTS-R** (78 MB): very quick, with hundreds of speakers for variety.
+* **Windows voices**: built in, robotic.
+
+Each pilot gets their own voice (picked from the callsign) unless you turn that off, and the radio
+effect band-limits the audio and adds the squelch.
 
 ### Speech recognition
 
-Chosen in **Settings › Audio**, together with the microphone, output device and voices.
+Chosen in **Settings › Audio**, together with the microphone and output device.
 
 * **Whisper** (tiny, base or small; downloaded on first use, 75–470 MB): understands accents and loose
   wording, needed for interphone calls. It transcribes each phrase while you are still talking, so the
@@ -196,7 +222,7 @@ dotnet test tests\PARScope.Core.Tests
 | Project | |
 |---|---|
 | `src/PARScope.Core` | Geodesy, traffic protocol and tracking, PAR geometry, radar and ASR models, phraseology, airport data, METAR, training simulation. No UI; unit tested. |
-| `src/PARScope.App` | The scope: WPF on .NET 10 with [WPF UI](https://github.com/lepoco/wpfui), SkiaSharp, NAudio and Whisper.net. |
+| `src/PARScope.App` | The scope: WPF on .NET 10 with [WPF UI](https://github.com/lepoco/wpfui), SkiaSharp, NAudio, Whisper.net and sherpa-onnx. |
 | `src/RadarStreamerPlugin` | vPilot plugin (.NET Framework 4.7.2). |
 | `tools/TrafficProbe` | Update-rate diagnostic. |
 | `installer/` | Inno Setup script. |
@@ -205,4 +231,6 @@ The plugin and scope talk NDJSON over UDP port 49090 (protocol v2, documented in
 
 ## Licence
 
-MIT.
+MIT. Voices: [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) (Apache-2.0); Piper
+[LibriTTS-R](https://www.openslr.org/141/) voice (trained on LibriTTS-R by Koizumi et al., CC BY 4.0),
+both run with [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) (Apache-2.0).

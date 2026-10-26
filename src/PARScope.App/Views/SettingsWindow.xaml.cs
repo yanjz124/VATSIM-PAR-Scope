@@ -39,6 +39,8 @@ public partial class SettingsWindow : FluentWindow
         e.Handled = true;
     }
 
+    private void Keys_Click(object sender, RoutedEventArgs e) => _vm.ShowKeyAssignments();
+
     private async void CheckUpdates_Click(object sender, RoutedEventArgs e)
     {
         void Say(string s) { UpdateStatus.Text = s; UpdateStatus2.Text = s; }

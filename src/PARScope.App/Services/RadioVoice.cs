@@ -1,5 +1,5 @@
 using System.IO;
-using System.Speech.Synthesis;
+using System.Net.Http;
 using System.Threading.Channels;
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
@@ -7,46 +7,79 @@ using NAudio.Wave;
 namespace PARScope.App.Services;
 
 /// <summary>
-/// Text-to-speech for simulated pilots and tower using the offline Windows voices, played on the chosen
-/// output device. Lines are spoken one at a time in order; playback pauses while the controller holds
-/// push-to-talk, since you cannot hear the frequency while transmitting.
+/// The simulated radio and interphone: pilot, tower and approach voices from the selected speech engine,
+/// played on the chosen output device through an optional radio effect. Each line starts synthesising as
+/// soon as it is queued (so a slow neural voice is ready by the time the pilot would answer) and plays at its
+/// due time, one at a time in order. Playback pauses while the controller holds push-to-talk.
 /// </summary>
 public sealed class RadioVoice : IDisposable
 {
-    private readonly Channel<(string Text, string? Voice)> _queue = Channel.CreateUnbounded<(string, string?)>();
+    private sealed record Line(Task<(float[] Samples, int Rate)> Audio, DateTime Due, Action? OnStart);
+
+    private readonly Channel<Line> _queue = Channel.CreateUnbounded<Line>();
     private readonly CancellationTokenSource _cts = new();
     private readonly ManualResetEventSlim _notTransmitting = new(true);
     private WasapiOut? _current;
+    private ISpeechEngine _engine = new WindowsSpeechEngine();
 
-    public RadioVoice()
-    {
-        try
-        {
-            using var synth = new SpeechSynthesizer();
-            Voices = synth.GetInstalledVoices().Where(v => v.Enabled && v.VoiceInfo.Culture.Name.StartsWith("en", StringComparison.OrdinalIgnoreCase))
-                .Select(v => v.VoiceInfo.Name).ToList();
-        }
-        catch (PlatformNotSupportedException) { Voices = []; }
-        PilotVoice = Voices.FirstOrDefault(v => v.Contains("David") || v.Contains("Mark")) ?? Voices.FirstOrDefault();
-        TowerVoice = Voices.FirstOrDefault(v => v != PilotVoice) ?? PilotVoice;
-        _ = Task.Run(PlayLoopAsync);
-    }
+    public RadioVoice() => _ = Task.Run(PlayLoopAsync);
 
-    public IReadOnlyList<string> Voices { get; }
+    public string EngineName => _engine.Name;
+    public IReadOnlyList<string> Voices => _engine.Voices;
     public string? PilotVoice { get; set; }
     public string? TowerVoice { get; set; }
-    /// <summary>Approach on the interphone: a third voice if one is installed, else the tower's.</summary>
-    public string? ApproachVoice => Voices.FirstOrDefault(v => v != PilotVoice && v != TowerVoice) ?? TowerVoice;
+    public string? ApproachVoice { get; set; }
+    /// <summary>Each pilot gets their own voice, picked from the callsign.</summary>
+    public bool VaryPilotVoices { get; set; } = true;
+    public bool RadioEffectEnabled { get; set; } = true;
     public string? OutputDeviceId { get; set; }
     public bool Enabled { get; set; } = true;
 
-    public void Pilot(string text) => Enqueue(text, PilotVoice);
-    public void Tower(string text) => Enqueue(text, TowerVoice);
-    public void Approach(string text) => Enqueue(text, ApproachVoice);
-
-    private void Enqueue(string text, string? voice)
+    /// <summary>Switches speech engine (downloading a neural model on first use) and resets voices to its defaults.</summary>
+    public async Task UseEngineAsync(string id, HttpClient http, IProgress<string>? progress, CancellationToken ct)
     {
-        if (Enabled && Voices.Count > 0) _queue.Writer.TryWrite((text, voice));
+        var engine = await VoiceEngineOption.CreateAsync(id, http, progress, ct);
+        var old = _engine;
+        _engine = engine;
+        PilotVoice = engine.DefaultPilot;
+        TowerVoice = engine.DefaultTower;
+        ApproachVoice = engine.DefaultApproach;
+        old.Dispose();
+    }
+
+    public void Pilot(string text, string? callsign = null, double delaySec = 0, Action? onStart = null) =>
+        Enqueue(text, PilotVoiceFor(callsign), delaySec, onStart);
+    public void Tower(string text, double delaySec = 0, Action? onStart = null) => Enqueue(text, TowerVoice, delaySec, onStart);
+    public void Approach(string text, double delaySec = 0, Action? onStart = null) => Enqueue(text, ApproachVoice, delaySec, onStart);
+
+    /// <summary>The voice a pilot speaks with: their own (stable per callsign, never tower's or approach's), or the chosen pilot voice.</summary>
+    private string? PilotVoiceFor(string? callsign)
+    {
+        if (!VaryPilotVoices || callsign == null) return PilotVoice;
+        var pool = Voices.Where(v => v != TowerVoice && v != ApproachVoice).ToList();
+        if (pool.Count == 0) return PilotVoice;
+        uint h = 2166136261;
+        foreach (char c in callsign.ToUpperInvariant()) h = (h ^ c) * 16777619;
+        return pool[(int)(h % (uint)pool.Count)];
+    }
+
+    private void Enqueue(string text, string? voice, double delaySec, Action? onStart)
+    {
+        var due = DateTime.UtcNow.AddSeconds(delaySec);
+        if (!Enabled || Voices.Count == 0)
+        {
+            // Silent: still report the line when it would have been heard.
+            if (onStart != null) _ = Task.Delay(TimeSpan.FromSeconds(delaySec)).ContinueWith(_ => onStart());
+            return;
+        }
+        var engine = _engine;
+        bool effect = RadioEffectEnabled;
+        var audio = Task.Run(() =>
+        {
+            var (s, rate) = engine.Synthesize(text, voice ?? engine.DefaultPilot);
+            return effect ? (RadioEffect.Apply(s, rate, text.GetHashCode()), rate) : (s, rate);
+        });
+        _queue.Writer.TryWrite(new Line(audio, due, onStart));
     }
 
     public void PauseForTransmit()
@@ -63,34 +96,32 @@ public sealed class RadioVoice : IDisposable
 
     private async Task PlayLoopAsync()
     {
-        await foreach (var (text, voice) in _queue.Reader.ReadAllAsync(_cts.Token))
+        await foreach (var line in _queue.Reader.ReadAllAsync(_cts.Token))
         {
             try
             {
-                var wav = Synthesize(text, voice);
+                var (samples, rate) = await line.Audio;
+                var wait = line.Due - DateTime.UtcNow;
+                if (wait > TimeSpan.Zero) await Task.Delay(wait, _cts.Token);
                 _notTransmitting.Wait(_cts.Token);
-                await PlayAsync(wav, _cts.Token);
+                line.OnStart?.Invoke();
+                await PlayAsync(samples, rate, _cts.Token);
             }
             catch (OperationCanceledException) { break; }
-            catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.COMException or IOException) { }
+            catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.COMException or IOException)
+            {
+                line.OnStart?.Invoke();
+            }
         }
     }
 
-    private static byte[] Synthesize(string text, string? voice)
-    {
-        using var synth = new SpeechSynthesizer { Rate = 1 };
-        if (voice != null) synth.SelectVoice(voice);
-        using var ms = new MemoryStream();
-        synth.SetOutputToWaveStream(ms);
-        synth.Speak(text);
-        return ms.ToArray();
-    }
-
-    private async Task PlayAsync(byte[] wav, CancellationToken ct)
+    private async Task PlayAsync(float[] samples, int rate, CancellationToken ct)
     {
         var device = AudioDevices.Resolve(OutputDeviceId, DataFlow.Render);
         if (device == null) return;
-        using var reader = new WaveFileReader(new MemoryStream(wav));
+        var bytes = new byte[samples.Length * 4];
+        Buffer.BlockCopy(samples, 0, bytes, 0, bytes.Length);
+        using var reader = new RawSourceWaveStream(new MemoryStream(bytes), WaveFormat.CreateIeeeFloatWaveFormat(rate, 1));
         using var output = new WasapiOut(device, AudioClientShareMode.Shared, true, 80);
         var done = new TaskCompletionSource();
         output.PlaybackStopped += (_, _) => done.TrySetResult();
@@ -107,5 +138,6 @@ public sealed class RadioVoice : IDisposable
         _cts.Cancel();
         _queue.Writer.TryComplete();
         try { _current?.Stop(); } catch (InvalidOperationException) { }
+        _engine.Dispose();
     }
 }

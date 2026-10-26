@@ -29,6 +29,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _settings = settings;
         Engine = engine;
         _airports = new AirportDatabase(AppSettings.DataFolder);
+        Keys = new KeyMap(settings);
+        Keys.Changed += () =>
+        {
+            OnPropertyChanged(nameof(KeysHint));
+            OnPropertyChanged(nameof(RadarContactButtonText));
+            OnPropertyChanged(nameof(ContactApproachButtonText));
+            OnPropertyChanged(nameof(CoordinateMissedButtonText));
+        };
 
         SelectedPreset = RadarPreset.ById(settings.PresetId);
         RangeScaleNm = RangeScales.Contains(settings.RangeScaleNm) ? settings.RangeScaleNm : RangeScales[^1];
@@ -618,7 +626,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         string handoff = _approach.OfferHandoff(ac.Callsign, ac.RangeFt / Units.FeetPerNm,
             Units.Norm360(rw.MagneticCourseDeg + ac.CommandedHeadingRelDeg), ac.AltitudeAboveThresholdFt + rw.ThresholdElevFt, Engine.Training.SimTime);
-        _ = SayLaterAsync(0.5, () => { Log("APPROACH", handoff); _voice.Approach(handoff); });
+        _voice.Approach(handoff, 0.5, OnUi(() => Log("APPROACH", handoff)));
     }
 
     /// <summary>"(Callsign) radar contact [initials]" accepts approach's handoff; the pilot then checks in.</summary>
@@ -631,11 +639,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (ac == null)
         {
             _session.Write($"          ({via}) radar contact, but which aircraft? Offered: {string.Join(", ", offered.Select(a => a.Callsign))}");
-            Reply("APPROACH", "Say again callsign.", _voice.Approach);
+            Reply("APPROACH", "Say again callsign.");
             return true;
         }
         _session.Write($"          ({via}) accepted handoff of {ac.Callsign}");
-        Reply("APPROACH", _approach.Accept(ac.Callsign) ?? "Roger.", _voice.Approach);
+        Reply("APPROACH", _approach.Accept(ac.Callsign) ?? "Roger.");
         _ = SayLaterAsync(7, () =>
         {
             if (Engine.Training.Find(ac.Callsign) is not { } a || Engine.Runway is not { } rw) return;
@@ -780,8 +788,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private void PilotSays(string callsign, string text)
     {
         Log(callsign, text);
-        _voice.Pilot(text);
+        _voice.Pilot(text, callsign);
     }
+
+    /// <summary>Wraps an action so it runs on the UI thread (voice callbacks come from the audio thread).</summary>
+    private static Action OnUi(Action a) => () => App.Current.Dispatcher.BeginInvoke(a);
 
     private static async Task SayLaterAsync(double seconds, Action say)
     {
@@ -809,6 +820,51 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public IReadOnlyList<AudioDevice> Speakers { get; } = AudioDevices.Outputs();
     public IReadOnlyList<RecognizerOption> Recognizers => RecognizerOption.All;
     public IReadOnlyList<string> VoiceNames => _voice.Voices;
+    public IReadOnlyList<VoiceEngineOption> VoiceEngines => VoiceEngineOption.All;
+    [ObservableProperty] public partial VoiceEngineOption? SelectedVoiceEngine { get; set; }
+    [ObservableProperty] public partial string? ApproachVoiceName { get; set; }
+    [ObservableProperty] public partial string VoiceEngineStatus { get; set; } = "";
+    private bool _loadingVoices;
+
+    public bool VaryPilotVoices
+    {
+        get => _settings.VaryPilotVoices;
+        set { _settings.VaryPilotVoices = value; _voice.VaryPilotVoices = value; OnPropertyChanged(); }
+    }
+
+    public bool RadioEffectEnabled
+    {
+        get => _settings.RadioEffect;
+        set { _settings.RadioEffect = value; _voice.RadioEffectEnabled = value; OnPropertyChanged(); }
+    }
+
+    partial void OnSelectedVoiceEngineChanged(VoiceEngineOption? value)
+    {
+        if (value is null || _loadingVoices) return;
+        _settings.VoiceEngine = value.Id;
+        _ = SwitchVoiceEngineAsync(value.Id, keepSavedVoices: false);
+    }
+
+    /// <summary>Loads a speech engine (downloading a neural model the first time) and refreshes the voice lists.</summary>
+    private async Task SwitchVoiceEngineAsync(string id, bool keepSavedVoices)
+    {
+        try
+        {
+            await _voice.UseEngineAsync(id, Http, new Progress<string>(s => VoiceEngineStatus = s), CancellationToken.None);
+            VoiceEngineStatus = $"{_voice.EngineName} ready";
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException or InvalidOperationException or DllNotFoundException or TaskCanceledException)
+        {
+            VoiceEngineStatus = $"Could not load voices: {ex.Message}";
+            return;
+        }
+        _loadingVoices = true;
+        OnPropertyChanged(nameof(VoiceNames));
+        PilotVoiceName = keepSavedVoices && _settings.PilotVoice is { } pv && VoiceNames.Contains(pv) ? pv : _voice.PilotVoice;
+        TowerVoiceName = keepSavedVoices && _settings.TowerVoice is { } tv && VoiceNames.Contains(tv) ? tv : _voice.TowerVoice;
+        ApproachVoiceName = keepSavedVoices && _settings.ApproachVoice is { } av && VoiceNames.Contains(av) ? av : _voice.ApproachVoice;
+        _loadingVoices = false;
+    }
 
     [ObservableProperty] public partial AudioDevice? SelectedMicrophone { get; set; }
     [ObservableProperty] public partial AudioDevice? SelectedSpeaker { get; set; }
@@ -822,8 +878,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         SelectedMicrophone = Microphones.FirstOrDefault(d => d.Id == (_settings.MicrophoneId ?? "")) ?? AudioDevice.Default;
         SelectedSpeaker = Speakers.FirstOrDefault(d => d.Id == (_settings.SpeakerId ?? "")) ?? AudioDevice.Default;
         SelectedRecognizer = RecognizerOption.All.FirstOrDefault(r => r.Id == _settings.RecognizerId) ?? RecognizerOption.All[0];
-        PilotVoiceName = _settings.PilotVoice is { } pv && VoiceNames.Contains(pv) ? pv : _voice.PilotVoice;
-        TowerVoiceName = _settings.TowerVoice is { } tv && VoiceNames.Contains(tv) ? tv : _voice.TowerVoice;
+        _voice.VaryPilotVoices = _settings.VaryPilotVoices;
+        _voice.RadioEffectEnabled = _settings.RadioEffect;
+        _loadingVoices = true;
+        SelectedVoiceEngine = VoiceEngineOption.All.FirstOrDefault(e => e.Id == _settings.VoiceEngine) ?? VoiceEngineOption.All[0];
+        _loadingVoices = false;
+        _ = SwitchVoiceEngineAsync(SelectedVoiceEngine.Id, keepSavedVoices: true);
     }
 
     partial void OnSelectedMicrophoneChanged(AudioDevice? value)
@@ -847,14 +907,17 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (_voiceStarted) _ = _speech.UseRecognizerAsync(value.Id);
     }
 
-    partial void OnPilotVoiceNameChanged(string? value) { _settings.PilotVoice = value; _voice.PilotVoice = value; }
-    partial void OnTowerVoiceNameChanged(string? value) { _settings.TowerVoice = value; _voice.TowerVoice = value; }
+    partial void OnPilotVoiceNameChanged(string? value) { if (value == null) return; _settings.PilotVoice = value; _voice.PilotVoice = value; }
+    partial void OnTowerVoiceNameChanged(string? value) { if (value == null) return; _settings.TowerVoice = value; _voice.TowerVoice = value; }
+    partial void OnApproachVoiceNameChanged(string? value) { if (value == null) return; _settings.ApproachVoice = value; _voice.ApproachVoice = value; }
 
     [RelayCommand]
     private void TestVoices()
     {
-        _voice.Pilot("Radio check, pilot voice.");
-        _voice.Tower("Radio check, tower voice.");
+        _voice.Pilot("Miramar final, Navy one two three four, radio check.", "VV1234");
+        _voice.Pilot("Approach, Banshee two one, with you at three thousand.", "BANSHEE21");
+        _voice.Tower("Navy one two three four, runway two four right, cleared to land.");
+        _voice.Approach("Final, approach, handoff, one two mile final, Reach four eight one, three thousand.");
     }
 
     // ---- Keyboard calls (training) -------------------------------------------------------------
@@ -970,15 +1033,26 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         var k => k.ToString(),
     };
 
+    /// <summary>The scope's hotkeys (reference and rebinding in the Key assignments window).</summary>
+    public KeyMap Keys { get; }
+
+    /// <summary>Asks the main window to show the key assignments.</summary>
+    public event Action? KeyAssignmentsRequested;
+    public void ShowKeyAssignments() => KeyAssignmentsRequested?.Invoke();
+
+    private string KeyOf(string id) => Keys.Text(id) is { Length: > 0 } k ? k : "unbound";
+
+    public string RadarContactButtonText => $"Radar contact ({KeyOf("radar_contact")})";
+    public string ContactApproachButtonText => $"Contact approach ({KeyOf("contact_approach")})";
+    public string CoordinateMissedButtonText => $"Coordinate missed approach ({KeyOf("coordinate_missed")})";
+
     public string KeysHint =>
-        $"{PttKeyText} talk (start with 'Tower…' or 'Approach…' to coordinate) · Enter send suggested call · ←/→ heading ±1° (Shift ±5°)\n"
-        + "Glidepath: Q/W/E slightly/–/well above · A on · Z/X/C slightly/–/well below\n"
-        + "Course: 1/2/3 well/–/slightly left · 4 on · 5/6/7 slightly/–/well right\n"
+        $"{PttKeyText} talk (start with 'Tower…' or 'Approach…' to coordinate) · {KeyOf("send_suggested")} send suggested call\n"
+        + $"Glidepath: {KeyOf("gp_slightly_above")}/{KeyOf("gp_above")}/{KeyOf("gp_well_above")} slightly/–/well above · {KeyOf("gp_on")} on · "
+        + $"{KeyOf("gp_slightly_below")}/{KeyOf("gp_below")}/{KeyOf("gp_well_below")} slightly/–/well below\n"
+        + $"Course: {Keys.Primary(KeyMap.Commands.First(c => c.Id == "crs_well_left"))}–{Keys.Primary(KeyMap.Commands.First(c => c.Id == "crs_well_right"))} well left … well right\n"
         + "  with Shift: …and correcting · Ctrl: …and holding · Alt: going…\n"
-        + "H radio check · B approach brief · L lost comms · K missed approach instr. · N do not acknowledge · G approaching glidepath/wheels · "
-        + "D begin descent · R range call · V level off (Shift: resume descent) · M missed approach (Shift: if not in sight) · "
-        + "Y relay clearance · J contact approach · U contact tower after landing\n"
-        + "T tower request · Ctrl+R radar contact · Ctrl+M coordinate missed · P pause · F flip PAR/ASR · Tab next target";
+        + $"Every other call has a key too: {KeyOf("show_keys")} shows them all.";
 
     /// <summary>Push-to-talk is held (drives the TX indicator).</summary>
     [ObservableProperty] public partial bool IsTransmitting { get; set; }
@@ -1033,7 +1107,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _session.Write($"NOTE     {target.Callsign} switched to approach without coordinating the missed approach");
         _session.Write($"          {target.Callsign} action: {response.Action}{(target.NoAcknowledge && response.Reply == null ? " (silent: do not acknowledge)" : "")}");
         if (response.Reply is { } reply)
-            _ = SayLaterAsync(1.0 + Random.Shared.NextDouble(), () => PilotSays(target.Callsign, reply));
+            _voice.Pilot(reply, target.Callsign, 1.0 + Random.Shared.NextDouble(), OnUi(() => Log(target.Callsign, reply)));
     }
 
     /// <summary>
@@ -1054,18 +1128,22 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (call.To == Facility.Tower)
         {
             if (ac != null && !ac.GoingAround) TowerRequest(ac, call.Intent ?? TowerIntent, spoken: true);
-            else Reply(who, "Roger.", _voice.Tower);
+            else Reply(who, "Roger.");
         }
         else if (ac != null && (ac.GoingAround || call.MissedApproach))
         {
-            if (!ac.GoingAround) Reply(who, $"{RadioSpeech.Callsign(ac.Callsign)}, say again when they're missed.", _voice.Approach);
+            if (!ac.GoingAround) Reply(who, $"{RadioSpeech.Callsign(ac.Callsign)}, say again when they're missed.");
             else ApproachCoordination(ac, spoken: true);
         }
-        else Reply(who, $"Roger, {_approach.SpokenInitials}.", _voice.Approach);
+        else Reply(who, $"Roger, {_approach.SpokenInitials}.");
     }
 
-    private void Reply(string who, string text, Action<string> voice) =>
-        _ = SayLaterAsync(2.0, () => { Log(who, text); voice(text); });
+    /// <summary>Tower or approach answers on the interphone after a couple of seconds.</summary>
+    private void Reply(string who, string text)
+    {
+        if (who == "TOWER") _voice.Tower(text, 2.0, OnUi(() => Log(who, text)));
+        else _voice.Approach(text, 2.0, OnUi(() => Log(who, text)));
+    }
 
     /// <summary>Interphone request to tower for the selected training aircraft (7110.65 §5-10-13).</summary>
     [RelayCommand]
@@ -1081,7 +1159,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (!spoken) Log("FINAL", TowerSim.RequestText(ac.Callsign, ac.RangeFt / Units.FeetPerNm, intent));
         TowerIntent = intent;
         bool occupied = Engine.Training.Aircraft.Any(a => a != ac && a.Landed && !a.Finished);
-        Reply("TOWER", _tower.Request(ac.Callsign, intent, rw.RunwayId, occupied), _voice.Tower);
+        Reply("TOWER", _tower.Request(ac.Callsign, intent, rw.RunwayId, occupied));
     }
 
     /// <summary>Interphone coordination of a missed approach with approach control, before switching the pilot.</summary>
@@ -1098,7 +1176,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (Engine.Runway is not { } rw) return;
         if (!spoken)
             Log("FINAL", ApproachSim.MissedApproachRequest(ac.Callsign, Units.Norm360(rw.MagneticCourseDeg + ac.CommandedHeadingRelDeg), ac.ClimbToFt + rw.ThresholdElevFt));
-        Reply("APPROACH", _approach.Coordinate(ac.Callsign), _voice.Approach);
+        Reply("APPROACH", _approach.Coordinate(ac.Callsign));
     }
 
     public void BeginDescent()

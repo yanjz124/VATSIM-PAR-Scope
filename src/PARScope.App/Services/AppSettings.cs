@@ -21,6 +21,8 @@ public sealed class AppSettings
     public string? MicrophoneId { get; set; }
     /// <summary>Push-to-talk key (WPF Key name).</summary>
     public string PttKey { get; set; } = "Space";
+    /// <summary>Hotkeys changed from their defaults: command id → "primary|alternate" (see KeyMap).</summary>
+    public Dictionary<string, string> KeyBindings { get; set; } = new();
     public string? SpeakerId { get; set; }
     /// <summary>Speech engine id (see RecognizerOption.All).</summary>
     public string RecognizerId { get; set; } = "windows";
@@ -28,6 +30,13 @@ public sealed class AppSettings
     public bool SpeechGpu { get; set; } = true;
     public string? PilotVoice { get; set; }
     public string? TowerVoice { get; set; }
+    public string? ApproachVoice { get; set; }
+    /// <summary>Speech engine for pilot/tower/approach voices (see VoiceEngineOption.All).</summary>
+    public string VoiceEngine { get; set; } = "windows";
+    /// <summary>Each pilot speaks with their own voice.</summary>
+    public bool VaryPilotVoices { get; set; } = true;
+    /// <summary>Band-limit and squelch the voices like a radio.</summary>
+    public bool RadioEffect { get; set; } = true;
     /// <summary>Use the public 15 s VATSIM data feed when no vPilot plugin is streaming. Opt-in.</summary>
     public bool UseDataFeed { get; set; }
     /// <summary>Look for a newer release on GitHub at start-up.</summary>

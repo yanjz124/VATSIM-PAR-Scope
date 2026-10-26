@@ -1,0 +1,28 @@
+<ui:FluentWindow x:Class="PARScope.App.Views.KeysWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 Title="Key assignments" Width="620" Height="760" MinWidth="480" MinHeight="360"
+                 ExtendsContentIntoTitleBar="True" WindowBackdropType="Mica" WindowCornerPreference="Round"
+                 WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <ui:TitleBar Title="Key assignments" Height="36" ShowMinimize="False" ShowMaximize="False" />
+        <TextBlock Grid.Row="1" Margin="16,4,16,8" TextWrapping="Wrap" Style="{StaticResource MetricLabel}"
+                   Text="Keys work while the scope or the ASR window has focus. Calls go to the selected aircraft as if you had said them. To change a key, click it and press the new one (with Ctrl, Alt or Shift if you like); Esc cancels, Backspace clears it. A key taken from another command is removed from that command." />
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="16,0,16,8">
+            <StackPanel x:Name="Rows" />
+        </ScrollViewer>
+        <DockPanel Grid.Row="3" Margin="16,8,16,14">
+            <ui:Button DockPanel.Dock="Right" Content="Close" Click="Close_Click" Margin="8,0,0,0" />
+            <ui:Button DockPanel.Dock="Right" Content="Reset to defaults" Click="Reset_Click"
+                       ToolTip="Put every hotkey back to its default (the push-to-talk key is kept)" />
+            <TextBlock x:Name="Status" VerticalAlignment="Center" TextWrapping="Wrap" Style="{StaticResource MetricLabel}" />
+        </DockPanel>
+    </Grid>
+</ui:FluentWindow>

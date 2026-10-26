@@ -152,8 +152,14 @@
                             <ui:ToggleSwitch IsChecked="{Binding SpeechGpu}" Margin="0,0,0,8"
                                              OnContent="Run Whisper on the graphics card" OffContent="Run Whisper on the graphics card"
                                              ToolTip="Much faster on most PCs; falls back to the CPU if the graphics card cannot be used. Turn off if speech recognition fails to start. Applies after a restart." />
+                            <TextBlock Text="Voices" Style="{StaticResource MetricLabel}" />
+                            <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding VoiceEngines}" SelectedItem="{Binding SelectedVoiceEngine}" Margin="0,2,0,2"
+                                      ToolTip="Neural voices run on your PC and are downloaded the first time you choose them." />
+                            <TextBlock Text="{Binding VoiceEngineStatus}" Style="{StaticResource MetricLabel}" TextTrimming="CharacterEllipsis" Margin="0,0,0,8" />
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="8" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="8" />
                                     <ColumnDefinition Width="*" />
@@ -166,7 +172,13 @@
                                     <TextBlock Text="Tower voice" Style="{StaticResource MetricLabel}" />
                                     <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding VoiceNames}" SelectedItem="{Binding TowerVoiceName}" />
                                 </StackPanel>
+                                <StackPanel Grid.Column="4">
+                                    <TextBlock Text="Approach voice" Style="{StaticResource MetricLabel}" />
+                                    <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding VoiceNames}" SelectedItem="{Binding ApproachVoiceName}" />
+                                </StackPanel>
                             </Grid>
+                            <ui:ToggleSwitch IsChecked="{Binding VaryPilotVoices}" OnContent="Each pilot has their own voice" OffContent="Each pilot has their own voice" Margin="0,0,0,6" />
+                            <ui:ToggleSwitch IsChecked="{Binding RadioEffectEnabled}" OnContent="Radio effect (band-limited, squelch)" OffContent="Radio effect (band-limited, squelch)" Margin="0,0,0,8" />
                             <ui:Button Content="Test voices" Icon="{ui:SymbolIcon Speaker224}" Command="{Binding TestVoicesCommand}" Margin="0,0,0,14" />
                             <TextBlock Text="Push-to-talk key" Style="{StaticResource MetricLabel}" />
                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
@@ -174,6 +186,8 @@
                                            ToolTip="Click, then press the key to use. Esc cancels. Works while the scope or ASR window has focus." />
                                 <TextBlock x:Name="PttHint" Margin="10,0,0,0" VerticalAlignment="Center" Style="{StaticResource MetricLabel}" />
                             </StackPanel>
+                            <ui:Button Content="Key assignments…" Icon="{ui:SymbolIcon Keyboard24}" Click="Keys_Click" Margin="0,14,0,0"
+                                       ToolTip="Every hotkey for calls, coordination and the scope; click one to change it (F1 on the scope)" />
                         
                     </StackPanel>
                 </ScrollViewer>

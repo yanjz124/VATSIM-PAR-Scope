@@ -276,17 +276,19 @@
 
                             <TextBlock Text="APPROACH" Style="{StaticResource SectionLabel}" Margin="0,8,0,4" />
                             <UniformGrid Columns="2" Margin="0,0,0,6">
-                                <ui:Button Content="Radar contact (Ctrl+R)" Command="{Binding AcceptHandoffCommand}" HorizontalAlignment="Stretch" Margin="0,0,3,0"
+                                <ui:Button Content="{Binding RadarContactButtonText}" Command="{Binding AcceptHandoffCommand}" HorizontalAlignment="Stretch" Margin="0,0,3,0"
                                            ToolTip="Accept approach's handoff (selected aircraft, or the one waiting longest)." />
-                                <ui:Button Content="Contact approach (J)" Command="{Binding ContactApproachCommand}" HorizontalAlignment="Stretch" Margin="3,0,0,0"
+                                <ui:Button Content="{Binding ContactApproachButtonText}" Command="{Binding ContactApproachCommand}" HorizontalAlignment="Stretch" Margin="3,0,0,0"
                                            ToolTip="Switch the selected pilot to approach, e.g. after a missed approach." />
                             </UniformGrid>
-                            <ui:Button Content="Coordinate missed approach (Ctrl+M)" Command="{Binding CoordinateMissedCommand}" HorizontalAlignment="Stretch"
+                            <ui:Button Content="{Binding CoordinateMissedButtonText}" Command="{Binding CoordinateMissedCommand}" HorizontalAlignment="Stretch"
                                        ToolTip="After a missed approach: hand the aircraft back to approach (heading, altitude), then switch the pilot ('contact approach'). Accept approach's handoffs by saying '(callsign) radar contact'." />
 
                             <ui:ToggleSwitch IsChecked="{Binding PilotVoices}" OnContent="Pilot and tower voices" OffContent="Pilot and tower voices" Margin="0,10,0,0" />
                             <TextBlock Margin="0,8,0,0" Style="{StaticResource MetricLabel}" TextWrapping="Wrap"
                                        Text="{Binding KeysHint}" />
+                            <ui:Button Content="Key assignments" Icon="{ui:SymbolIcon Keyboard24}" Click="Keys_Click" Margin="0,6,0,0"
+                                       ToolTip="Every hotkey, and change them (F1)" />
                         </StackPanel>
                     </ui:CardExpander>
 

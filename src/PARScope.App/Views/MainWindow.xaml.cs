@@ -42,6 +42,7 @@ public partial class MainWindow : FluentWindow
             await OfferUpdateAsync();
         };
         vm.PropertyChanged += OnViewModelChanged;
+        vm.KeyAssignmentsRequested += ShowKeys;
         vm.AirportResults.CollectionChanged += (_, _) => AirportPopup.IsOpen = AirportBox.IsKeyboardFocusWithin && vm.AirportResults.Count > 0;
         UpdateSidePanel();
     }
@@ -158,53 +159,14 @@ public partial class MainWindow : FluentWindow
         }
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
         var mods = Keyboard.Modifiers;
-        bool shift = mods.HasFlag(ModifierKeys.Shift), ctrl = mods.HasFlag(ModifierKeys.Control), alt = mods.HasFlag(ModifierKeys.Alt);
+        // Commands and their keys live in KeyMap (rebindable in the Key assignments window). Training calls
+        // (FAA JO 7110.65 §5-10, §5-12, §2-1-25) go to the selected aircraft as if spoken.
+        if (_vm.Keys.Find(key, mods) is not { } command) return;
         // Trend modifiers for glidepath and course keys: Shift "…and correcting / coming down", Ctrl "…and holding", Alt "going…".
-        var trend = alt ? MainViewModel.KeyTrend.Going : ctrl ? MainViewModel.KeyTrend.Holding : shift ? MainViewModel.KeyTrend.Correcting : MainViewModel.KeyTrend.None;
-        switch (key)
-        {
-            case Key.PageUp: _vm.StepRange(-1); break;
-            case Key.PageDown: _vm.StepRange(+1); break;
-            case Key.Tab: _vm.CycleSelection(); break;
-            case Key.Escape: _vm.Select(null); break;
-            case Key.P: _vm.TogglePause(); break;
-            case Key.F: _vm.FlipScope(); break;
-            // Training calls (FAA JO 7110.65 §5-10, §5-12, §2-1-25), sent to the selected aircraft as if spoken.
-            case Key.Enter: _vm.SaySuggestedCall(); break;
-            case Key.Left: _vm.NudgeHeading(shift ? -5 : -1); break;
-            case Key.Right: _vm.NudgeHeading(shift ? 5 : 1); break;
-            case Key.Q: _vm.GlidepathKey(1, trend); break;
-            case Key.W: _vm.GlidepathKey(2, trend); break;
-            case Key.E: _vm.GlidepathKey(3, trend); break;
-            case Key.A: _vm.GlidepathKey(0, trend); break;
-            case Key.Z: _vm.GlidepathKey(-1, trend); break;
-            case Key.X: _vm.GlidepathKey(-2, trend); break;
-            case Key.C: _vm.GlidepathKey(-3, trend); break;
-            case Key.D1 or Key.NumPad1: _vm.CourseKey(-3, trend); break;
-            case Key.D2 or Key.NumPad2: _vm.CourseKey(-2, trend); break;
-            case Key.D3 or Key.NumPad3: _vm.CourseKey(-1, trend); break;
-            case Key.D4 or Key.NumPad4: _vm.CourseKey(0, trend); break;
-            case Key.D5 or Key.NumPad5: _vm.CourseKey(1, trend); break;
-            case Key.D6 or Key.NumPad6: _vm.CourseKey(2, trend); break;
-            case Key.D7 or Key.NumPad7: _vm.CourseKey(3, trend); break;
-            case Key.H: _vm.KeyCall("HOW DO YOU HEAR ME"); break;
-            case Key.B: _vm.SayApproachBrief(); break;
-            case Key.L: _vm.SayLostComms(); break;
-            case Key.K: _vm.SayMissedInstructions(); break;
-            case Key.N: _vm.KeyCall("DO NOT ACKNOWLEDGE FURTHER TRANSMISSIONS"); break;
-            case Key.G: _vm.KeyCall("APPROACHING GLIDEPATH, WHEELS SHOULD BE DOWN"); break;
-            case Key.D: _vm.BeginDescent(); break;
-            case Key.R when ctrl: _vm.AcceptHandoffCommand.Execute(null); break;
-            case Key.R: _vm.SayRange(); break;
-            case Key.V: _vm.KeyCall(shift ? "RESUME NORMAL RATE OF DESCENT" : "LEVEL OFF YOUR AIRCRAFT, ACKNOWLEDGE"); break;
-            case Key.M when ctrl: _vm.CoordinateMissedCommand.Execute(null); break;
-            case Key.M: _vm.KeyCall(shift ? "IF RUNWAY OR APPROACH LIGHTS NOT IN SIGHT, EXECUTE MISSED APPROACH" : "EXECUTE MISSED APPROACH"); break;
-            case Key.Y: _vm.SayTowerClearance(); break;
-            case Key.J: _vm.ContactApproachCommand.Execute(null); break;
-            case Key.U: _vm.KeyCall("CONTACT TOWER AFTER LANDING"); break;
-            case Key.T: _vm.RequestTowerCommand.Execute(null); break;
-            default: return;
-        }
+        var trend = mods.HasFlag(ModifierKeys.Alt) ? MainViewModel.KeyTrend.Going
+            : mods.HasFlag(ModifierKeys.Control) ? MainViewModel.KeyTrend.Holding
+            : mods.HasFlag(ModifierKeys.Shift) ? MainViewModel.KeyTrend.Correcting : MainViewModel.KeyTrend.None;
+        command.Run(_vm, trend);
         e.Handled = true;
     }
 
@@ -297,6 +259,19 @@ public partial class MainWindow : FluentWindow
         _settingsWindow = new SettingsWindow(_vm) { Owner = this };
         _settingsWindow.Closed += (_, _) => { _settingsWindow = null; Keyboard.Focus(this); };
         _settingsWindow.Show();
+    }
+
+    private KeysWindow? _keysWindow;
+
+    private void Keys_Click(object sender, RoutedEventArgs e) => ShowKeys();
+
+    /// <summary>Key assignments: reference and rebinding. Opened by F1, or the buttons in the training panel and Settings › Audio.</summary>
+    internal void ShowKeys()
+    {
+        if (_keysWindow is { IsLoaded: true }) { _keysWindow.Activate(); return; }
+        _keysWindow = new KeysWindow(_vm) { Owner = this };
+        _keysWindow.Closed += (_, _) => { _keysWindow = null; Keyboard.Focus(this); };
+        _keysWindow.Show();
     }
 
     // ---- Layout & persistence ----------------------------------------------------------------------
