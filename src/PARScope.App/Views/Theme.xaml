@@ -44,10 +44,42 @@
         <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
     </Style>
 
-    <Style x:Key="ToolbarToggle" TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+    <!-- "On" state for toolbar toggles and the range selector: white on a mid blue, readable whatever the
+         Windows accent color is (a gray accent with black text was hard to read). -->
+    <SolidColorBrush x:Key="ToggleOnBrush" Color="#2D6FB7" />
+    <SolidColorBrush x:Key="ToggleOnBorderBrush" Color="#5A97D8" />
+    <SolidColorBrush x:Key="ToggleOnTextBrush" Color="#FFFFFF" />
+
+    <Style x:Key="ToolbarToggle" TargetType="ToggleButton">
         <Setter Property="Padding" Value="10,5" />
         <Setter Property="Margin" Value="0,0,4,0" />
         <Setter Property="FontSize" Value="12" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="Bd" Padding="{TemplateBinding Padding}" CornerRadius="4" BorderThickness="1"
+                            Background="{DynamicResource ControlFillColorDefaultBrush}"
+                            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                            TextElement.Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource ToggleOnBrush}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource ToggleOnBorderBrush}" />
+                            <Setter TargetName="Bd" Property="TextElement.Foreground" Value="{StaticResource ToggleOnTextBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- Range scale selector: a segmented row of buttons, like the range-select keys on a PAR console. -->
@@ -74,11 +106,12 @@
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsSelected" Value="True">
-                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}" />
-                                        <Setter TargetName="Bd" Property="TextElement.Foreground" Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                                        <Setter TargetName="Bd" Property="Background" Value="{StaticResource ToggleOnBrush}" />
+                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource ToggleOnBorderBrush}" />
+                                        <Setter TargetName="Bd" Property="TextElement.Foreground" Value="{StaticResource ToggleOnTextBrush}" />
                                     </Trigger>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                        <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource ToggleOnBorderBrush}" />
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>

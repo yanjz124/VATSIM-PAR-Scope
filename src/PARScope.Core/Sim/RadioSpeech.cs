@@ -72,37 +72,6 @@ public static class RadioSpeech
     public static string Spell(string letters) =>
         string.Join(' ', letters.Where(char.IsLetter).Select(c => Nato[char.ToUpperInvariant(c) - 'A']));
 
-    /// <summary>
-    /// ICAO three-letter airline designators and their radiotelephony callsigns (ICAO Doc 8585 / FAA JO 7340.2),
-    /// for the carriers most often seen in US airspace and on VATSIM.
-    /// </summary>
-    public static readonly IReadOnlyDictionary<string, string> Airlines = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-    {
-        // US passenger
-        ["AAL"] = "American", ["UAL"] = "United", ["DAL"] = "Delta", ["SWA"] = "Southwest", ["JBU"] = "JetBlue",
-        ["ASA"] = "Alaska", ["FFT"] = "Frontier Flight", ["NKS"] = "Spirit Wings", ["HAL"] = "Hawaiian",
-        ["AAY"] = "Allegiant", ["SCX"] = "Sun Country", ["MXY"] = "Moxy", ["VXP"] = "Avelo",
-        // US regional
-        ["SKW"] = "SkyWest", ["RPA"] = "Brickyard", ["ENY"] = "Envoy", ["EDV"] = "Endeavor", ["JIA"] = "Blue Streak",
-        ["PDT"] = "Piedmont", ["ASH"] = "Air Shuttle", ["GJS"] = "Lakes", ["QXE"] = "Horizon",
-        // US cargo and charter
-        ["FDX"] = "FedEx", ["UPS"] = "UPS", ["GTI"] = "Giant", ["ABX"] = "Abex", ["CKS"] = "Connie", ["ATN"] = "Air Transport",
-        ["EJA"] = "Execjet", ["LXJ"] = "Flexjet",
-        // US military airlift (ICAO designators)
-        ["RCH"] = "Reach", ["CNV"] = "Convoy",
-        // Canada and Latin America
-        ["ACA"] = "Air Canada", ["WJA"] = "WestJet", ["JZA"] = "Jazz", ["TSC"] = "Air Transat", ["AMX"] = "Aeromexico",
-        ["VOI"] = "Volaris", ["CMP"] = "Copa", ["AVA"] = "Avianca",
-        // Europe, Middle East, Asia-Pacific
-        ["BAW"] = "Speedbird", ["VIR"] = "Virgin", ["DLH"] = "Lufthansa", ["AFR"] = "Airfrans", ["KLM"] = "KLM",
-        ["IBE"] = "Iberia", ["EIN"] = "Shamrock", ["SWR"] = "Swiss", ["AUA"] = "Austrian", ["SAS"] = "Scandinavian",
-        ["FIN"] = "Finnair", ["TAP"] = "Air Portugal", ["ICE"] = "Iceair", ["THY"] = "Turkish", ["RYR"] = "Ryanair",
-        ["EZY"] = "Easy", ["UAE"] = "Emirates", ["QTR"] = "Qatari", ["ETD"] = "Etihad", ["SIA"] = "Singapore",
-        ["CPA"] = "Cathay", ["JAL"] = "Japan Air", ["ANA"] = "All Nippon", ["KAL"] = "Korean Air", ["AAR"] = "Asiana",
-        ["EVA"] = "Eva", ["CAL"] = "Dynasty", ["CCA"] = "Air China", ["CES"] = "China Eastern", ["CSN"] = "China Southern",
-        ["PAL"] = "Philippine", ["QFA"] = "Qantas", ["ANZ"] = "New Zealand",
-    };
-
     private static readonly string[] Ones = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
         "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
     private static readonly string[] Tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
@@ -135,7 +104,7 @@ public static class RadioSpeech
     /// <summary>
     /// "VV1234" → "Navy one two three four", "REACH481" → "Reach four eight one", "BANSHEE21" → "Banshee two one",
     /// "N123AB" → "November one two three Alpha Bravo", "UAL1234" → "United twelve thirty-four". A leading service
-    /// prefix is spoken as the service (7110.65 §2-4-20); an ICAO airline designator as its telephony callsign
+    /// prefix is spoken as the service (7110.65 §2-4-20); an ICAO three-letter designator as its telephony from FAA JO 7340.2
     /// with the flight number in group form; a leading word callsign as a word; other letters (registrations)
     /// phonetically. Military flight numbers stay digit by digit.
     /// </summary>
@@ -153,12 +122,12 @@ public static class RadioSpeech
         }
         if (!cs.Any(char.IsDigit)) return Spell(cs); // all letters: a registration such as G-ABCD
         var airline = System.Text.RegularExpressions.Regex.Match(cs, @"^([A-Za-z]{3})(\d{1,4})([A-Za-z]{0,2})$");
-        if (airline.Success && Airlines.TryGetValue(airline.Groups[1].Value, out var telephony) && !ServicePrefixes.ContainsKey(airline.Groups[1].Value))
+        if (airline.Success && !ServicePrefixes.ContainsKey(airline.Groups[1].Value) && IcaoTelephony.Find(airline.Groups[1].Value) is { } op)
         {
+            // Civil operators: flight number in group form (7110.65 §2-4-20); US military (REACH, CONVOY, PAT): digits.
             string tail = airline.Groups[3].Value;
-            bool military = telephony is "Reach" or "Convoy";
-            string number = military ? Digits(airline.Groups[2].Value) : GroupNumber(airline.Groups[2].Value);
-            return $"{telephony} {number}" + (tail.Length > 0 ? " " + Spell(tail) : "");
+            string number = op.Military ? Digits(airline.Groups[2].Value) : GroupNumber(airline.Groups[2].Value);
+            return $"{op.Spoken} {number}" + (tail.Length > 0 ? " " + Spell(tail) : "");
         }
         var parts = new List<string>();
         int i = 0;

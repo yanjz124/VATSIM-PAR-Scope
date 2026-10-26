@@ -24,11 +24,14 @@ public class RadioTests
     [InlineData("DAL1200", "Delta twelve hundred")]
     [InlineData("SWA3", "Southwest three")]
     [InlineData("BAW1103", "Speedbird eleven zero three")]
-    [InlineData("SKW5051", "SkyWest fifty fifty-one")]
-    [InlineData("JBU2000", "JetBlue two thousand")]
+    [InlineData("SKW5051", "Skywest fifty fifty-one")]
+    [InlineData("JBU2000", "Jetblue two thousand")]
     [InlineData("UAL51A", "United fifty-one Alpha")]
     [InlineData("RCH481", "Reach four eight one")] // military airlift keeps single digits
-    [InlineData("BAT21", "Bat two one")]
+    [InlineData("BAT21", "Gherkin twenty-one")] // a typed callsign uses the FAA list (BAT is a civil designator)
+    [InlineData("RPA4567", "Brickyard forty-five sixty-seven")]
+    [InlineData("GJS3456", "Lindbergh thirty-four fifty-six")]
+    [InlineData("PAT12", "Pat one two")] // US military operator: digits
     public void Military_callsigns_are_spoken_per_7110_65(string cs, string spoken)
     {
         Assert.Equal(spoken, RadioSpeech.Callsign(cs));
@@ -559,7 +562,7 @@ public class AircraftPerformanceTests
         Assert.NotEmpty(oceana);
         Assert.All(oceana, c => Assert.Contains("OCEANA", c.Unit.ToUpperInvariant()));
         Assert.DoesNotContain(MilitaryCallsigns.BasedAt("MIRAMAR MCAS (JOSEPH J FOSS FLD)"), c => c.Unit.Contains("Joseph", StringComparison.OrdinalIgnoreCase));
-        Assert.Equal("Cat one one", RadioSpeech.Callsign("CAT11")); // short callwords from the list are words
+        Assert.Equal("Aircat eleven", RadioSpeech.Callsign("CAT11")); // typed: the FAA list (CAT is a civil designator)
         Assert.Empty(MilitaryCallsigns.BasedAt("NAVAL AIR STATION"));
 
         // Most tactical arrivals at a field with based squadrons are theirs.

@@ -107,25 +107,50 @@ public sealed class TrainingTraffic
     /// abbreviated, by its ICAO designator or to its first letter and consonants (BANSHEE → BNS), as in a
     /// flight plan's seven-character callsign.
     /// </summary>
-    private (string Prefix, int Digits) FitCallsign(string prefix, int digits, bool flight)
+    /// <summary>Null when no form of this callword fits without looking like a civil operator's designator.</summary>
+    private (string Prefix, int Digits)? FitCallsign(string prefix, int digits, bool flight)
     {
         int max = MaxCallsignLength;
-        if (max <= 0 || prefix.Length + digits <= max) return (prefix, digits);
+        if (max <= 0 || prefix.Length + digits <= max) return IsCivilLooking(prefix) ? null : (prefix, digits);
         if (!flight) digits = Math.Max(2, max - prefix.Length);
-        if (prefix.Length + digits <= max) return (prefix, digits);
-        string abbr = Abbreviate(prefix, Math.Max(1, max - digits));
+        if (prefix.Length + digits <= max) return IsCivilLooking(prefix) ? null : (prefix, digits);
+        if (Abbreviations(prefix, Math.Max(1, max - digits)).FirstOrDefault(a => !IsCivilLooking(a)) is not { } abbr) return null;
         if (!flight) digits = Math.Clamp(max - abbr.Length, 2, digits);
         return (abbr, digits);
     }
 
-    public static string Abbreviate(string word, int letters)
+    /// <summary>Generated callsigns are military: never a civil operator's ICAO three-letter designator (FAA JO 7340.2).</summary>
+    private static bool IsCivilLooking(string prefix) => prefix.Length == 3 && IcaoTelephony.IsCivil(prefix);
+
+    /// <summary>The preferred abbreviation of a callword (BANSHEE → BNS).</summary>
+    public static string Abbreviate(string word, int letters) => Abbreviations(word, letters).First();
+
+    /// <summary>
+    /// Abbreviations of a callword to <paramref name="letters"/> letters, best first: its ICAO designator if it has
+    /// one, first letter and consonants (BANSHEE → BNS), then other in-order letter choices keeping the first letter,
+    /// so one that is not a civil designator can be chosen.
+    /// </summary>
+    public static IEnumerable<string> Abbreviations(string word, int letters)
     {
-        if (word.Length <= letters) return word;
-        if (KnownAbbreviations.TryGetValue(word, out var known) && known.Length <= letters) return known;
+        if (word.Length <= letters) { yield return word; yield break; }
+        if (KnownAbbreviations.TryGetValue(word, out var known) && known.Length <= letters) yield return known;
         var consonants = new System.Text.StringBuilder().Append(word[0]);
         foreach (char c in word[1..])
             if ("AEIOUY".IndexOf(c) < 0 && consonants[^1] != c) consonants.Append(c);
-        return consonants.Length >= letters ? consonants.ToString(0, letters) : word[..letters];
+        var seen = new HashSet<string>();
+        if (consonants.Length >= letters && seen.Add(consonants.ToString(0, letters))) yield return consonants.ToString(0, letters);
+        if (seen.Add(word[..letters])) yield return word[..letters];
+        // Every other in-order choice of letters after the first.
+        foreach (var rest in Choose(word[1..], letters - 1))
+            if (seen.Add(word[0] + rest)) yield return word[0] + rest;
+    }
+
+    private static IEnumerable<string> Choose(string s, int k)
+    {
+        if (k == 0) { yield return ""; yield break; }
+        for (int i = 0; i <= s.Length - k; i++)
+            foreach (var tail in Choose(s[(i + 1)..], k - 1))
+                yield return s[i] + tail;
     }
 
     /// <summary>Name of the field being worked; squadrons based there fly most of its traffic.</summary>
@@ -208,9 +233,19 @@ public sealed class TrainingTraffic
     public SimAircraft Spawn(SpawnOptions o)
     {
         var geo = Geometry ?? throw new InvalidOperationException("Select a runway before spawning training traffic.");
-        var style = PickStyle();
         string cs = o.Callsign is { Length: > 0 } custom ? custom.Trim().ToUpperInvariant().Replace(" ", "") : "";
-        var (prefix, digits) = FitCallsign(style.Prefix, style.FlightNumbers ? 2 : style.Digits, style.FlightNumbers);
+        bool generated = cs.Length == 0;
+        // Pick a military callsign style whose callsign fits the radar and is not a civil designator.
+        CallsignStyle style;
+        (string Prefix, int Digits)? fit;
+        int tries = 0;
+        do
+        {
+            style = PickStyle();
+            fit = FitCallsign(style.Prefix, style.FlightNumbers ? 2 : style.Digits, style.FlightNumbers);
+        } while (fit == null && ++tries < 50);
+        var (prefix, digits) = fit ?? ("VV", 3);
+        if (fit == null) style = Styles[0];
         while (cs.Length == 0 || _aircraft.Any(a => a.Callsign == cs))
         {
             // Fighter flights are numbered 11–14, 21–24, …; others use mission/tail-style numbers.
@@ -219,8 +254,9 @@ public sealed class TrainingTraffic
                 : _rng.Next((int)Math.Pow(10, digits - 1), (int)Math.Pow(10, digits));
             cs = prefix + number;
         }
-        // An abbreviated callword is still spoken in full on the radio ("BNS21": "Banshee two one").
-        if (prefix != style.Prefix) RadioSpeech.RegisterSpokenCallword(cs, style.Prefix);
+        // A generated callsign is spoken from its own callword ("BNS21": "Banshee two one"), never looked up as an
+        // airline. A typed one ("RPA4567") is spoken as typed, through the FAA list.
+        if (generated && !RadioSpeech.ServicePrefixes.ContainsKey(style.Prefix)) RadioSpeech.RegisterSpokenCallword(cs, style.Prefix);
 
         // A custom callsign built on a listed callword ("BANSHEE21") flies that unit's aircraft unless a type is given.
         string word = new(cs.TakeWhile(char.IsLetter).ToArray());

@@ -42,6 +42,39 @@ public class CallsignLengthTests
         Assert.Equal("RCH", TrainingTraffic.Abbreviate("REACH", 3));
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(5)]
+    [InlineData(6)]
+    public void Generated_callsigns_are_never_civil_designators(int max)
+    {
+        Assert.True(IcaoTelephony.Count > 5000);
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site), MaxCallsignLength = max };
+        for (int i = 0; i < 500; i++)
+        {
+            var ac = sim.SpawnRandom(PilotMode.ControllerDirected);
+            string letters = new(ac.Callsign.TakeWhile(char.IsLetter).ToArray());
+            Assert.False(letters.Length == 3 && IcaoTelephony.IsCivil(letters), ac.Callsign);
+            // Spoken from its own callword, never an airline's telephony.
+            if (IcaoTelephony.Find(letters) is { Military: false } op)
+                Assert.DoesNotContain(op.Spoken, RadioSpeech.Callsign(ac.Callsign));
+            sim.Remove(ac.Callsign);
+        }
+    }
+
+    [Fact]
+    public void A_typed_callsign_is_spoken_as_typed()
+    {
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site), MaxCallsignLength = 5 };
+        for (int i = 0; i < 50; i++)
+        {
+            var ac = sim.Spawn(new SpawnOptions { Callsign = "RPA4567", RangeNm = 10, Mode = PilotMode.ControllerDirected });
+            Assert.Equal("RPA4567", ac.Callsign);
+            Assert.Equal("Brickyard forty-five sixty-seven", RadioSpeech.Callsign(ac.Callsign));
+            sim.Remove(ac.Callsign);
+        }
+    }
+
     [Fact]
     public void Abbreviated_callsigns_are_spoken_with_the_whole_word()
     {
