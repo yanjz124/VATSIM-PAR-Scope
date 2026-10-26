@@ -7,6 +7,9 @@ it imitates: AN/FPN-68, FPN-63, GPN-22, FPN-67, MPN-25 and TPN-31 ATNAVICS. It r
 live traffic from vPilot (including VATSIM Velocity 5 Hz positions), and has a training mode where you
 talk simulated arrivals down by voice, with pilot, tower and approach on the other end.
 
+Public information on these radars is scarce, so much of it is a best guess (see
+[How accurate is it?](#how-accurate-is-it)).
+
 ![vibe PAR: FPN-68 display with three arrivals on final, the selected target's deviations and suggested call](docs/images/scope.png)
 
 **[Download the latest release](https://github.com/yanjz124/VATSIM-PAR-Scope/releases)** — Windows 10/11.
@@ -199,6 +202,24 @@ never sends anything to the network; if a vPilot update breaks it, it falls back
 updates. VATSIM only sends fast positions to clients close enough to want them, so run
 `TrafficProbe.exe` (with the scope closed) to see what you actually get. Details:
 [docs/VELOCITY.md](docs/VELOCITY.md).
+
+## How accurate is it?
+
+Honestly: less than it looks. Very little about these radars is public. There are no operator
+manuals for most of the displays, only a few photos and videos, and almost nothing on internals like
+scan rates or beam widths. So:
+
+* **Procedures and phraseology** (7110.65, TERPS, minimums) come from published documents and are the
+  most reliable part.
+* **What each display looks like** is an artistic reconstruction from a handful of photos and videos:
+  colours, symbols, fonts and layout are best guesses.
+* **Radar behaviour** (scan rates, beam widths, coverage, target size, pilot reactions) is partly
+  sourced and partly plausible numbers filled in to make it work. Some of those numbers and details
+  were suggested by the AI that wrote most of this code, and some may simply be wrong.
+
+Treat it as a training toy and a fun scope for VATSIM, not a reference for the real equipment. If you
+know how the real thing works, corrections are very welcome.
+[docs/PAR-RESEARCH.md](docs/PAR-RESEARCH.md) marks what is sourced and what is unverified.
 
 ## Sources
 
