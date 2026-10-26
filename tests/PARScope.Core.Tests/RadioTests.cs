@@ -235,6 +235,38 @@ public class RadioTests
         Assert.True(Phraseology.Parse("Bones six two, to not acknowledge further transmissions").DoNotAcknowledge);
         Assert.Equal("SLIGHTLY RIGHT OF COURSE", Phraseology.Parse("well above glide, slightly read of course and correcting").CourseCall);
     }
+    // Canadian Forces GCA phraseology (vPAR, M. Oxner).
+    [Fact]
+    public void Level_off_acknowledge_is_answered_even_after_do_not_acknowledge()
+    {
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 4, HeightOffsetFt = 0, SpeedKt = 130, Skill = 1, Mode = PilotMode.ControllerDirected });
+        ac.BeginDescent(-10, 700);
+        ac.Receive(Phraseology.Parse("do not acknowledge further transmissions"), 0, 243, 700);
+        for (double t = 0; t <= 10; t += 0.1) sim.Step(t).ToList();
+        Assert.True(ac.VerticalSpeedFpm < -500);
+
+        var r = ac.Receive(Phraseology.Parse("3 miles from touchdown - dangerously below the glidepath - level off your aircraft - acknowledge"), sim.SimTime, 243, 700);
+        Assert.StartsWith("Levelling off", r.Reply);
+        for (double t = 10.1; t <= 20; t += 0.1) sim.Step(t).ToList();
+        Assert.InRange(ac.VerticalSpeedFpm, -60, 60);
+
+        Assert.Null(ac.Receive(Phraseology.Parse("back on glidepath - resume normal rate of descent"), sim.SimTime, 243, 700).Reply);
+        for (double t = 20.1; t <= 28; t += 0.1) sim.Step(t).ToList();
+        Assert.True(ac.VerticalSpeedFpm < -500);
+    }
+
+    [Fact]
+    public void Cf_gca_course_wording_and_lost_comms_are_understood()
+    {
+        Assert.Equal("DRIFTING LEFT OF COURSE", Phraseology.Parse("drifting left of course, turn right heading 262").CourseCall);
+        Assert.NotNull(Phraseology.Parse("well right of the on course correcting rapidly - fly heading 285").CourseCall);
+        Assert.True(Phraseology.Parse("intercepting glidepath - commence descent for a 3 degree glidepath now").BeginDescent);
+        var lc = Phraseology.Parse("if no transmissions received for a period of 5 seconds while on final, maintain last assigned heading and climb to 3000");
+        Assert.True(lc.LostCommsInstructions);
+        Assert.False(Phraseology.Parse("do not acknowledge further transmissions").AcknowledgeRequested);
+    }
+
     [Fact]
     public void Pause_freezes_aircraft_and_holds_pilot_reactions()
     {

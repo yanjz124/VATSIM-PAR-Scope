@@ -31,10 +31,18 @@ public sealed record Transmission(string Text)
     public bool MissedApproachInstructions { get; init; }
     /// <summary>"Contact approach/departure": frequency change off final.</summary>
     public bool ContactApproach { get; init; }
+    /// <summary>"Level off (your aircraft)": stop descending (e.g. dangerously below the glidepath).</summary>
+    public bool LevelOff { get; init; }
+    /// <summary>"Resume normal rate of descent" / "resume descent".</summary>
+    public bool ResumeDescent { get; init; }
+    /// <summary>"…, acknowledge": the controller asks for a reply even after "do not acknowledge".</summary>
+    public bool AcknowledgeRequested { get; init; }
+    /// <summary>"If no transmissions received for … seconds …": lost communications instructions to remember.</summary>
+    public bool LostCommsInstructions { get; init; }
 
     public bool IsEmpty => HeadingDeg is null && Glidepath == GlidepathCall.None && !BeginDescent && !MissedApproach && CourseCall is null
                            && !HowDoYouHear && !DoNotAcknowledge && !WheelsDown && !ClearedToLand && ClimbToFt is null
-                           && !MissedApproachInstructions && !ContactApproach;
+                           && !MissedApproachInstructions && !ContactApproach && !LevelOff && !ResumeDescent && !LostCommsInstructions;
 }
 
 /// <summary>
@@ -97,6 +105,10 @@ public static partial class Phraseology
             ClimbToFt = climb,
             MissedApproachInstructions = instructions,
             ContactApproach = ContactRx().IsMatch(s),
+            LevelOff = LevelOffRx().IsMatch(s),
+            ResumeDescent = ResumeRx().IsMatch(s),
+            AcknowledgeRequested = AckRequestRx().IsMatch(s),
+            LostCommsInstructions = LostCommsRx().IsMatch(s),
         };
     }
 
@@ -155,13 +167,18 @@ public static partial class Phraseology
     [GeneratedRegex(@"\bon glidepath\b")] private static partial Regex OnGlidepathRx();
     [GeneratedRegex(@"\b(?:(?<going>going) |(?<mag>slightly|well) )?(?<side>above|below) (?:the )?glidepath\b")] private static partial Regex GlidepathRx();
     // "read of course" is a common mishearing of "right of course".
-    [GeneratedRegex(@"\b(?:on course|(?:going |slightly |well )?(?:left|right|read) of course)\b")] private static partial Regex CourseRx();
+    [GeneratedRegex(@"\b(?:on (?:the )?(?:on ?)?course|(?:going |drifting |slightly |well )?(?:left|right|read) of (?:the )?(?:on ?)?course)\b")] private static partial Regex CourseRx();
     [GeneratedRegex(@"\b(?:begin|start|initiate|commence) (?:your )?descent\b")] private static partial Regex DescentRx();
     [GeneratedRegex(@"\bglide(?: ?path| ?slope)?\b")] private static partial Regex GlideRx();
     [GeneratedRegex(@"\bexecute missed approach\b|\bgo around\b|\bwave ?off\b|\btower clearance (?:not received|cancell?ed)\b")] private static partial Regex MissedRx();
     // "Do not acknowledge further transmissions" (§5-10-10) and the ways people actually say it.
     [GeneratedRegex(@"\b(?:do not|don t|dont|to not|no need to|not necessary to) (?:acknowledge|read ?back)\b|\backnowledg(?:e|ement)s? not (?:required|necessary)\b|\bno (?:further )?(?:acknowledgements?|acknowledgments?|readbacks?)\b")] private static partial Regex NoAckRx();
     [GeneratedRegex(@"(?<=\d),(?=\d{3}\b)")] private static partial Regex ThousandsCommaRx();
+    [GeneratedRegex(@"\blevel off\b")] private static partial Regex LevelOffRx();
+    [GeneratedRegex(@"\bresume (?:normal )?(?:rate of )?descent\b|\bresume normal rate\b")] private static partial Regex ResumeRx();
+    // "…, acknowledge" at the end of a call, not "do not acknowledge".
+    [GeneratedRegex(@"(?<!\bnot |\bno need to |\bdon t |\bdont |\bto not )\backnowledge\s*$")] private static partial Regex AckRequestRx();
+    [GeneratedRegex(@"\bif no transmissions? (?:are )?received\b|\blost comm(?:unication)?s?\b")] private static partial Regex LostCommsRx();
     [GeneratedRegex(@"\b(?:in the event of (?:a )?missed approach|if (?:you )?(?:go |are )?missed approach|missed approach instructions)\b")] private static partial Regex MissedInstructionsRx();
     // "climb and maintain 2 thousand 5 hundred" after digit merging, or "climb and maintain 2500".
     [GeneratedRegex(@"\bclimb (?:and maintain |to )?(?<a>\d+)(?: (?<k>thousand))?(?: (?<h>\d) hundred)?\b")] private static partial Regex ClimbRx();

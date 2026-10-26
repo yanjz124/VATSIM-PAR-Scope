@@ -230,7 +230,12 @@ public sealed class WindowsGrammarRecognizer : IPhraseRecognizer
             G(Opt(new Choices("slightly", "well")), side, "of course", Opt(G("and", new Choices("correcting", "holding")))),
             G("going", side, "of course"));
         var misc = new Choices(
-            G("begin descent"),
+            G(new Choices("begin", "commence", "initiate"), "descent"),
+            G("level off", Opt("your aircraft")),
+            G("resume normal rate of descent"),
+            G("adjust rate of descent"),
+            G("acknowledge"),
+            G(new Choices("drifting", "paralleling"), Opt(new Choices("left", "right")), Opt("of course")),
             G("approaching glidepath"),
             G(new Choices("execute missed approach", "go around", "wave off", "tower directs wave off")),
             G(new Choices("too low", "too high", "too far left", "too far right"), "for safe approach"),

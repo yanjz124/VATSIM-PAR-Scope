@@ -689,6 +689,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (t.Clearance is { } cl) parts.Add(TowerSim.ClearanceWords(cl));
         if (t.HowDoYouHear) parts.Add("radio check");
         if (t.DoNotAcknowledge) parts.Add("do not acknowledge");
+        if (t.LevelOff) parts.Add("level off");
+        if (t.ResumeDescent) parts.Add("resume normal descent");
+        if (t.AcknowledgeRequested) parts.Add("acknowledge requested");
+        if (t.LostCommsInstructions) parts.Add("lost communications instructions");
+        if (t.MissedApproachInstructions) parts.Add("missed approach instructions");
+        if (t.ContactApproach) parts.Add("contact approach");
+        if (t.ClimbToFt is double climb) parts.Add($"climb {climb:0}");
         return parts.Count == 0 ? "NOTHING (not understood)" : string.Join("; ", parts);
     }
 
@@ -1053,7 +1060,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             double since = Engine.Training.SimTime - _lastTxTime;
             TxTimerText = $"Last transmission {since:0} s ago" + (TrainingPaused ? " (paused)" : "");
-            TxTimerLevel = since < 5 ? AdvisoryLevel.Normal : since < 10 ? AdvisoryLevel.Caution : AdvisoryLevel.Warning;
+            // Lost communications: 5 s on final, 30 s before descent (CF GCA procedure, as in vPAR).
+            bool onFinal = SelectedCallsign is { } sc && Engine.Training.Find(sc) is { Descending: true };
+            double limit = onFinal ? 5 : 30;
+            TxTimerLevel = since < limit ? AdvisoryLevel.Normal : since < limit * 2 ? AdvisoryLevel.Caution : AdvisoryLevel.Warning;
         }
 
         RefreshSelection();

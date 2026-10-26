@@ -165,3 +165,27 @@ which is not public. That is why the app uses the UK RA 3291 bands for "slightly
 ## VATSIM Velocity and vPilot
 
 See [VELOCITY.md](VELOCITY.md).
+
+
+## vPAR (Michael Oxner, 2001–2005)
+
+vPAR QuadRadar and Transponder were written for VATSIM because its 5-second position updates are too
+slow for a PAR. The Transponder ran next to Flight Simulator (FSUIPC) and sent positions straight to
+the controller's QuadRadar over TCP at 0.5 s intervals, outside VATSIM. Native Delphi; documentation
+and downloads at files.flying-fox.de/forum/vatsim/vpar.
+
+* The analog Final display copies the Canadian Forces **503 PAR** at 14 Wing Greenwood: logarithmic
+  range spacing (wider close in), a bright spot at the last hit and no trail.
+* Elevation field of view 7° (3.5° either side of the glidepath); a Low Altitude Warning line 0.5°
+  below the glidepath by default, levelling off at the DH; azimuth course limit lines at ±1.25°.
+* Approach setup: threshold lat/lon, touchdown zone elevation, final approach course (magnetic), GPA,
+  ground point intercept displacement (~1,000 ft), radar control limit, DH, magnetic variation.
+* Transmit timer: yellow after 5 s (final), red after 30 s (traffic pattern) — the lost-communications
+  intervals. vibe PAR's transmit timer uses the same 5 s / 30 s split.
+* CF GCA phraseology (PARPhraseology.html): lost-communications instructions before the approach;
+  "now on final approach, do not acknowledge further transmissions unless requested by radar"; course
+  trends "correcting slowly/nicely/rapidly", "paralleling", "drifting"; "intercepting glidepath,
+  commence descent … NOW"; "adjust rate of descent"; "dangerously below the glidepath, level off your
+  aircraft, acknowledge"; "resume normal rate of descent"; tower clearance relayed with wind and "check
+  gear down, acknowledge" at 2 miles; "passing through radar control limits". The pilot model
+  understands these, and answers an explicit "acknowledge" even after "do not acknowledge".

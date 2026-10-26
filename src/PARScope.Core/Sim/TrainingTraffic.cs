@@ -295,6 +295,8 @@ public sealed class SimAircraft
     public string? GoAroundReason { get; private set; }
     internal Queue<string> Calls { get; } = new();
     private bool _decided;
+    /// <summary>Told to level off; holds altitude until told to resume descent.</summary>
+    private bool _levelled;
     private double _rollSec;
     /// <summary>Missed approach instructions given in advance: heading (relative to course) and height above threshold.</summary>
     public double? MissedHeadingRelDeg { get; private set; }
@@ -379,6 +381,11 @@ public sealed class SimAircraft
             LastReadback = $"going missed, {(heading is double h2 ? $"heading {Units.Norm360(h2 + courseMagDeg):000}" : "runway heading")}, climbing to {climb + thresholdElevFt:0} ft";
             return new PilotResponse(LastReadback, $"{char.ToUpperInvariant(parts[0][0])}{string.Join(", ", parts)[1..]}, {cs}.");
         }
+        if (t.LostCommsInstructions)
+        {
+            LastReadback = "lost communications instructions noted";
+            return new PilotResponse(LastReadback, NoAcknowledge && !t.AcknowledgeRequested ? null : $"Roger, {cs}.");
+        }
         if (t.ContactApproach)
         {
             _pending.Enqueue((now + delay + 4, () => HandedOff = true));
@@ -390,6 +397,18 @@ public sealed class SimAircraft
             _pending.Enqueue((now + delay, () => ClimbToFt = climbTo));
             actions.Add($"climbing to {climbTo + thresholdElevFt:0} ft");
             readback.Add(Climb(climbTo));
+        }
+        if (t.LevelOff)
+        {
+            _pending.Enqueue((now + delay, () => { CommandedVsFpm = 0; _levelled = true; }));
+            actions.Add("levelling off");
+            readback.Add("levelling off");
+        }
+        if (t.ResumeDescent && Descending)
+        {
+            double vs = NominalVs(recommendedFpm);
+            _pending.Enqueue((now + delay, () => { _levelled = false; CommandedVsFpm = vs; _vsBias = 0; }));
+            actions.Add("normal rate of descent");
         }
         if (t.HowDoYouHear)
         {
@@ -423,10 +442,10 @@ public sealed class SimAircraft
         }
         if (t.BeginDescent)
         {
-            _pending.Enqueue((now + delay, () => { Descending = true; CommandedVsFpm = NominalVs(recommendedFpm); }));
+            _pending.Enqueue((now + delay, () => { Descending = true; _levelled = false; CommandedVsFpm = NominalVs(recommendedFpm); }));
             actions.Add("descending");
         }
-        else if (Descending && t.Glidepath != GlidepathCall.None)
+        else if (Descending && !_levelled && !t.LevelOff && t.Glidepath != GlidepathCall.None)
         {
             double adjust = t.Glidepath switch
             {
@@ -448,8 +467,9 @@ public sealed class SimAircraft
         LastReadback = string.Join(", ", actions);
 
         // A radio check is always answered; everything else only before "do not acknowledge".
-        bool mayReadBack = !wasNoAcknowledge && !t.DoNotAcknowledge;
+        bool mayReadBack = (!wasNoAcknowledge && !t.DoNotAcknowledge) || t.AcknowledgeRequested;
         var spoken = readback.Where(r => mayReadBack || r == "loud and clear").ToList();
+        if (spoken.Count == 0 && t.AcknowledgeRequested) spoken.Add("roger");
         string? reply = spoken.Count == 0 ? null : $"{string.Join(", ", spoken)}, {cs}.";
         if (reply != null) reply = char.ToUpperInvariant(reply[0]) + reply[1..];
         return new PilotResponse(actions.Count > 0 ? LastReadback : "no action", reply);
