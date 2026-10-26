@@ -29,10 +29,8 @@ public sealed class AppSettings
     public string? ScopeFont { get; set; }
     public bool Mti { get; set; } = true;
     public bool ShowSafetyLimits { get; set; } = true;
-    public bool ShowTerpsLateral { get; set; }
     public bool ShowCourseWedge { get; set; }
     public bool ShowScan { get; set; } = true;
-    public bool ShowAsrSweep { get; set; }
     public bool ShowAdvisories { get; set; } = true;
     /// <summary>Suggested calls are a training aid; off for real VATSIM traffic unless asked for.</summary>
     public bool ShowAdvisoriesOnNetwork { get; set; }

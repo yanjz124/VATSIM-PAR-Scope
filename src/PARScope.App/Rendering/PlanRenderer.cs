@@ -42,7 +42,7 @@ public sealed class PlanRenderer : IDisposable
     }
 
     public void Render(SKCanvas c, float w, float h, ParGeometry? geo, AsrSimulator? asr, AirportRecord? airport,
-        RadarPreset preset, IReadOnlyList<TargetTrack> targets, double now, double rangeNm, string? selected, bool showSweep, string? weather = null)
+        RadarPreset preset, IReadOnlyList<TargetTrack> targets, double now, double rangeNm, string? selected, string? weather = null)
     {
         c.Clear(SKColors.Black);
         _hits.Clear();
@@ -84,11 +84,6 @@ public sealed class PlanRenderer : IDisposable
             c.DrawLine(P(e.X - px, e.Y - py), P(e.X + px, e.Y + py), _ink.Line(MapDim, 1f));
         }
 
-        if (showSweep)
-        {
-            double sw = Units.DegToRad(asr.SweepDeg);
-            c.DrawLine(_cx, _cy, (float)(_cx + Math.Sin(sw) * w * 2), (float)(_cy - Math.Cos(sw) * w * 2), _ink.Line(MapDim.Fade(0.6), 1f));
-        }
 
         // Targets: history trail, beacon slash, data block.
         var byCs = targets.ToDictionary(x => x.Callsign, StringComparer.OrdinalIgnoreCase);

@@ -10,7 +10,6 @@ public sealed record ParRenderOptions
     public double RangeScaleNm { get; init; } = 10;
     public bool LogRange { get; init; }
     public bool ShowSafetyLimits { get; init; } = true;
-    public bool ShowTerpsLateral { get; init; }
     /// <summary>UK RA 3291 blue 2° and 5° azimuth lines (not on US displays).</summary>
     public bool ShowCourseWedge { get; init; }
     public bool ShowScan { get; init; } = true;
@@ -233,8 +232,6 @@ public sealed class ParDisplayRenderer : IDisposable
         float tx = X(geo.ThresholdRangeFt);
         c.DrawLine(tx, gy, tx, YEl(geo.Site.TchFt, geo.ThresholdRangeFt), _ink.Line(_t.Runway, 1.2f));
         _ink.Glow = false;
-        if (!_t.Analog)
-            c.DrawText("DH", dx + 4, dy + 16, SKTextAlign.Left, _ink.FontSmall, _ink.TextPaint(_t.AxisLabel));
         c.Restore();
     }
 
@@ -267,11 +264,6 @@ public sealed class ParDisplayRenderer : IDisposable
                     Curve(c, _ink.Line(_t.CourseWedge, 1f), r => s * ParGeometry.CourseLineFt(r, deg), YAz, 1, RangeMaxFt);
         }
 
-        if (opt.ShowTerpsLateral)
-        {
-            foreach (int s in new[] { 1, -1 })
-                Curve(c, _ink.Line(_t.Safety, 1.2f, LineStyle.Dotted), r => s * ParGeometry.LateralSafeLimitFt(r), YAz, 0.5 * Units.FeetPerNm, Math.Min(6 * Units.FeetPerNm, RangeMaxFt));
-        }
 
         // Course cursor with mile ticks.
         c.DrawLine(X(0), _azZeroY, _right, _azZeroY, _ink.Line(_t.Cursor, 1.6f));
@@ -461,12 +453,12 @@ public sealed class ParDisplayRenderer : IDisposable
     private void DrawStatusBox(SKCanvas c, ParGeometry geo, RadarSimulator radar, ParRenderOptions opt)
     {
         var rw = geo.Runway;
+        // Only what the reference screens show: time, PAR runway and glidepath, range, wind/altimeter.
         string[] lines =
         [
-            $"{DateTime.UtcNow:HHmmss}Z  {radar.Preset.Name}",
-            $"PAR {rw.AirportId} RWY-{rw.RunwayId} GS-{geo.Site.GlidepathDeg:0.0}",
-            $"FAC {rw.MagneticCourseDeg:000}  DH {geo.Site.DecisionHeightFt:0}  TCH {geo.Site.TchFt:0}",
-            $"RNG:{opt.RangeScaleNm:0}NM{(opt.LogRange ? " LOG" : "")}  MTI:{(opt.MtiEnabled ? "ON" : "OFF")}",
+            $"{DateTime.UtcNow:HHmmss}",
+            $"PAR RWY-{rw.RunwayId} GS-{geo.Site.GlidepathDeg:0.0}",
+            $"RNG:{opt.RangeScaleNm:0}NM",
             .. (opt.Weather is { Length: > 0 } wx ? new[] { wx } : []),
         ];
         float w = lines.Max(l => _ink.Font.MeasureText(l)) + 12, h = lines.Length * 14 + 8;

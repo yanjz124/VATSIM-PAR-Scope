@@ -52,19 +52,19 @@ VATSIM servers. Run `TrafficProbe.exe` (with the scope closed) to see the rates 
 * **Radar model** selector: each preset changes the scan rate, coverage, accuracy and display style.
   The FPN-63 preset is a monochrome phosphor indicator with afterglow and no tracker. The FPN-68
   preset is a colour digital display with tracks, history dots and data blocks.
-* **Range** 5/10/20 NM (PgUp/PgDn). **Log** compresses the range axis. **MTI** rejects fixed returns
-  and targets slower than 40 kt. **Clutter** shows ground returns from the approach lights and terrain
-  near touchdown.
+* **Range** 5/10/20 NM (PgUp/PgDn). **Log** compresses the range axis, like the USMC display it is
+  copied from. **MTI** rejects targets slower than 40 kt.
+* Targets plot exactly where the aircraft is, once per radar scan. **Simulate radar errors** (in
+  setup, off by default) adds measurement noise, multipath, ground clutter and missed paints for
+  training.
 * Click a target, or press **Tab**, to select it. The side panel shows its range from touchdown,
   feet above or below the glidepath, feet left or right of course, and the recommended rate of descent.
 * **Approach and site setup** sets the glidepath angle, TCH, DH and antenna position for each runway.
   Defaults come from the published data.
 
-Everything you see comes from the simulated radar, not directly from the network:
+The scope updates like a radar, not a moving map:
 
-* Each target is painted only when the simulated beam crosses it.
-* Each paint has realistic measurement noise: one third of the ICAO Annex 10 accuracy limits, plus
-  ground multipath near the horizon.
+* Each target is painted when the simulated beam crosses it.
 * Between network updates, aircraft are dead-reckoned and smoothed, so a 5-second update rate doesn't
   make targets jump.
 

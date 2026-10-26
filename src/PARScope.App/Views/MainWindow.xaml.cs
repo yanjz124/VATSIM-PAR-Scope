@@ -71,7 +71,6 @@ public partial class MainWindow : FluentWindow
             RangeScaleNm = _vm.RangeScaleNm,
             LogRange = _vm.LogRange,
             ShowSafetyLimits = _vm.ShowSafetyLimits,
-            ShowTerpsLateral = _vm.ShowTerpsLateral,
             ShowCourseWedge = _vm.ShowCourseWedge,
             MtiEnabled = _vm.Mti,
             Weather = _vm.MetarShort,
@@ -93,7 +92,7 @@ public partial class MainWindow : FluentWindow
         c.Scale(scale);
         var engine = _vm.Engine;
         _plan.Render(c, e.Info.Width / scale, e.Info.Height / scale, engine.Geometry, engine.Asr, engine.Airport,
-            engine.Preset, engine.Targets, engine.Now, _vm.PlanRangeNm, _vm.SelectedCallsign, _vm.ShowAsrSweep, _vm.MetarStars);
+            engine.Preset, engine.Targets, engine.Now, _vm.PlanRangeNm, _vm.SelectedCallsign, _vm.MetarStars);
         c.Restore();
     }
 

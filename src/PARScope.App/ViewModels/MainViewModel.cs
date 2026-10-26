@@ -36,11 +36,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ShowClutter = settings.ShowClutter;
         Mti = settings.Mti;
         ShowSafetyLimits = settings.ShowSafetyLimits;
-        ShowTerpsLateral = settings.ShowTerpsLateral;
         ShowCourseWedge = settings.ShowCourseWedge;
         UseUkBands = settings.Bands.Standard == DeviationStandard.UkRa3291;
         ShowScan = settings.ShowScan;
-        ShowAsrSweep = settings.ShowAsrSweep;
         ShowAdvisories = settings.ShowAdvisories;
         ShowAdvisoriesOnNetwork = settings.ShowAdvisoriesOnNetwork;
         ShowPlanView = settings.ShowPlanView;
@@ -261,12 +259,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public IReadOnlyList<string> ScopeFonts { get; }
     [ObservableProperty] public partial bool Mti { get; set; }
     [ObservableProperty] public partial bool ShowSafetyLimits { get; set; }
-    [ObservableProperty] public partial bool ShowTerpsLateral { get; set; }
     [ObservableProperty] public partial bool ShowCourseWedge { get; set; }
     /// <summary>UK RA 3291 fixed-feet deviation terms instead of the US Navy target-quarter method.</summary>
     [ObservableProperty] public partial bool UseUkBands { get; set; }
     [ObservableProperty] public partial bool ShowScan { get; set; }
-    [ObservableProperty] public partial bool ShowAsrSweep { get; set; }
     [ObservableProperty] public partial bool ShowAdvisories { get; set; }
     [ObservableProperty] public partial bool ShowAdvisoriesOnNetwork { get; set; }
     [ObservableProperty] public partial bool HasTraining { get; set; }
@@ -287,12 +283,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (SelectedPreset != null) RefreshRangeScales(SelectedPreset);
     }
     partial void OnShowSafetyLimitsChanged(bool value) => _settings.ShowSafetyLimits = value;
-    partial void OnShowTerpsLateralChanged(bool value) => _settings.ShowTerpsLateral = value;
     partial void OnShowCourseWedgeChanged(bool value) => _settings.ShowCourseWedge = value;
     partial void OnUseUkBandsChanged(bool value) =>
         _settings.Bands = _settings.Bands with { Standard = value ? DeviationStandard.UkRa3291 : DeviationStandard.UsNavyTargetQuarters };
     partial void OnShowScanChanged(bool value) => _settings.ShowScan = value;
-    partial void OnShowAsrSweepChanged(bool value) => _settings.ShowAsrSweep = value;
     partial void OnShowAdvisoriesChanged(bool value) => _settings.ShowAdvisories = value;
     partial void OnShowAdvisoriesOnNetworkChanged(bool value) => _settings.ShowAdvisoriesOnNetwork = value;
     partial void OnShowPlanViewChanged(bool value) => _settings.ShowPlanView = value;
