@@ -18,7 +18,7 @@ public sealed class PlanRenderer : IDisposable
     public IReadOnlyList<HitTarget> Hits => _hits;
 
     public void Render(SKCanvas c, float w, float h, ParGeometry? geo, AsrSimulator? asr, AirportRecord? airport,
-        RadarPreset preset, IReadOnlyList<TargetTrack> targets, double now, double rangeNm, string? selected, bool showSweep)
+        RadarPreset preset, IReadOnlyList<TargetTrack> targets, double now, double rangeNm, string? selected, bool showSweep, string? weather = null)
     {
         var t = Palette;
         c.Clear(t.Background);
@@ -127,6 +127,8 @@ public sealed class PlanRenderer : IDisposable
         }
 
         c.DrawText($"ASR  {rangeNm:0} NM", 10, 18, SKTextAlign.Left, _ink.Font, _ink.TextPaint(t.Text));
+        if (weather is { Length: > 0 })
+            c.DrawText(weather, 10, h - 10, SKTextAlign.Left, _ink.Font, _ink.TextPaint(t.Text));
     }
 
     /// <summary>STARS-like surveillance colours: grey map, white targets, yellow selection.</summary>

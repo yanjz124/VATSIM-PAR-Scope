@@ -73,6 +73,7 @@ public partial class MainWindow : FluentWindow
             ShowTerpsLateral = _vm.ShowTerpsLateral,
             ShowCourseWedge = _vm.ShowCourseWedge,
             MtiEnabled = _vm.Mti,
+            Weather = _vm.MetarShort,
             ShowScan = _vm.ShowScan,
             HistoryDots = _vm.HistoryDots,
             Selected = _vm.SelectedCallsign,
@@ -90,7 +91,7 @@ public partial class MainWindow : FluentWindow
         c.Scale(scale);
         var engine = _vm.Engine;
         _plan.Render(c, e.Info.Width / scale, e.Info.Height / scale, engine.Geometry, engine.Asr, engine.Airport,
-            engine.Preset, engine.Targets, engine.Now, _vm.PlanRangeNm, _vm.SelectedCallsign, _vm.ShowAsrSweep);
+            engine.Preset, engine.Targets, engine.Now, _vm.PlanRangeNm, _vm.SelectedCallsign, _vm.ShowAsrSweep, _vm.MetarShort);
         c.Restore();
     }
 
@@ -208,7 +209,17 @@ public partial class MainWindow : FluentWindow
         if (e.PropertyName == nameof(MainViewModel.ShowPlanView)) UpdateSidePanel();
     }
 
-    private void UpdateSidePanel() => SideColumn.Width = _vm.ShowPlanView ? new GridLength(360) : new GridLength(0);
+    private void UpdateSidePanel()
+    {
+        SideColumn.Width = _vm.ShowPlanView ? new GridLength(Math.Clamp(_settings.SidePanelWidth, 320, 900)) : new GridLength(0);
+        SideSplitter.Visibility = _vm.ShowPlanView ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    // Keep the ASR square: as the panel is dragged wider, the surveillance picture grows with it.
+    private void PlanHost_SizeChanged(object sender, SizeChangedEventArgs e) => PlanHost.Height = Math.Max(240, e.NewSize.Width);
+
+    private void SideSplitter_DragCompleted(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e) =>
+        _settings.SidePanelWidth = SideColumn.ActualWidth;
 
     private void RestorePlacement()
     {

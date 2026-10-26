@@ -102,7 +102,8 @@
         <Grid Grid.Row="2" Margin="12,0,12,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" MinWidth="560" />
-                <ColumnDefinition x:Name="SideColumn" Width="360" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition x:Name="SideColumn" Width="380" MinWidth="0" MaxWidth="900" />
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" CornerRadius="8" Background="{StaticResource ScopeBackgroundBrush}" ClipToBounds="True"
@@ -110,7 +111,11 @@
                 <skia:SKElement x:Name="ParView" PaintSurface="ParView_PaintSurface" MouseLeftButtonDown="ParView_MouseDown" Cursor="Cross" />
             </Border>
 
-            <ScrollViewer Grid.Column="1" Margin="10,0,0,0" VerticalScrollBarVisibility="Auto"
+            <!-- Drag to resize the side panel; the ASR view stays square and grows with it. -->
+            <GridSplitter x:Name="SideSplitter" Grid.Column="1" Width="8" HorizontalAlignment="Stretch" Background="Transparent"
+                          Cursor="SizeWE" ResizeBehavior="PreviousAndNext" DragCompleted="SideSplitter_DragCompleted" />
+
+            <ScrollViewer Grid.Column="2" Margin="2,0,0,0" VerticalScrollBarVisibility="Auto"
                           Visibility="{Binding ShowPlanView, Converter={StaticResource BoolToVisibility}}">
                 <StackPanel>
 
@@ -166,7 +171,8 @@
                     <!-- Surveillance view -->
                     <ui:Card Padding="0" Margin="0,0,0,8">
                         <Grid>
-                            <Border Height="300" CornerRadius="6" ClipToBounds="True" Background="{StaticResource ScopeBackgroundBrush}">
+                            <Border x:Name="PlanHost" Height="360" CornerRadius="6" ClipToBounds="True" Background="{StaticResource ScopeBackgroundBrush}"
+                                    SizeChanged="PlanHost_SizeChanged">
                                 <skia:SKElement x:Name="PlanView" PaintSurface="PlanView_PaintSurface" MouseLeftButtonDown="PlanView_MouseDown" Cursor="Cross" />
                             </Border>
                             <ToggleButton HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,102,0" Padding="8,4"

@@ -34,6 +34,7 @@ public sealed class AppSettings
     public bool ShowAdvisoriesOnNetwork { get; set; }
     public bool ShowPlanView { get; set; } = true;
     public double PlanRangeNm { get; set; } = 20;
+    public double SidePanelWidth { get; set; } = 380;
     public int HistoryDots { get; set; } = 8;
     public MetarSource MetarSource { get; set; } = MetarSource.Vatsim;
     public DeviationBands Bands { get; set; } = new();

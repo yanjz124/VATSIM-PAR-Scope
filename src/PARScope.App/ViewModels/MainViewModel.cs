@@ -494,6 +494,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] public partial string MetarRaw { get; set; } = "";
     [ObservableProperty] public partial string MetarSpoken { get; set; } = "";
     [ObservableProperty] public partial FlightCategory MetarCategory { get; set; }
+    /// <summary>Wind/altimeter line drawn on the scopes.</summary>
+    public string? MetarShort { get; private set; }
 
     /// <summary>Called at a few hertz by the view.</summary>
     public void RefreshStatus()
@@ -546,6 +548,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             var m = await _metar.FetchAsync(apt.MetarId, UseVatsimMetar ? MetarSource.Vatsim : MetarSource.Noaa, _metarCts.Token);
             MetarRaw = m?.Raw ?? $"No METAR for {apt.MetarId}";
             MetarSpoken = m?.Spoken ?? "";
+            MetarShort = m?.Short;
             MetarCategory = m?.Category ?? FlightCategory.Unknown;
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)

@@ -44,6 +44,19 @@ public sealed partial record Metar(string Raw)
         }
     }
 
+    /// <summary>Compact display form for scope overlays, e.g. "WIND 300/09G18  ALT 30.02".</summary>
+    public string Short
+    {
+        get
+        {
+            string wind = WindSpeedKt is null ? "WIND ---"
+                : WindSpeedKt == 0 ? "WIND CALM"
+                : $"WIND {(WindVariable ? "VRB" : WindDirDeg?.ToString("000"))}/{WindSpeedKt:00}" + (GustKt.HasValue ? $"G{GustKt}" : "");
+            string alt = AltimeterHpa is int q ? $"QNH {q}" : AltimeterInHg is double a ? $"ALT {a:00.00}" : "ALT --.--";
+            return $"{wind}  {alt}";
+        }
+    }
+
     public static Metar Parse(string raw)
     {
         raw = WhitespaceRx().Replace(raw.Trim(), " ");

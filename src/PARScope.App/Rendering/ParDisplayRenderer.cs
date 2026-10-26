@@ -18,6 +18,8 @@ public sealed record ParRenderOptions
     public string? Selected { get; init; }
     public Advisory? SelectedAdvisory { get; init; }
     public bool MtiEnabled { get; init; } = true;
+    /// <summary>Wind and altimeter line for the status window, e.g. "WIND 300/09  ALT 30.02".</summary>
+    public string? Weather { get; init; }
 }
 
 /// <summary>Screen position of a drawn target, for click selection.</summary>
@@ -456,6 +458,7 @@ public sealed class ParDisplayRenderer : IDisposable
             $"PAR {rw.AirportId} RWY-{rw.RunwayId} GS-{geo.Site.GlidepathDeg:0.0}",
             $"FAC {rw.MagneticCourseDeg:000}  DH {geo.Site.DecisionHeightFt:0}  TCH {geo.Site.TchFt:0}",
             $"RNG:{opt.RangeScaleNm:0}NM{(opt.LogRange ? " LOG" : "")}  MTI:{(opt.MtiEnabled ? "ON" : "OFF")}",
+            .. (opt.Weather is { Length: > 0 } wx ? new[] { wx } : []),
         ];
         float w = lines.Max(l => _ink.Font.MeasureText(l)) + 12, h = lines.Length * 14 + 8;
         var box = SKRect.Create(_left + 8, _elTop + 6, w, h);

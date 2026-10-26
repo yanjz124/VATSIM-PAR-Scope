@@ -15,6 +15,7 @@ public sealed class AsrSimulator
 {
     public const double SweepSec = 4.8;
     public const double HistorySec = 60;
+    public const double MinSpeedKt = 40;
     private readonly LocalFrame _frame;
     private readonly Random _rng = new();
     private readonly List<AsrPlot> _plots = [];
@@ -43,6 +44,9 @@ public sealed class AsrSimulator
         foreach (var t in targets)
         {
             if (!t.Initialized) continue;
+            // Parked and taxiing aircraft: MTI cancels the primary return and the transponder is in
+            // standby, so a real ASR does not show them.
+            if (Math.Max(t.VelocityEcef.Length / Units.MpsPerKnot, t.GroundSpeedKt ?? 0) < MinSpeedKt) continue;
             var ecef = t.PositionAt(now);
             var enu = _frame.EcefToEnu(ecef);
             double range = enu.HorizontalLength;
