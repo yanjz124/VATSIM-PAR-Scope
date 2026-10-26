@@ -609,7 +609,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         // Approach offers the handoff on the interphone (7110.65 §5-4-5). Once final says "radar contact",
         // approach switches the pilot, who checks in (NAVAIR 00-80T-112 ¶25.3.1.1).
         string handoff = _approach.OfferHandoff(ac.Callsign, ac.RangeFt / Units.FeetPerNm,
-            Units.Norm360(rw.MagneticCourseDeg + ac.CommandedHeadingRelDeg), ac.HeightFt + rw.ThresholdElevFt, Engine.Training.SimTime);
+            Units.Norm360(rw.MagneticCourseDeg + ac.CommandedHeadingRelDeg), ac.AltitudeAboveThresholdFt + rw.ThresholdElevFt, Engine.Training.SimTime);
         _ = SayLaterAsync(0.5, () => { Log("APPROACH", handoff); _voice.Approach(handoff); });
     }
 
@@ -1109,7 +1109,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             MetarRaw = m?.Raw ?? $"No METAR for {apt.MetarId}";
             MetarSpoken = m?.Spoken ?? "";
             MetarShort = m?.Short;
-            MetarWindPhrase = m is null ? "" : RadioSpeech.Wind(m.WindDirDeg, m.WindSpeedKt, m.WindVariable).ToUpperInvariant();
+            // METAR wind is true; ATC issues it magnetic.
+            int? magDir = m?.WindDirDeg is int td ? RadioSpeech.MagneticWindDeg(td, SelectedRunway?.MagVarEastDeg ?? 0) : null;
+            MetarWindPhrase = m is null ? "" : RadioSpeech.Wind(magDir, m.WindSpeedKt, m.WindVariable).ToUpperInvariant();
             MetarStars = m?.StarsShort;
             MetarCategory = m?.Category ?? FlightCategory.Unknown;
             _liveWind = m is { WindSpeedKt: int kt } ? (m.WindVariable ? null : m.WindDirDeg, kt, m.GustKt) : null;

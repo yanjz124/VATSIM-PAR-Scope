@@ -100,6 +100,13 @@ public static class RadioSpeech
         return string.Join(' ', parts);
     }
 
+    /// <summary>A true (METAR) wind direction as ATC issues it: magnetic, to the nearest 10°, 360 for north.</summary>
+    public static int MagneticWindDeg(int trueDeg, double magVarEastDeg)
+    {
+        int d = (int)(Math.Round(Geo.Units.Norm360(trueDeg - magVarEastDeg) / 10) * 10) % 360;
+        return d == 0 ? 360 : d;
+    }
+
     public static string Wind(int? dir, int? speed, bool variable)
     {
         if (speed is null) return "";

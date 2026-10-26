@@ -14,10 +14,11 @@ public sealed record Plot(ScopeKind Scope, string? Callsign, double Time, Approa
 /// crosses it, and each return carries range/angle noise. This is what makes the scope behave like a
 /// radar (discrete, slightly jittery paints) rather than a moving map.
 ///
-/// Noise is one third of the ICAO Annex 10 error budget, scaled by the preset:
+/// Angle noise is one third of the ICAO Annex 10 error budget, scaled by the preset:
 ///   azimuth   σ = 0.2 % of antenna range + 10 ft
 ///   elevation σ = 0.13 % of antenna range + 7 ft, plus multipath lobing near the horizon
-///   range     σ = 30 ft + 0.3 % of distance from touchdown
+///   range     σ = 30 ft + 0.3 % of distance from touchdown. This is tighter than a third of ICAO's
+///             100 ft + 3 %, closer to modern equipment; range error feeds the glidepath deviation (δr·tan GPA).
 /// </summary>
 public sealed class RadarSimulator
 {

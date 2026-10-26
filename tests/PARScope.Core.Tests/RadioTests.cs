@@ -31,6 +31,9 @@ public class RadioTests
         Assert.Equal("one thousand six hundred", RadioSpeech.Altitude(1600));
         Assert.Equal("two four right", RadioSpeech.Runway("24R"));
         Assert.Equal("wind three zero zero at niner", RadioSpeech.Wind(300, 9, false));
+        Assert.Equal(310, RadioSpeech.MagneticWindDeg(300, -10)); // 10°W: magnetic = true + 10
+        Assert.Equal(360, RadioSpeech.MagneticWindDeg(4, 3));
+        Assert.Equal(250, RadioSpeech.MagneticWindDeg(262, 12));
     }
 
     private static SimAircraft Spawn()
@@ -103,7 +106,7 @@ public class RadioTests
         for (double t = 0; t <= 120; t += 0.1) sim.Step(t).ToList();
         Assert.True(ac.GoingAround);
         Assert.Equal(-63, ac.CommandedHeadingRelDeg, 1);
-        Assert.InRange(ac.HeightFt, 2300, 2450); // 2,500 MSL with a 100 ft threshold, levelling
+        Assert.InRange(ac.AltitudeAboveThresholdFt, 2300, 2450); // 2,500 MSL with a 100 ft threshold, levelling
 
         Assert.StartsWith("Switching", ac.Receive(Phraseology.Parse("contact approach"), sim.SimTime, 243, 700).Reply);
         for (double t = 120.1; t <= 130; t += 0.1) sim.Step(t).ToList();
@@ -118,7 +121,7 @@ public class RadioTests
         {
             var ac = sim.SpawnRandom(PilotMode.ControllerDirected);
             Assert.InRange(ac.RangeFt / PARScope.Core.Geo.Units.FeetPerNm, 12, 15);
-            Assert.InRange(ac.HeightFt, 1900, 3000);
+            Assert.InRange(ac.AltitudeAboveThresholdFt, 1990, 3000);
         }
         Assert.Equal("Final, approach, handoff, one four mile final, Navy one two three four, two thousand five hundred, heading two four three.",
             ApproachSim.HandoffToFinal("VV1234", 14.2, 243, 2500));
@@ -265,6 +268,22 @@ public class RadioTests
         var lc = Phraseology.Parse("if no transmissions received for a period of 5 seconds while on final, maintain last assigned heading and climb to 3000");
         Assert.True(lc.LostCommsInstructions);
         Assert.False(Phraseology.Parse("do not acknowledge further transmissions").AcknowledgeRequested);
+    }
+
+    /// <summary>Regression: a level arrival used to hold height above the threshold's tangent plane, so its
+    /// reported (geodetic) altitude was ~200 ft high at 15 NM and descended as it came in.</summary>
+    [Fact]
+    public void Level_arrival_reports_a_constant_altitude()
+    {
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 15, AltitudeFt = 2000, SpeedKt = 150, Skill = 1, Mode = PilotMode.ControllerDirected });
+        double thr = GeometryTests.Runway.ThresholdElevFt;
+        var alts = new List<double>();
+        for (double t = 0; t <= 75; t += 0.1)
+            foreach (var r in sim.Step(t).OfType<PositionReport>()) alts.Add(r.Position.AltFt - thr);
+        Assert.InRange(alts.Min(), 1995, 2005);
+        Assert.InRange(alts.Max(), 1995, 2005);
+        Assert.Contains(RadioSpeech.Altitude(2000 + thr) + ",", ac.CheckInCall("Miramar", 243, thr)); // spoken MSL
     }
 
     [Fact]

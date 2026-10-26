@@ -139,10 +139,13 @@ public sealed class ParDisplayRenderer : IDisposable
     /// <summary>Pixels per foot of height/offset at a range; constant in linear mode, X(r)/r-scaled in log mode.</summary>
     private double VerticalScale(double basePxPerFt, double rangeFt)
     {
-        if (!_logStraight || rangeFt <= 0) return basePxPerFt;
+        if (!_logStraight) return basePxPerFt;
         double rMaxFt = _rMaxNm * Units.FeetPerNm;
         double x0 = X(0);
-        return basePxPerFt * rMaxFt / (X(rMaxFt) - x0) * (X(rangeFt) - x0) / rangeFt;
+        // Past touchdown the range axis is linear with the same slope as the log curve at 0⁺, so (X(r) − X(0)) / r
+        // is continuous through touchdown on both sides (|r| ≥ 1 ft avoids 0/0).
+        double r = Math.Abs(rangeFt) < 1 ? 1 : rangeFt;
+        return basePxPerFt * rMaxFt / (X(rMaxFt) - x0) * (X(r) - x0) / r;
     }
 
     private float YEl(double heightFt, double rangeFt) => (float)(_elZeroY - heightFt * VerticalScale(_elPxPerFt, rangeFt));

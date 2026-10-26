@@ -160,7 +160,10 @@ public sealed class TrainingTraffic
         {
             RangeFt = rangeFt,
             CrossFt = o.CrossFt,
-            HeightFt = o.AltitudeFt is double alt ? Math.Min(alt, geo.GlidepathHeightFt(rangeFt) - 300) : geo.GlidepathHeightFt(rangeFt) + o.HeightOffsetFt,
+            ThresholdRangeFt = geo.ThresholdRangeFt,
+            HeightFt = o.AltitudeFt is double alt
+                ? Math.Min(alt - SimAircraft.CurvatureDropFt(rangeFt - geo.ThresholdRangeFt, o.CrossFt), geo.GlidepathHeightFt(rangeFt) - 300)
+                : geo.GlidepathHeightFt(rangeFt) + o.HeightOffsetFt,
             TrackRelDeg = -o.InterceptAngleDeg * Math.Sign(o.CrossFt == 0 ? 1 : o.CrossFt),
             SpeedKt = o.SpeedKt > 0 ? o.SpeedKt : ApproachSpeed(type),
             GearDown = o.GearDown ?? _rng.NextDouble() < 0.5,
@@ -269,7 +272,20 @@ public sealed class SimAircraft
     // Approach-frame state. Angles are relative to the final course (positive = right).
     public double RangeFt { get; internal set; }
     public double CrossFt { get; internal set; }
+    /// <summary>Height above the threshold's local tangent plane (the frame the glidepath is straight in).</summary>
     public double HeightFt { get; internal set; }
+    internal double ThresholdRangeFt { get; init; }
+
+    /// <summary>
+    /// Altitude above threshold elevation (geodetic): the tangent plane falls away from the earth by d²/2R, about
+    /// 200 ft at 15 NM. This is what the altimeter, Mode C and the pilot read; level flight holds it constant.
+    /// </summary>
+    public double AltitudeAboveThresholdFt => HeightFt + CurvatureDropFt(RangeFt - ThresholdRangeFt, CrossFt);
+
+    private const double EarthRadiusFt = 6_371_000 * 3.280839895;
+
+    /// <summary>How far the threshold's tangent plane is above the earth's surface at a horizontal offset, feet.</summary>
+    public static double CurvatureDropFt(double alongFt, double crossFt) => (alongFt * alongFt + crossFt * crossFt) / (2 * EarthRadiusFt);
     public double HeadingRelDeg { get; internal set; }
     public double TrackRelDeg { get; internal set; }
     public double SpeedKt { get; internal set; }
@@ -323,7 +339,7 @@ public sealed class SimAircraft
     {
         double hdg = Units.Norm360(courseMagDeg + CommandedHeadingRelDeg);
         return $"{facility} final, {RadioSpeech.Callsign(Callsign)}, heading {RadioSpeech.Heading(hdg)}, "
-               + $"{RadioSpeech.Altitude(HeightFt + thresholdElevFt)}, gear {(GearDown ? "down" : "up")}.";
+               + $"{RadioSpeech.Altitude(AltitudeAboveThresholdFt + thresholdElevFt)}, gear {(GearDown ? "down" : "up")}.";
     }
 
     /// <summary>What the pilot is doing, for the controller's training display.</summary>
@@ -334,7 +350,7 @@ public sealed class SimAircraft
         string phase = Landed ? "landed" : GoingAround ? "going missed" : !Descending ? "awaiting descent"
             : Clearance is { } c ? $"on final, cleared {c switch { LandingIntent.TouchAndGo => "touch and go", LandingIntent.LowApproach => "low approach", LandingIntent.Option => "option", _ => "to land" }}"
             : "on final";
-        return $"HDG {(hdg < 0.5 ? 360 : hdg):000} · {HeightFt + thresholdElevFt:#,0} FT · {vs} · {SpeedKt:0} KT · GEAR {(GearDown ? "DOWN" : "UP")} · {phase}";
+        return $"HDG {(hdg < 0.5 ? 360 : hdg):000} · {AltitudeAboveThresholdFt + thresholdElevFt:#,0} FT · {vs} · {SpeedKt:0} KT · GEAR {(GearDown ? "DOWN" : "UP")} · {phase}";
     }
 
     /// <summary>
@@ -551,7 +567,7 @@ public sealed class SimAircraft
         if (GoingAround)
         {
             // Climb to the missed approach altitude and level off; headings as assigned.
-            CommandedVsFpm = Math.Clamp((ClimbToFt - HeightFt) * 3, -500, 1500);
+            CommandedVsFpm = Math.Clamp((ClimbToFt - AltitudeAboveThresholdFt) * 3, -500, 1500);
             SpeedKt = Math.Min(SpeedKt + 2 * dt, 180);
         }
         else if (!Descending)
@@ -575,15 +591,21 @@ public sealed class SimAircraft
         double windTo = Units.DegToRad(_opt.WindFromDeg + _opt.WindVeerDeg * aloft + 180 - geo.Runway.TrueHeadingDeg);
         double h = Units.DegToRad(HeadingRelDeg);
         // Approach frame: inbound component (toward the runway) and right component.
-        double vin = SpeedKt * Math.Cos(h) + windKt * Math.Cos(windTo);
-        double vright = SpeedKt * Math.Sin(h) + windKt * Math.Sin(windTo);
+        // Approach speeds are indicated; true airspeed is ~2 % higher per 1,000 ft of altitude.
+        double tas = SpeedKt * (1 + 0.02 * Math.Max(0, AltitudeAboveThresholdFt + geo.Runway.ThresholdElevFt) / 1000);
+        double vin = tas * Math.Cos(h) + windKt * Math.Cos(windTo);
+        double vright = tas * Math.Sin(h) + windKt * Math.Sin(windTo);
         GroundSpeedKt = Math.Sqrt(vin * vin + vright * vright);
         TrackRelDeg = Units.RadToDeg(Math.Atan2(vright, vin));
 
         double fps = Units.FeetPerNm / 3600.0;
+        double dropBefore = CurvatureDropFt(RangeFt - ThresholdRangeFt, CrossFt);
         RangeFt -= vin * fps * dt;
         CrossFt += vright * fps * dt;
         HeightFt += VerticalSpeedFpm / 60.0 * dt;
+        // Level flight holds altitude (geodetic), so in the tangent frame it follows the earth's curvature.
+        if (!Descending && !GoingAround && !Landed)
+            HeightFt -= CurvatureDropFt(RangeFt - ThresholdRangeFt, CrossFt) - dropBefore;
 
         if (!Landed && !GoingAround && HeightFt <= 0 && RangeFt < geo.ThresholdRangeFt + 200)
         {
