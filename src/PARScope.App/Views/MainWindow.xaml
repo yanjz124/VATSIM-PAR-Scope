@@ -101,6 +101,40 @@
                 </StackPanel>
 
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Push-to-talk: lights red while transmitting; can also be held with the mouse. -->
+                    <Border x:Name="PttPill" CornerRadius="5" Padding="12,4" Margin="0,0,10,0" MinWidth="128" Cursor="Hand"
+                            Visibility="{Binding TrainingMode, Converter={StaticResource BoolToVisibility}}"
+                            MouseLeftButtonDown="PttPill_Down" MouseLeftButtonUp="PttPill_Up" MouseLeave="PttPill_Up"
+                            ToolTip="{Binding VoiceState}">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                                <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}" />
+                                <Setter Property="BorderThickness" Value="1" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsTransmitting}" Value="True">
+                                        <Setter Property="Background" Value="#C62828" />
+                                        <Setter Property="BorderBrush" Value="#FF5252" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <ui:SymbolIcon Symbol="Mic24" Margin="0,0,6,0" />
+                            <TextBlock VerticalAlignment="Center" FontWeight="SemiBold">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="{Binding PttKeyText, StringFormat=PTT  {0}}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsTransmitting}" Value="True">
+                                                <Setter Property="Text" Value="TRANSMITTING" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
                     <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Training" IsChecked="{Binding TrainingMode}" Margin="0,0,8,0"
                                   ToolTip="Training mode: training traffic, simulated pilot/tower radio, suggested calls. Off = plain VATSIM scope." />
                     <ToggleButton Style="{StaticResource ToolbarToggle}" IsChecked="{Binding TrainingPaused}" Margin="0,0,8,0"

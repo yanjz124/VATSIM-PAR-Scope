@@ -673,7 +673,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (t.BeginDescent) parts.Add("begin descent");
         if (t.MissedApproach) parts.Add("missed approach");
         if (t.WheelsDown) parts.Add("wheels down");
-        if (t.ClearedToLand) parts.Add("cleared to land");
+        if (t.Clearance is { } cl) parts.Add(TowerSim.ClearanceWords(cl));
         if (t.HowDoYouHear) parts.Add("radio check");
         if (t.DoNotAcknowledge) parts.Add("do not acknowledge");
         return parts.Count == 0 ? "NOTHING (not understood)" : string.Join("; ", parts);
@@ -822,15 +822,21 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         + "Q/W/E slightly/–/well above · A on glidepath · Z/X/C slightly/–/well below · G wheels · M missed approach · T tower · "
         + "P pause · F flip PAR/ASR · Tab next target";
 
+    /// <summary>Push-to-talk is held (drives the TX indicator).</summary>
+    [ObservableProperty] public partial bool IsTransmitting { get; set; }
+
     public void PressToTalk()
     {
-        if (!TrainingMode) return;
+        if (!TrainingMode || IsTransmitting) return;
+        IsTransmitting = true;
         _voice.PauseForTransmit();
         _speech.PressToTalk();
     }
 
     public void ReleaseToTalk()
     {
+        if (!IsTransmitting) return;
+        IsTransmitting = false;
         _speech.ReleaseToTalk();
         _voice.ResumeAfterTransmit();
     }
@@ -1039,6 +1045,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         RefreshSelection();
         if (HasTraining) { SnapshotTraining(); RepeatUnansweredHandoffs(); }
+        foreach (var (cs, text) in Engine.Training.TakePilotCalls()) PilotSays(cs, text);
         _ = RefreshMetarIfDueAsync(now);
     }
 
@@ -1058,6 +1065,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             MetarStars = m?.StarsShort;
             MetarCategory = m?.Category ?? FlightCategory.Unknown;
             _liveWind = m is { WindSpeedKt: int kt } ? (m.WindVariable ? null : m.WindDirDeg, kt, m.GustKt) : null;
+            Engine.Training.FieldWeather = (m?.CeilingFt, m?.VisibilitySm);
             ApplyLiveWind();
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)

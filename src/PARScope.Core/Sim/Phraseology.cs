@@ -23,7 +23,8 @@ public sealed record Transmission(string Text)
     /// <summary>"WHEELS SHOULD BE DOWN" (§2-1-25).</summary>
     public bool WheelsDown { get; init; }
     /// <summary>Relayed tower clearance: cleared to land / touch and go / low approach / option.</summary>
-    public bool ClearedToLand { get; init; }
+    public bool ClearedToLand => Clearance is not null;
+    public LandingIntent? Clearance { get; init; }
     /// <summary>"Climb and maintain (altitude)", feet MSL.</summary>
     public double? ClimbToFt { get; init; }
     /// <summary>"In the event of missed approach, …": instructions to remember, not to fly now (§5-10-2).</summary>
@@ -87,7 +88,12 @@ public static partial class Phraseology
             HowDoYouHear = s.Contains(" how do you hear"),
             DoNotAcknowledge = NoAckRx().IsMatch(s),
             WheelsDown = s.Contains(" wheels should be down") || s.Contains(" check wheels down"),
-            ClearedToLand = ClearedRx().IsMatch(s),
+            Clearance = ClearedRx().Match(s) is { Success: true } cm
+                ? cm.Value.Contains("touch") ? LandingIntent.TouchAndGo
+                : cm.Value.Contains("low") ? LandingIntent.LowApproach
+                : cm.Value.Contains("option") ? LandingIntent.Option
+                : LandingIntent.FullStop
+                : null,
             ClimbToFt = climb,
             MissedApproachInstructions = instructions,
             ContactApproach = ContactRx().IsMatch(s),

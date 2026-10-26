@@ -252,6 +252,19 @@ public partial class MainWindow : FluentWindow
         if (answer == System.Windows.MessageBoxResult.Yes) await _vm.InstallUpdateAsync(release);
     }
 
+    private void PttPill_Down(object sender, MouseButtonEventArgs e)
+    {
+        PttPill.CaptureMouse();
+        _vm.PressToTalk();
+    }
+
+    private void PttPill_Up(object sender, MouseEventArgs e)
+    {
+        if (e is MouseButtonEventArgs) PttPill.ReleaseMouseCapture();
+        else if (PttPill.IsMouseCaptured) return; // still held: leaving the pill does not end the transmission
+        _vm.ReleaseToTalk();
+    }
+
     private SettingsWindow? _settingsWindow;
 
     private void Settings_Click(object sender, RoutedEventArgs e)

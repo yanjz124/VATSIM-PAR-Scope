@@ -66,6 +66,8 @@ public sealed record SpawnOptions
     /// <summary>Gust amplitude, knots.</summary>
     public double GustKt { get; init; }
     public string? TypeCode { get; init; }
+    /// <summary>Gear at handoff; null = random (the wheels check matters).</summary>
+    public bool? GearDown { get; init; }
     /// <summary>Custom callsign; null = generated.</summary>
     public string? Callsign { get; init; }
 }
@@ -118,6 +120,16 @@ public sealed class TrainingTraffic
     public ParGeometry? Geometry { get; set; }
     public bool Paused { get; set; }
     public TrainingDifficulty Difficulty { get; set; } = TrainingDifficulty.Normal;
+    /// <summary>Ceiling (ft AGL) and visibility (SM) at the field, e.g. from the live METAR; null = good weather.
+    /// Pilots compare them with the decision height to decide whether they can see the runway.</summary>
+    public (double? CeilingFt, double? VisibilitySm) FieldWeather { get; set; }
+
+    /// <summary>Things pilots said on their own (e.g. why they are going around), oldest first.</summary>
+    public IEnumerable<(string Callsign, string Text)> TakePilotCalls()
+    {
+        foreach (var a in _aircraft)
+            while (a.Calls.TryDequeue(out var text)) yield return (a.Callsign, text);
+    }
     /// <summary>Surface wind for new arrivals (true direction, knots, gust knots), e.g. from the live METAR;
     /// null = a random wind for the difficulty. A null direction means variable.</summary>
     public (double? FromDeg, double Kt, double? GustKt)? SurfaceWind { get; set; }
@@ -151,7 +163,7 @@ public sealed class TrainingTraffic
             HeightFt = o.AltitudeFt is double alt ? Math.Min(alt, geo.GlidepathHeightFt(rangeFt) - 300) : geo.GlidepathHeightFt(rangeFt) + o.HeightOffsetFt,
             TrackRelDeg = -o.InterceptAngleDeg * Math.Sign(o.CrossFt == 0 ? 1 : o.CrossFt),
             SpeedKt = o.SpeedKt > 0 ? o.SpeedKt : ApproachSpeed(type),
-            GearDown = _rng.NextDouble() < 0.5,
+            GearDown = o.GearDown ?? _rng.NextDouble() < 0.5,
         };
         ac.HeadingRelDeg = ac.TrackRelDeg;
         ac.CommandedHeadingRelDeg = ac.HeadingRelDeg;
@@ -202,7 +214,7 @@ public sealed class TrainingTraffic
         if (!Paused && dt > 0)
         {
             SimTime += dt;
-            foreach (var a in _aircraft) a.Step(dt, SimTime, geo);
+            foreach (var a in _aircraft) a.Step(dt, SimTime, geo, FieldWeather);
         }
 
         foreach (var gone in _aircraft.Where(a => a.Finished).ToList())
@@ -244,6 +256,8 @@ public sealed class SimAircraft
         _rng = rng;
         Mode = opt.Mode;
         Descending = opt.Mode == PilotMode.SelfFlying;
+        // A self-flying arrival is like a pilot flying the ILS on another frequency: tower has cleared them.
+        if (opt.Mode == PilotMode.SelfFlying) Clearance = LandingIntent.FullStop;
         _driftSign = rng.Next(2) == 0 ? -1 : 1;
         _vsDriftSign = rng.Next(2) == 0 ? -1 : 1;
     }
@@ -274,7 +288,14 @@ public sealed class SimAircraft
     public bool GearDown { get; internal set; }
     /// <summary>Told "DO NOT ACKNOWLEDGE FURTHER TRANSMISSIONS" (§5-10-10): no more readbacks.</summary>
     public bool NoAcknowledge { get; private set; }
-    public bool ClearedToLand { get; private set; }
+    /// <summary>The tower clearance relayed by final (land, touch and go, low approach, option); null = none.</summary>
+    public LandingIntent? Clearance { get; private set; }
+    public bool ClearedToLand => Clearance is not null;
+    /// <summary>Why the pilot went around on their own at decision height, if they did.</summary>
+    public string? GoAroundReason { get; private set; }
+    internal Queue<string> Calls { get; } = new();
+    private bool _decided;
+    private double _rollSec;
     /// <summary>Missed approach instructions given in advance: heading (relative to course) and height above threshold.</summary>
     public double? MissedHeadingRelDeg { get; private set; }
     public double? MissedClimbToFt { get; private set; }
@@ -309,7 +330,8 @@ public sealed class SimAircraft
         double hdg = Units.Norm360(courseMagDeg + HeadingRelDeg);
         string vs = Math.Abs(VerticalSpeedFpm) < 100 ? "level" : VerticalSpeedFpm < 0 ? $"descending {-VerticalSpeedFpm:0} fpm" : $"climbing {VerticalSpeedFpm:0} fpm";
         string phase = Landed ? "landed" : GoingAround ? "going missed" : !Descending ? "awaiting descent"
-            : ClearedToLand ? "on final, cleared to land" : "on final";
+            : Clearance is { } c ? $"on final, cleared {c switch { LandingIntent.TouchAndGo => "touch and go", LandingIntent.LowApproach => "low approach", LandingIntent.Option => "option", _ => "to land" }}"
+            : "on final";
         return $"HDG {(hdg < 0.5 ? 360 : hdg):000} · {HeightFt + thresholdElevFt:#,0} FT · {vs} · {SpeedKt:0} KT · GEAR {(GearDown ? "DOWN" : "UP")} · {phase}";
     }
 
@@ -380,11 +402,12 @@ public sealed class SimAircraft
             actions.Add("lowering gear");
             readback.Add("gear down");
         }
-        if (t.ClearedToLand)
+        if (t.Clearance is { } clearance)
         {
-            ClearedToLand = true;
-            actions.Add("cleared to land");
-            readback.Add("cleared to land");
+            Clearance = clearance;
+            string words = TowerSim.ClearanceWords(clearance);
+            actions.Add(words);
+            readback.Add(words);
         }
         if (t.HeadingDeg is double hdg)
         {
@@ -460,8 +483,38 @@ public sealed class SimAircraft
 
     private static double NominalVs(double recommendedFpm) => -Math.Abs(recommendedFpm);
 
-    internal void Step(double dt, double now, ParGeometry geo)
+    /// <summary>
+    /// The pilot's decision at decision height: continue only with the runway environment in sight (ceiling
+    /// and visibility against the DH and 1/2 SM), a landing clearance, the gear down, and a stabilized
+    /// approach (near the glidepath and centreline, sane rate of descent); otherwise go around and say why.
+    /// </summary>
+    private void DecideAtMinimums(ParGeometry geo, (double? CeilingFt, double? VisibilitySm) wx)
     {
+        _decided = true;
+        double dh = geo.Site.DecisionHeightFt;
+        double gpDev = HeightFt - geo.GlidepathHeightFt(Math.Max(RangeFt, 0));
+        double halfWidth = (geo.Runway.WidthFt ?? 150) / 2;
+        string? reason =
+            wx.CeilingFt < dh || wx.VisibilitySm < 0.5 ? "no runway environment"
+            : Clearance is null ? "no landing clearance"
+            : !GearDown ? "gear not down"
+            : Math.Abs(CrossFt) > halfWidth + 150 ? "not lined up"
+            : gpDev > 100 ? "too high"
+            : gpDev < -60 ? "too low"
+            : VerticalSpeedFpm < -1400 ? "unstable"
+            : null;
+        if (reason == null) return;
+        GoAroundReason = reason;
+        StartMissed(MissedHeadingRelDeg, MissedClimbToFt ?? 2000);
+        Calls.Enqueue($"Going around, {reason}, {RadioSpeech.Callsign(Callsign)}.");
+    }
+
+    internal void Step(double dt, double now, ParGeometry geo, (double? CeilingFt, double? VisibilitySm) wx = default)
+    {
+        if (!_decided && Descending && !GoingAround && !Landed && RangeFt <= geo.DecisionHeightRangeFt) DecideAtMinimums(geo, wx);
+        // Low approach: go around over the runway without touching down.
+        if (Clearance == LandingIntent.LowApproach && !GoingAround && !Landed && RangeFt <= geo.ThresholdRangeFt && HeightFt <= 100)
+            StartMissed(MissedHeadingRelDeg, MissedClimbToFt ?? 2000);
         while (_pending.Count > 0 && _pending.Peek().At <= now) _pending.Dequeue().Do();
 
         // Imperfect pilots: slow random walks on heading and rate.
@@ -522,8 +575,18 @@ public sealed class SimAircraft
         {
             HeightFt = 0;
             VerticalSpeedFpm = 0;
-            SpeedKt = Math.Max(0, SpeedKt - 6 * dt);
-            if (SpeedKt < 30) Finished = true;
+            _rollSec += dt;
+            if (Clearance is LandingIntent.TouchAndGo or LandingIntent.Option && _rollSec > 6)
+            {
+                // Touch and go: back into the air on the climb-out.
+                Landed = false;
+                StartMissed(MissedHeadingRelDeg, MissedClimbToFt ?? 2000);
+            }
+            else if (Clearance is not (LandingIntent.TouchAndGo or LandingIntent.Option))
+            {
+                SpeedKt = Math.Max(0, SpeedKt - 6 * dt);
+                if (SpeedKt < 30) Finished = true;
+            }
         }
         if (HeightFt < 0 && !Landed) HeightFt = 0; // flew into the ground short: hold at surface
         if (HandedOff || RangeFt < (GoingAround ? -10 : -3) * Units.FeetPerNm || RangeFt > 30 * Units.FeetPerNm) Finished = true;
@@ -540,10 +603,9 @@ public sealed class SimAircraft
         double nominal = -GroundSpeedKt * Units.FeetPerNm / 60.0 * Math.Tan(Units.DegToRad(geo.Site.GlidepathDeg));
         if (gpErr < -150 && RangeFt > 3 * Units.FeetPerNm) { CommandedVsFpm = 0; return; } // level until intercept
         Descending = true;
+        GearDown = true;
         CommandedVsFpm = nominal - Math.Clamp(gpErr * 3, -500, 500);
 
-        // Missed approach at DH if badly off course.
-        if (RangeFt < geo.DecisionHeightRangeFt && Math.Abs(CrossFt) > 300) StartMissed(MissedHeadingRelDeg, MissedClimbToFt ?? 2000);
     }
 
     private double Gauss()

@@ -165,6 +165,55 @@ public class RadioTests
         Assert.Null(Interphone.FindAircraft("tower, full stop", sim.Aircraft));
     }
 
+    /// <summary>A controller-directed arrival on the glidepath 3 NM out, descending at the right rate.</summary>
+    private static (TrainingTraffic Sim, SimAircraft Ac) StableFinal(string? clearance, bool gear = true,
+        (double? CeilingFt, double? VisibilitySm) wx = default)
+    {
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site), FieldWeather = wx };
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 3, HeightOffsetFt = 0, SpeedKt = 130, Skill = 1, GearDown = gear, Mode = PilotMode.ControllerDirected });
+        double fpm = 130 * PARScope.Core.Geo.Units.FeetPerNm / 60 * Math.Tan(3 * Math.PI / 180);
+        ac.BeginDescent(-10, fpm);
+        if (clearance != null) ac.Receive(Phraseology.Parse(clearance), 0, 243, fpm);
+        for (double t = 0; t <= 150 && !ac.Finished && !ac.GoingAround; t += 0.1) sim.Step(t).ToList();
+        return (sim, ac);
+    }
+
+    [Fact]
+    public void Stable_cleared_approach_lands()
+    {
+        var (_, ac) = StableFinal("runway two four right, cleared to land");
+        Assert.False(ac.GoingAround);
+        Assert.True(ac.Landed || ac.Finished);
+    }
+
+    [Theory]
+    [InlineData(null, true, null, null, "no landing clearance")]
+    [InlineData("cleared to land", false, null, null, "gear not down")]
+    [InlineData("cleared to land", true, 100.0, null, "no runway environment")]
+    [InlineData("cleared to land", true, null, 0.25, "no runway environment")]
+    public void Pilot_goes_around_at_minimums_and_says_why(string? clearance, bool gear, double? ceiling, double? vis, string reason)
+    {
+        var (sim, ac) = StableFinal(clearance, gear, (ceiling, vis));
+        Assert.True(ac.GoingAround);
+        Assert.Equal(reason, ac.GoAroundReason);
+        Assert.Contains(sim.TakePilotCalls(), c => c.Text.StartsWith($"Going around, {reason}"));
+    }
+
+    [Fact]
+    public void Touch_and_go_gets_airborne_again()
+    {
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 3, HeightOffsetFt = 0, SpeedKt = 130, Skill = 1, GearDown = true, Mode = PilotMode.ControllerDirected });
+        double fpm = 130 * PARScope.Core.Geo.Units.FeetPerNm / 60 * Math.Tan(3 * Math.PI / 180);
+        ac.BeginDescent(-10, fpm);
+        ac.Receive(Phraseology.Parse("runway two four right, cleared touch and go"), 0, 243, fpm);
+        bool touched = false;
+        for (double t = 0; t <= 200 && !ac.Finished; t += 0.1) { sim.Step(t).ToList(); touched |= ac.Landed; if (touched && ac.HeightFt > 300) break; }
+        Assert.True(touched);
+        Assert.True(ac.GoingAround);
+        Assert.True(ac.HeightFt > 300);
+    }
+
     [Fact]
     public void Pause_freezes_aircraft_and_holds_pilot_reactions()
     {
