@@ -18,9 +18,9 @@ public sealed class TowerSim
     public TowerAnswer AnswerFor(string callsign) => _state.TryGetValue(callsign, out var s) ? s.Answer : TowerAnswer.None;
     public LandingIntent IntentFor(string callsign) => _state.TryGetValue(callsign, out var s) ? s.Intent : LandingIntent.FullStop;
 
-    /// <summary>The final controller's interphone request, as shown/spoken.</summary>
+    /// <summary>The final controller's interphone request, as shown/spoken. On the landline tower is "local".</summary>
     public static string RequestText(string callsign, double rangeNm, LandingIntent intent) =>
-        $"Tower, final, {RadioSpeech.Callsign(callsign)}, {RadioSpeech.Digits(Math.Max(1, (int)Math.Round(rangeNm)).ToString())} mile final, {IntentWords(intent)}.";
+        $"Local, final, {RadioSpeech.Callsign(callsign)}, {RadioSpeech.Digits(Math.Max(1, (int)Math.Round(rangeNm)).ToString())} mile final, {IntentWords(intent)}.";
 
     /// <summary>Tower's answer: cleared, or continue if another aircraft is still on the runway.</summary>
     public string Request(string callsign, LandingIntent intent, string runwayId, bool runwayOccupied)

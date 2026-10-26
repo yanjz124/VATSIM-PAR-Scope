@@ -179,7 +179,8 @@
                             </Grid>
                             <ui:ToggleSwitch IsChecked="{Binding VaryPilotVoices}" OnContent="Each pilot has their own voice" OffContent="Each pilot has their own voice" Margin="0,0,0,6" />
                             <ui:ToggleSwitch IsChecked="{Binding RadioEffectEnabled}" OnContent="Radio effect (band-limited, squelch)" OffContent="Radio effect (band-limited, squelch)" Margin="0,0,0,8" />
-                            <ui:Button Content="Test voices" Icon="{ui:SymbolIcon Speaker224}" Command="{Binding TestVoicesCommand}" Margin="0,0,0,14" />
+                            <ui:Button Content="{Binding TestVoicesText}" Icon="{ui:SymbolIcon Speaker224}" Command="{Binding TestVoicesCommand}" Margin="0,0,0,14"
+                                       ToolTip="Plays a pilot, tower and approach line; click again to stop" />
                             <TextBlock Text="Push-to-talk key" Style="{StaticResource MetricLabel}" />
                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                 <ui:Button x:Name="PttButton" Content="{Binding PttKeyText}" MinWidth="120" Click="PttButton_Click"

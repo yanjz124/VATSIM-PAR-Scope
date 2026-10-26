@@ -115,7 +115,10 @@ descent").
 
 * Pilots read back until "do not acknowledge further transmissions", then only answer a radio check or
   a missed approach.
-* Glidepath calls change the descent rate; course calls are information only, so correct with headings.
+* Glidepath calls change the descent rate, starting from what the pilot is already flying: "…and
+  holding" makes them correct more, "going above/below" firmly, "…coming down/up" keeps a correction
+  that is working, "…rapidly" eases off, "on glidepath" returns to the normal rate. Course calls are
+  information only (the pilot just stops drifting off the assigned heading), so correct with headings.
 * "In the event of missed approach, climb and maintain two thousand, turn left heading one eight zero"
   is read back and remembered; "execute missed approach" makes them fly it.
 * At **decision height** the pilot lands only with the runway in sight (live ceiling and visibility),

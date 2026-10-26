@@ -14,7 +14,13 @@ namespace PARScope.App.Services;
 /// </summary>
 public sealed class RadioVoice : IDisposable
 {
-    private sealed record Line(Task<(float[] Samples, int Rate)> Audio, DateTime Due, Action? OnStart);
+    private sealed record Line(Task<(float[] Samples, int Rate)> Audio, DateTime Due, Action? OnStart, int Generation);
+
+    /// <summary>Lines queued before the last <see cref="StopAll"/> are dropped.</summary>
+    private int _generation;
+
+    /// <summary>Raised (on the audio thread) when the last queued line has finished or was stopped.</summary>
+    public event Action? Idle;
 
     private readonly Channel<Line> _queue = Channel.CreateUnbounded<Line>();
     private readonly CancellationTokenSource _cts = new();
@@ -79,7 +85,14 @@ public sealed class RadioVoice : IDisposable
             var (s, rate) = engine.Synthesize(text, voice ?? engine.DefaultPilot);
             return effect ? (RadioEffect.Apply(s, rate, text.GetHashCode()), rate) : (s, rate);
         });
-        _queue.Writer.TryWrite(new Line(audio, due, onStart));
+        _queue.Writer.TryWrite(new Line(audio, due, onStart, _generation));
+    }
+
+    /// <summary>Stops what is playing and drops everything queued.</summary>
+    public void StopAll()
+    {
+        Interlocked.Increment(ref _generation);
+        try { _current?.Stop(); } catch (InvalidOperationException) { }
     }
 
     public void PauseForTransmit()
@@ -100,10 +113,12 @@ public sealed class RadioVoice : IDisposable
         {
             try
             {
+                if (line.Generation != _generation) continue;
                 var (samples, rate) = await line.Audio;
                 var wait = line.Due - DateTime.UtcNow;
                 if (wait > TimeSpan.Zero) await Task.Delay(wait, _cts.Token);
                 _notTransmitting.Wait(_cts.Token);
+                if (line.Generation != _generation) continue;
                 line.OnStart?.Invoke();
                 await PlayAsync(samples, rate, _cts.Token);
             }
@@ -111,6 +126,10 @@ public sealed class RadioVoice : IDisposable
             catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.COMException or IOException)
             {
                 line.OnStart?.Invoke();
+            }
+            finally
+            {
+                if (!_cts.IsCancellationRequested && _queue.Reader.Count == 0) Idle?.Invoke();
             }
         }
     }

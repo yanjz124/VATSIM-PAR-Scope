@@ -911,9 +911,22 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     partial void OnTowerVoiceNameChanged(string? value) { if (value == null) return; _settings.TowerVoice = value; _voice.TowerVoice = value; }
     partial void OnApproachVoiceNameChanged(string? value) { if (value == null) return; _settings.ApproachVoice = value; _voice.ApproachVoice = value; }
 
+    /// <summary>The voice test is playing; the button then stops it.</summary>
+    [ObservableProperty] public partial bool TestingVoices { get; set; }
+    public string TestVoicesText => TestingVoices ? "Stop test" : "Test voices";
+    partial void OnTestingVoicesChanged(bool value) => OnPropertyChanged(nameof(TestVoicesText));
+    private bool _voiceIdleHooked;
+
     [RelayCommand]
     private void TestVoices()
     {
+        if (!_voiceIdleHooked)
+        {
+            _voiceIdleHooked = true;
+            _voice.Idle += () => App.Current.Dispatcher.BeginInvoke(() => TestingVoices = false);
+        }
+        if (TestingVoices) { _voice.StopAll(); TestingVoices = false; return; }
+        TestingVoices = true;
         _voice.Pilot("Miramar final, Navy one two three four, radio check.", "VV1234");
         _voice.Pilot("Approach, Banshee two one, with you at three thousand.", "BANSHEE21");
         _voice.Tower("Navy one two three four, runway two four right, cleared to land.");
@@ -1116,7 +1129,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// </summary>
     private void ProcessInterphone(InterphoneCall call, string via)
     {
-        string who = call.To == Facility.Tower ? "TOWER" : "APPROACH";
+        // On the landline the tower position is "local".
+        string who = call.To == Facility.Tower ? "LOCAL" : "APPROACH";
         Log("FINAL", $"({who.ToLowerInvariant()} line) {call.Text}");
         var ac = Interphone.FindAircraft(call.Text, Engine.Training.Aircraft)
                  ?? CallTarget;
@@ -1139,7 +1153,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>Tower or approach answers on the interphone after a couple of seconds.</summary>
     private void Reply(string who, string text)
     {
-        if (who == "TOWER") _voice.Tower(text, 2.0, OnUi(() => Log(who, text)));
+        if (who == "LOCAL") _voice.Tower(text, 2.0, OnUi(() => Log(who, text)));
         else _voice.Approach(text, 2.0, OnUi(() => Log(who, text)));
     }
 
@@ -1157,7 +1171,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (!spoken) Log("FINAL", TowerSim.RequestText(ac.Callsign, ac.RangeFt / Units.FeetPerNm, intent));
         TowerIntent = intent;
         bool occupied = Engine.Training.Aircraft.Any(a => a != ac && a.Landed && !a.Finished);
-        Reply("TOWER", _tower.Request(ac.Callsign, intent, rw.RunwayId, occupied));
+        Reply("LOCAL", _tower.Request(ac.Callsign, intent, rw.RunwayId, occupied));
     }
 
     /// <summary>Interphone coordination of a missed approach with approach control, before switching the pilot.</summary>
@@ -1190,11 +1204,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         return null;
     }
 
+    /// <summary>D: "begin descent", sent like any other call so the pilot reads it back and a level-off is cancelled.</summary>
     public void BeginDescent()
     {
-        if (KeyTarget() is not { } ac) return;
-        ac.BeginDescent(Engine.Training.SimTime, CurrentAdvisory?.RecommendedDescentFpm ?? 700);
-        Log("FINAL", "BEGIN DESCENT");
+        if (KeyTarget() is null) return;
+        KeyCall("BEGIN DESCENT");
     }
 
     public void NudgeHeading(int degrees)

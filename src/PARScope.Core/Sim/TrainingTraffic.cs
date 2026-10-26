@@ -542,23 +542,11 @@ public sealed class SimAircraft
         {
             _pending.Enqueue((now + delay, () => { Descending = true; _levelled = false; CommandedVsFpm = NominalVs(recommendedFpm); }));
             actions.Add("descending");
+            readback.Add("descending");
         }
         else if (Descending && !_levelled && !t.LevelOff && t.Glidepath != GlidepathCall.None)
         {
-            double adjust = t.Glidepath switch
-            {
-                GlidepathCall.WellAbove => -400,
-                GlidepathCall.Above => -250,
-                GlidepathCall.SlightlyAbove => -150,
-                GlidepathCall.SlightlyBelow => +150,
-                GlidepathCall.Below => +250,
-                GlidepathCall.WellBelow => +400,
-                _ => 0,
-            };
-            // Already correcting: ease off rather than pile on.
-            if (t.GlidepathTrend == CallTrend.Correcting) adjust *= 0.4;
-            if (t.GlidepathTrend == CallTrend.Rapidly) adjust *= 1.4;
-            double vs = NominalVs(recommendedFpm) + adjust;
+            double vs = GlidepathResponse(t.Glidepath, t.GlidepathTrend, NominalVs(recommendedFpm), CommandedVsFpm);
             _pending.Enqueue((now + delay, () => { CommandedVsFpm = vs; _vsBias *= 0.3; }));
             actions.Add($"{-vs:0} fpm");
         }
@@ -578,6 +566,7 @@ public sealed class SimAircraft
         _pending.Enqueue((now + ReactionDelay, () =>
         {
             Descending = true;
+            _levelled = false;
             CommandedVsFpm = NominalVs(recommendedFpm);
         }));
     }
@@ -600,6 +589,42 @@ public sealed class SimAircraft
     }
 
     private static double NominalVs(double recommendedFpm) => -Math.Abs(recommendedFpm);
+
+    /// <summary>
+    /// The rate of descent a pilot flies after a glidepath call, starting from what they are flying now.
+    /// Plain call: correct by an amount that grows with the deviation (never less than they already are).
+    /// "…and holding": the correction isn't working, so add to it. "Going above/below": firmly. "…coming
+    /// down/up": it is working, keep it. "…rapidly": over-correcting, ease back toward the normal rate.
+    /// "On glidepath": back to the normal rate.
+    /// </summary>
+    public static double GlidepathResponse(GlidepathCall call, CallTrend trend, double nominalFpm, double currentFpm)
+    {
+        if (call == GlidepathCall.On) return nominalFpm;
+        // Negative = descend faster (aircraft is above the glidepath).
+        double adjust = call switch
+        {
+            GlidepathCall.WellAbove => -400,
+            GlidepathCall.Above => -250,
+            GlidepathCall.SlightlyAbove => -150,
+            GlidepathCall.SlightlyBelow => +150,
+            GlidepathCall.Below => +250,
+            GlidepathCall.WellBelow => +400,
+            _ => 0,
+        };
+        bool above = adjust < 0;
+        double More(double a, double b) => above ? Math.Min(a, b) : Math.Max(a, b);
+        double target = nominalFpm + adjust;
+        double vs = trend switch
+        {
+            CallTrend.Correcting => currentFpm,
+            CallTrend.Rapidly => currentFpm + (nominalFpm - currentFpm) * 0.6,
+            CallTrend.Holding => More(currentFpm + adjust * 0.5, target),
+            CallTrend.Worsening => More(currentFpm, target) + adjust * 0.5,
+            _ => More(currentFpm, target),
+        };
+        // Within what a pilot on a precision approach would fly: no climbing, no dive.
+        return Math.Clamp(vs, nominalFpm - 700, 0);
+    }
 
     /// <summary>
     /// The pilot's decision at decision height: continue only with the runway environment in sight (ceiling
