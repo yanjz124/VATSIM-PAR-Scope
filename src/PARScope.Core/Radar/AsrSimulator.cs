@@ -46,6 +46,8 @@ public sealed class AsrSimulator
         foreach (var t in targets)
         {
             if (!t.Initialized) continue;
+            // A silent aircraft returns nothing: no paint from an extrapolated guess (the trail simply stops).
+            if (!t.IsReporting(now)) continue;
             // Parked and taxiing aircraft: MTI cancels the primary return and the transponder is in
             // standby, so a real ASR does not show them.
             if (!t.Frozen && Math.Max(t.VelocityEcef.Length / Units.MpsPerKnot, t.GroundSpeedKt ?? 0) < MinSpeedKt) continue;

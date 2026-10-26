@@ -49,6 +49,24 @@ public sealed class RadarSimulator
     public bool SimulateErrors { get; set; }
     public bool ClutterEnabled { get; set; } = true;
     public bool MtiEnabled { get; set; } = true;
+    /// <summary>The traffic feed as a whole has gone silent (set by the owner each frame): tracks coast longer.</summary>
+    public bool DataLost { get; set; }
+
+    /// <summary>
+    /// How long, since its last paint, a coasting track stays on the scope, by why it is coasting. Out of
+    /// coverage goes soonest (the aircraft is somewhere else); a feed outage is held longest so a brief CRC
+    /// reconnect does not wipe the picture.
+    /// </summary>
+    public static double CoastLimitSec(CoastReason reason) => reason switch
+    {
+        CoastReason.OutOfCoverage => 6,
+        CoastReason.SignalLost => 12,
+        CoastReason.DataLost => 30,
+        _ => 12,
+    };
+
+    /// <summary>No paint for about two scans: the track coasts.</summary>
+    public double CoastAfterSec => 2 * Math.Max(Preset.AzScanSec, Preset.ElScanSec) + 0.25;
 
     /// <summary>Current beam angles, for drawing the scan.</summary>
     public double AzBeamDeg { get; private set; }
@@ -68,13 +86,11 @@ public sealed class RadarSimulator
         foreach (var t in targets)
         {
             if (!t.Initialized) continue;
+            // A silent aircraft returns nothing: its track coasts rather than being painted from a guess.
+            if (!t.IsReporting(now)) continue;
             var truth = Geometry.FromEcef(t.PositionAt(now));
             var polar = Geometry.ToPolar(truth);
-            if (polar.RangeFt > Preset.EffectiveMaxRangeNm(MtiEnabled) * Units.FeetPerNm) continue;
-            if (MtiEnabled && !t.Frozen && t.VelocityEcef.Length / Units.MpsPerKnot < MtiMinSpeedKt) continue;
-
-            bool inAzSector = polar.AzimuthDeg >= -Preset.AzLeftDeg && polar.AzimuthDeg <= Preset.AzRightDeg;
-            if (!inAzSector) continue;
+            if (!InCoverage(polar, t)) continue;
 
             if (polar.ElevationDeg >= Preset.ElMinDeg && polar.ElevationDeg <= Preset.AzBeamElMaxDeg
                 && Illuminated(prev, now, AzFraction(polar.AzimuthDeg), Preset.AzScanSec, 0.0))
@@ -88,8 +104,34 @@ public sealed class RadarSimulator
         if (SimulateErrors && ClutterEnabled) PaintClutter(prev, now);
 
         _plots.RemoveAll(p => now - p.Time > HistorySec);
-        foreach (var key in _tracks.Where(kv => now - kv.Value.LastUpdate > 8.0).Select(kv => kv.Key).ToList())
-            _tracks.Remove(key);
+        UpdateCoasting(now, targets);
+    }
+
+    /// <summary>Within the radar's range, MTI speed gate and azimuth sector (elevation is checked per beam).</summary>
+    private bool InCoverage(RadarPolar polar, TargetTrack t) =>
+        polar.RangeFt <= Preset.EffectiveMaxRangeNm(MtiEnabled) * Units.FeetPerNm
+        && !(MtiEnabled && !t.Frozen && t.VelocityEcef.Length / Units.MpsPerKnot < MtiMinSpeedKt)
+        && polar.AzimuthDeg >= -Preset.AzLeftDeg && polar.AzimuthDeg <= Preset.AzRightDeg
+        && polar.ElevationDeg >= Preset.ElMinDeg && polar.ElevationDeg <= Preset.ElMaxDeg;
+
+    /// <summary>
+    /// Tracks without a paint for about two scans coast: shown extrapolated with a coast indicator, then dropped.
+    /// The reason decides how long: the whole feed silent (data lost), this aircraft silent (signal lost),
+    /// still reporting but outside the radar's coverage (out of coverage), or in coverage but not painted.
+    /// </summary>
+    private void UpdateCoasting(double now, IReadOnlyList<TargetTrack> targets)
+    {
+        var byCallsign = targets.ToDictionary(t => t.Callsign, StringComparer.OrdinalIgnoreCase);
+        foreach (var (key, tr) in _tracks.ToList())
+        {
+            double since = now - tr.LastUpdate;
+            if (since <= CoastAfterSec) { tr.Coast = CoastReason.None; continue; }
+            tr.Coast = DataLost ? CoastReason.DataLost
+                : !byCallsign.TryGetValue(key, out var t) || !t.IsReporting(now) ? CoastReason.SignalLost
+                : !InCoverage(Geometry.ToPolar(Geometry.FromEcef(t.PositionAt(now))), t) ? CoastReason.OutOfCoverage
+                : CoastReason.Missed;
+            if (since > CoastLimitSec(tr.Coast)) _tracks.Remove(key);
+        }
     }
 
     // ---- Scan timing ---------------------------------------------------------------------------

@@ -576,11 +576,27 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public void UpdateAdvisory()
     {
         CurrentAdvisory = null;
+        SelectedCoast = CoastReason.None;
         if (SelectedCallsign is null || Engine.Radar is not { } radar || Engine.Geometry is not { } geo || Engine.Runway is not { } rw) return;
         if (!radar.Tracks.TryGetValue(SelectedCallsign, out var tr) || !tr.IsCorrelated) return;
+        // A coasting track's position is a projection, not a measurement: no deviations or calls from it.
+        SelectedCoast = tr.Coast;
+        if (tr.IsCoasting) return;
         CurrentAdvisory = AdvisoryEngine.Evaluate(tr, geo, radar.Preset, _settings.Bands, rw.MagneticCourseDeg, KnownHeadingMag(SelectedCallsign, rw),
             Engine.Training.Find(SelectedCallsign) is { GearReportedDown: true });
     }
+
+    /// <summary>Why the selected aircraft's track is coasting, if it is.</summary>
+    private CoastReason SelectedCoast { get; set; }
+
+    private static string CoastText(CoastReason r) => r switch
+    {
+        CoastReason.OutOfCoverage => "Coasting: out of the radar's coverage (range, sector or elevation limits).",
+        CoastReason.SignalLost => "Coasting: this aircraft's position reports have stopped (signal lost).",
+        CoastReason.DataLost => "Coasting: the traffic feed has gone silent (data lost). Check CRC or vPilot.",
+        CoastReason.Missed => "Coasting: no return on the last scans.",
+        _ => "",
+    };
 
     private void RefreshSelection()
     {
@@ -604,7 +620,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         string src = target.IsSimulated ? "training"
             : target.IsFastActive(Engine.Now) ? $"Velocity {target.FastRateHz(Engine.Now):0.0} Hz"
             : target.IsFeed ? "data feed, 15 s updates"
-            : "slow 5 s updates";
+            : target.LastSource == Core.Traffic.ReportSource.Crc ? "CRC (vNAS) 1 Hz"
+            : "vPilot 5 s updates";
+        if (!target.IsReporting(Engine.Now)) src += $" · no report for {target.Age(Engine.Now):0} s";
         SelectedSub = $"{target.TypeCode ?? "type unknown"} · {src}";
         SpeedText = $"{gs:0} kt";
         PilotStatus = Engine.Training.Find(cs) is { } st && Engine.Runway is { } rwy
@@ -615,7 +633,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (CurrentAdvisory is not { } adv)
         {
             RangeText = GlidepathText = CourseText = RodText = "—";
-            AdvisoryText = "Not yet correlated: needs paints in both azimuth and elevation.";
+            AdvisoryText = SelectedCoast != CoastReason.None ? CoastText(SelectedCoast)
+                : "Not yet correlated: needs paints in both azimuth and elevation.";
             RangeCallText = "";
             AdvisoryLevel = AdvisoryLevel.Normal;
             return;
@@ -1371,7 +1390,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     // ---- Status --------------------------------------------------------------------------------
 
     [ObservableProperty] public partial LinkHealth Link { get; set; }
-    [ObservableProperty] public partial string LinkText { get; set; } = "Waiting for vPilot";
+    [ObservableProperty] public partial string LinkText { get; set; } = "Waiting for traffic";
     [ObservableProperty] public partial string LinkDetail { get; set; } = "";
     [ObservableProperty] public partial string TrafficText { get; set; } = "";
     [ObservableProperty] public partial string StatusMessage { get; set; } = "";
@@ -1390,12 +1409,21 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         double now = Engine.Now;
         var link = Engine.Link;
         double age = now - link.LastDatagram;
-        if (link.Error != null) { Link = LinkHealth.Error; LinkText = "UDP error"; LinkDetail = link.Error; }
+        const string crcDetail = "vNAS target data captured from CRC: Tower Cab aircraft with exact altitude, STARS targets with Mode C (corrected by the altimeter).";
+        if (Engine.DataLost)
+        {
+            // Traffic on the scope but every source silent: tracks are coasting on their last rates.
+            Link = LinkHealth.Error;
+            double silent = Engine.Targets.Where(t => !t.IsSimulated).Select(t => t.Age(now)).DefaultIfEmpty(0).Min();
+            LinkText = $"DATA LOST · {silent:0} s, tracks coasting";
+            LinkDetail = "No traffic data from CRC or vPilot. Tracks coast for up to 30 s, then drop. Check that CRC is connected (and the CRC feed running), or vPilot.";
+        }
+        else if (link.Error != null) { Link = LinkHealth.Error; LinkText = "UDP error"; LinkDetail = link.Error; }
         else if (age > 15 && Engine.CrcLive)
         {
             Link = LinkHealth.Fast;
             LinkText = $"CRC (vNAS) · 1 Hz, {Engine.Crc.AircraftCount(now)} aircraft";
-            LinkDetail = "vNAS target data captured from CRC: Tower Cab aircraft with exact altitude, STARS targets with Mode C (corrected by the altimeter).";
+            LinkDetail = crcDetail;
         }
         else if (age > 15 && Engine.Feed is { Active: true } feed)
         {
@@ -1403,7 +1431,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             LinkText = "VATSIM data feed (15 s)";
             LinkDetail = feed.LastError ?? "Degraded: no vPilot plugin connected. Positions update every ~15 s and are dead-reckoned. Use vPilot (.towerview next to CRC) for live data.";
         }
-        else if (age > 15) { Link = LinkHealth.None; LinkText = "Waiting for vPilot"; LinkDetail = $"Listening on UDP {_settings.UdpPort}"; }
+        else if (age > 15)
+        {
+            Link = LinkHealth.None;
+            LinkText = "Waiting for traffic";
+            LinkDetail = $"Turn on the CRC feed (Settings › Data) and open a Tower Cab or STARS display in CRC; or, where there is no CRC, connect vPilot with the plugin (listening on UDP {_settings.UdpPort}).";
+        }
         else
         {
             // Report what is actually arriving, not just whether the hook is installed.
@@ -1420,6 +1453,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                     ? "The plugin is listening for Velocity fast positions but none are arriving; VATSIM only sends them for aircraft near you."
                     : "The plugin's fast-position hook is not active; targets update every ~5 s and are dead-reckoned.";
             if (link.FastPerMin is double f) LinkDetail += $" Last minute: {f / 60:0.0} fast packets/s.";
+            if (Engine.CrcLive)
+            {
+                // Both running: vPilot's fast data wins for the aircraft it covers, CRC fills in the rest.
+                LinkText = $"CRC 1 Hz + {LinkText}";
+                LinkDetail = crcDetail + " " + LinkDetail;
+                Link = LinkHealth.Fast;
+            }
         }
 
         RefreshCrcStatus();

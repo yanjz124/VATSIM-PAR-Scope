@@ -385,11 +385,10 @@ public sealed class ParDisplayRenderer : IDisposable
             {
                 bool inThisScope = scope == ScopeKind.Elevation ? tr.HasElevation : tr.HasAzimuth;
                 if (!inThisScope) continue;
-                double since = now - (scope == ScopeKind.Elevation ? tr.LastElPaint : tr.LastAzPaint);
-                if (since > 6) continue;
-                // Each scope plots its own return: height at the elevation paint's range, lateral at the azimuth paint's.
-                double tr0 = scope == ScopeKind.Elevation ? tr.RangeAtElevationFt : tr.RangeAtAzimuthFt;
-                float x = X(tr0), y = scope == ScopeKind.Elevation ? YEl(tr.HeightFt, tr0) : YAz(tr.CrossFt, tr0);
+                // Each scope plots its own return: height at the elevation paint's range, lateral at the azimuth
+                // paint's; a coasting track moves on by its measured rates until the radar drops it.
+                var (tr0, offset) = tr.DisplayAt(scope, now);
+                float x = X(tr0), y = scope == ScopeKind.Elevation ? YEl(offset, tr0) : YAz(offset, tr0);
                 if (!clip.Contains(x, y)) continue;
                 _hits.Add(new HitTarget(tr.Callsign, x, y));
                 shown.Add((tr, x, y, tr.Callsign.Equals(opt.Selected, StringComparison.OrdinalIgnoreCase)));
@@ -403,7 +402,9 @@ public sealed class ParDisplayRenderer : IDisposable
                 var col = _t.Track;
                 if (radar.Preset.Tracking)
                 {
-                    c.DrawRect(s.X - 2, s.Y - 2, 4, 4, _ink.Solid(col));
+                    // Coasting: hollow symbol and CST in the data block (the STARS/ERAM coast indicator).
+                    if (s.Track.IsCoasting) c.DrawRect(s.X - 2.5f, s.Y - 2.5f, 5, 5, _ink.Line(col, 1f));
+                    else c.DrawRect(s.X - 2, s.Y - 2, 4, 4, _ink.Solid(col));
                     DrawDataBlock(c, geo, scope, s.Track, s.X, s.Y, col);
                 }
                 // Systems without a tracker (FPN-63) have no symbology; the bracket only marks which
@@ -422,7 +423,7 @@ public sealed class ParDisplayRenderer : IDisposable
         double holding = Math.Max(2.0, tr.RangeFt * 0.00008);
         string up = _ink.HasArrows ? "↑" : "^", down = _ink.HasArrows ? "↓" : "v";
 
-        string line1 = tr.Callsign;
+        string line1 = tr.IsCoasting ? $"{tr.Callsign} CST" : tr.Callsign;
         string line2 = $"{tr.GroundSpeedKt:000} {Math.Max(0, tr.RangeFt) / Units.FeetPerNm:0.0}";
         string line3 = scope == ScopeKind.Elevation
             ? $"{Signed(dev.AboveGlidepathFt)}{Trend(gpRate, holding, up, down)}"

@@ -45,12 +45,28 @@ public sealed class TargetTrack
     public bool Frozen { get; private set; }
     /// <summary>Last report came from the 15 s public data feed.</summary>
     public bool IsFeed { get; private set; }
+    /// <summary>Where the last report came from.</summary>
+    public ReportSource LastSource { get; private set; }
     public bool Initialized { get; private set; }
 
     public bool IsFastActive(double now) => now - LastFastTime < FastFreshSec;
     public double FastRateHz(double now) => _fastRate.Rate(now);
     public double SlowRateHz(double now) => _slowRate.Rate(now);
     public double Age(double now) => now - LastReportTime;
+
+    /// <summary>
+    /// Typical seconds between this aircraft's reports: 0.2 s on Velocity fast data, otherwise learned from the
+    /// gaps (about 1 s from the CRC feed, 5 s from vPilot's slow updates, 15 s from the data feed).
+    /// </summary>
+    public double ExpectedIntervalSec(double now) =>
+        IsSimulated || IsFastActive(now) ? 0.2 : _slowInterval > 0 ? _slowInterval : 5.0;
+
+    /// <summary>
+    /// Still being heard: no more than about two and a half expected intervals since the last report. A silent
+    /// aircraft (signal lost) is not painted by the radar, which then coasts its track instead of drawing
+    /// returns from an extrapolated position.
+    /// </summary>
+    public bool IsReporting(double now) => IsSimulated || Age(now) <= Math.Max(2.0, 2.5 * ExpectedIntervalSec(now));
 
     public void Apply(PositionReport r)
     {
@@ -68,6 +84,7 @@ public sealed class TargetTrack
             _slowRate.Mark(r.Time);
         }
         IsFeed = r.Source == ReportSource.Feed;
+        LastSource = r.Source;
 
         var pos = Wgs84.ToEcef(r.Position);
 

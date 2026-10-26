@@ -2,6 +2,21 @@ using PARScope.Core.Par;
 
 namespace PARScope.Core.Radar;
 
+/// <summary>Why a track has no recent paints.</summary>
+public enum CoastReason
+{
+    /// <summary>Painted recently: not coasting.</summary>
+    None,
+    /// <summary>Reporting and in coverage, but not painted (a weak or missed return).</summary>
+    Missed,
+    /// <summary>Still reporting, but outside the radar's range, sector or elevation limits.</summary>
+    OutOfCoverage,
+    /// <summary>This aircraft's position reports have stopped.</summary>
+    SignalLost,
+    /// <summary>The whole traffic feed has gone silent.</summary>
+    DataLost,
+}
+
 /// <summary>
 /// Track-while-scan state built only from radar paints (never from network truth), so data blocks,
 /// deviations and trends carry the same noise and latency a real PAR controller sees.
@@ -24,6 +39,22 @@ public sealed class RadarTrack
 
     public string Callsign { get; }
     public double LastUpdate { get; private set; }
+    /// <summary>Coasting, and why (set by the radar each frame).</summary>
+    public CoastReason Coast { get; internal set; }
+    public bool IsCoasting => Coast != CoastReason.None;
+
+    /// <summary>
+    /// Where the track is drawn on a scope: its last paint while being painted; while coasting, that paint moved
+    /// on by the measured rates (at most 15 s), as a tracker coasts a lost target.
+    /// </summary>
+    public (double RangeFt, double OffsetFt) DisplayAt(ScopeKind scope, double now)
+    {
+        bool el = scope == ScopeKind.Elevation;
+        double range = el ? RangeAtElevationFt : RangeAtAzimuthFt, offset = el ? HeightFt : CrossFt;
+        if (!IsCoasting) return (range, offset);
+        double dt = Math.Clamp(now - (el ? LastElPaint : LastAzPaint), 0, 15);
+        return (range + RangeRateFps * dt, offset + (el ? HeightRateFps : CrossRateFps) * dt);
+    }
     public double LastAzPaint { get; private set; } = double.NegativeInfinity;
     public double LastElPaint { get; private set; } = double.NegativeInfinity;
     public int AzPaints { get; private set; }

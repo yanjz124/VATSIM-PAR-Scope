@@ -76,6 +76,17 @@ public sealed class ScopeEngine : IDisposable
     public CrcFeed Crc => _crc ??= new CrcFeed(Clock, Ingest);
     private CrcFeed? _crc;
 
+    /// <summary>
+    /// Network traffic is on the scope but no source has delivered lately (vPilot or the CRC feed within 6 s,
+    /// the 15 s data feed within 30 s): the feed as a whole is lost, and tracks coast longer.
+    /// </summary>
+    public bool DataLost { get; private set; }
+
+    private bool AnySourceFresh =>
+        Clock.Now - Link.LastDatagram < 6
+        || (_crc != null && Clock.Now - _crc.LastPacket < 6)
+        || (_feed?.LastUpdateUtc is DateTime u && (DateTime.UtcNow - u).TotalSeconds < 30);
+
     /// <summary>CRC feed data has arrived recently.</summary>
     public bool CrcLive => _crc != null && Clock.Now - _crc.LastPacket < 10;
 
@@ -96,8 +107,10 @@ public sealed class ScopeEngine : IDisposable
         Now = Clock.Now;
         foreach (var m in Training.Step(Now)) Store.Apply(m);
         Targets = Store.Snapshot(Now);
+        DataLost = !AnySourceFresh && Targets.Any(t => !t.IsSimulated);
         if (Radar != null)
         {
+            Radar.DataLost = DataLost;
             Radar.ClutterEnabled = ClutterEnabled;
             Radar.SimulateErrors = SimulateErrors;
             Radar.MtiEnabled = MtiEnabled;

@@ -3,9 +3,10 @@
 *Formerly VATSIM PAR Scope. Yes, it is vibe coded.*
 
 **A Precision Approach Radar scope for VATSIM controllers**, modeled on the US military GCA systems
-it imitates: AN/FPN-68, FPN-63, GPN-22, FPN-67, MPN-25 and TPN-31 ATNAVICS. It runs next to CRC, takes
-live traffic from vPilot (including VATSIM Velocity 5 Hz positions), and has a training mode where you
-talk simulated arrivals down by voice, with pilot, tower and approach on the other end.
+it imitates: AN/FPN-68, FPN-63, GPN-22, FPN-67, MPN-25 and TPN-31 ATNAVICS. It runs next to CRC and
+takes live traffic from it (vNAS's 1 Hz target data, no second connection), or from vPilot where there is
+no CRC. It also has a training mode where you talk simulated arrivals down by voice, with pilot, tower and
+approach on the other end.
 
 Public information on these radars is scarce, so much of it is a best guess (see
 [How accurate is it?](#how-accurate-is-it)).
@@ -28,8 +29,13 @@ Public information on these radars is scarce, so much of it is a best guess (see
 * Live METAR, wind and altimeter on the scope.
 
 **Live VATSIM traffic**
-* The vPilot plugin streams every aircraft vPilot sees, including Velocity fast positions at up to 5 Hz,
-  over a tower-view connection next to CRC. The public data feed is a 15-second fallback.
+* **CRC feed:** the 1 Hz target data vNAS already sends your CRC, read from your own PC. Tower Cab gives
+  exact altitude, STARS gives Mode C. No second connection.
+* **vPilot plugin**, for fields without CRC: every aircraft vPilot sees, including Velocity fast
+  positions at up to 5 Hz, over a tower-view connection.
+* The public data feed is a 15-second fallback.
+* Tracks coast with a CST indicator when an aircraft stops reporting, leaves the radar's coverage, or the
+  whole feed drops, and the scope says which.
 
 **Training**
 * Arrivals handed off by approach 12–15 NM out; you accept with "radar contact", run the approach and
@@ -61,31 +67,55 @@ it) and the plugin in `Plugin\`, which you copy into `%LOCALAPPDATA%\vPilot\Plug
 installer, the update includes the plugin; with the zip, copy a changed plugin by hand. The title bar
 shows the version and the commit it was built from.
 
-## Using it alongside CRC
+## Getting live traffic
 
-CRC has no local data output, so live traffic comes from vPilot's **tower view**. The VATSIM Code of
-Conduct (C7(b)) allows a controller one extra tower-view connection, `(CID)_TV`.
+### With CRC (recommended)
 
-1. Connect to your position in CRC.
-2. Start vPilot with the plugin installed and type `.towerview`.
-3. Start vibe PAR. The status bar shows what is arriving:
-   * **5 Hz data**: Velocity fast positions.
-   * **5 s updates only**: vPilot connected, normal updates only.
-   * **VATSIM data feed (15 s)**: no vPilot; public feed positions (turn on in **Settings › Data**).
-     Fine for watching traffic, too slow for precision guidance.
+vNAS sends CRC its display targets over UDP about once a second, as plain MessagePack. vibe PAR reads them
+on your own PC by packet capture. It is read-only: nothing is sent, and CRC and the network are untouched.
 
-Hover the status text for details; **Settings › Diagnostics** shows live rates per aircraft.
+1. In **Settings › Data › CRC feed**, choose how to capture:
+   * **Raw socket:** nothing to install, but vibe PAR must run as administrator. The settings page offers a
+     restart.
+   * **Npcap:** install [Npcap](https://npcap.com) once, then vibe PAR runs normally.
+2. Connect to your position in CRC and open a **Tower Cab** window at the PAR's field. That gives exact
+   altitude for aircraft out to 70 NM or so. A STARS display also works, with Mode C altitude in 100 ft
+   steps, corrected with the altimeter setting.
+3. The status bar shows **CRC (vNAS) · 1 Hz**.
 
-**CRC feed (experimental, no second connection).** vNAS sends CRC its display targets over UDP about once a
-second, as plain MessagePack. **Settings › Data › CRC feed** reads them by packet capture:
-
-* **Raw socket:** nothing to install, but vibe PAR must run as administrator. The settings page offers a
-  restart.
-* **Npcap:** install [Npcap](https://npcap.com) once, then vibe PAR runs normally.
-
-Open a **Tower Cab** window at the field for exact altitude; a STARS display gives Mode C altitude in 100 ft
-steps. It is read-only and unofficial, and may stop working with a vNAS update. The format is documented in
+This is unofficial and may stop working with a vNAS update. The format is documented in
 [docs/CRC-VNAS-UDP.md](docs/CRC-VNAS-UDP.md).
+
+### With vPilot (fields without CRC)
+
+Where your facility is not on CRC (EuroScope areas, for example), use vPilot's **tower view** with the
+plugin. The VATSIM Code of Conduct (C7(b)) allows a controller one extra tower-view connection,
+`(CID)_TV`.
+
+1. Connect to your position in your ATC client.
+2. Start vPilot with the plugin installed and type `.towerview`.
+3. The status bar shows what is arriving:
+   * **5 Hz data**: Velocity fast positions.
+   * **5 s updates only**: normal updates only.
+
+Both can run together; vPilot's fast data wins for the aircraft it covers. With neither, the **VATSIM
+data feed (15 s)** can be turned on in **Settings › Data**: fine for watching traffic, too slow for
+precision guidance.
+
+### When data stops
+
+A track that stops being painted **coasts**: it moves on at its last measured rates with a hollow symbol
+and **CST** in its data block. The side panel says why, and the track is dropped after a time that depends
+on the reason:
+
+| Reason | Dropped after |
+|---|---|
+| Out of coverage: still reporting, but outside the radar's range, sector or elevation | 6 s |
+| Signal lost: this aircraft's reports stopped (no phantom returns are painted) | 12 s |
+| Data lost: the whole feed went silent (status bar **DATA LOST**) | 30 s |
+
+No suggested calls are made from a coasting track. Hover the status text for details; **Settings ›
+Diagnostics** shows live rates per aircraft.
 
 ## Using the scope
 
