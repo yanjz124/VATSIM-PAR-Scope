@@ -71,3 +71,26 @@ public class RadioTests
         Assert.True(Phraseology.Parse("tower clearance not received, execute missed approach").MissedApproach);
     }
 }
+
+public class AircraftPerformanceTests
+{
+    [Fact]
+    public void Faa_database_supplies_military_approach_speeds()
+    {
+        Assert.Equal(128, AircraftPerformance.Find("C30J")!.ApproachSpeedKt);
+        Assert.Equal(115, AircraftPerformance.Find("C17")!.ApproachSpeedKt);
+        Assert.Equal("C", AircraftPerformance.Find("F18S")!.ApproachCategory);
+        Assert.Null(AircraftPerformance.Find("ZZZZ"));
+        Assert.True(AircraftPerformance.All.Count > 300);
+    }
+
+    [Fact]
+    public void Custom_callsign_and_type_are_used_with_type_speed()
+    {
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
+        var ac = sim.SpawnRandom(PilotMode.ControllerDirected, "vm 4321", "C30J");
+        Assert.Equal("VM4321", ac.Callsign);
+        Assert.Equal("C30J", ac.TypeCode);
+        Assert.InRange(ac.SpeedKt, 128, 136);
+    }
+}

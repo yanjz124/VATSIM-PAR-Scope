@@ -288,6 +288,16 @@
                             <ui:ToggleSwitch IsChecked="{Binding SpawnSelfFlying}" OnContent="Pilot flies the approach" OffContent="Controller-directed" Margin="0,0,0,8" />
                             <ui:ToggleSwitch IsChecked="{Binding ShowAdvisories}" OnContent="Suggested calls for training traffic" OffContent="Suggested calls for training traffic" Margin="0,0,0,6" />
                             <ui:ToggleSwitch IsChecked="{Binding ShowAdvisoriesOnNetwork}" OnContent="Suggested calls for VATSIM traffic" OffContent="Suggested calls for VATSIM traffic" Margin="0,0,0,10" />
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="8" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <ui:TextBox PlaceholderText="Callsign (blank = random)" Text="{Binding SpawnCallsign, UpdateSourceTrigger=PropertyChanged}" />
+                                <ui:TextBox Grid.Column="2" PlaceholderText="ICAO type (e.g. C30J)" Text="{Binding SpawnType, UpdateSourceTrigger=PropertyChanged}"
+                                            ToolTip="Approach speed comes from the FAA Aircraft Characteristics Database for the type." />
+                            </Grid>
                             <WrapPanel>
                                 <ui:Button Content="Spawn arrival" Appearance="Primary" Icon="{ui:SymbolIcon Add24}" Margin="0,0,6,6" Command="{Binding SpawnTrainingCommand}" />
                                 <ToggleButton Content="Pause" IsChecked="{Binding TrainingPaused}" Margin="0,0,6,6" Padding="10,5" />

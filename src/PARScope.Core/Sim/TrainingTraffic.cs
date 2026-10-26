@@ -27,6 +27,8 @@ public sealed record SpawnOptions
     public double WindFromDeg { get; init; } = 0;
     public double WindKt { get; init; } = 0;
     public string? TypeCode { get; init; }
+    /// <summary>Custom callsign; null = generated.</summary>
+    public string? Callsign { get; init; }
 }
 
 /// <summary>Simulated arrivals for PAR training. All kinematics run in the runway's approach frame.</summary>
@@ -35,27 +37,29 @@ public sealed class TrainingTraffic
     /// <summary>
     /// Callsign styles used by US military traffic at a GCA field. Service prefixes per FAA JO 7110.65
     /// §2-4-20 (VV "Navy", VM "Marine", R "Army", AF "Air Force"); mission callsigns REACH (AMC airlift),
-    /// PAT (Army priority air transport), CONVOY (Navy fleet logistics), RAWHIDE (C-2 COD); squadron
-    /// tactical callsigns are two-digit flight numbers. Each style carries plausible types and approach speeds.
+    /// PAT (Army priority air transport), CONVOY (Navy fleet logistics); fighter flights numbered 11–14,
+    /// 21–24… Types are ICAO designators covered by the FAA Aircraft Characteristics Database, which
+    /// supplies their approach speeds (see <see cref="AircraftPerformance"/>).
     /// </summary>
-    private sealed record CallsignStyle(string Prefix, int Digits, string[] Types, int SpeedLo, int SpeedHi);
+    private sealed record CallsignStyle(string Prefix, int Digits, string[] Types, bool FlightNumbers = false);
 
     private static readonly CallsignStyle[] Styles =
     [
-        new("VV", 4, ["T45", "T6", "P8", "E2"], 120, 140),
-        new("VM", 4, ["C130", "MV22", "UC35"], 110, 130),
-        new("R", 5, ["C12", "UH60", "C26"], 100, 120),
-        new("AF", 4, ["C130", "T38", "C17"], 120, 140),
-        new("REACH", 3, ["C17", "C5M", "KC46"], 130, 145),
-        new("PAT", 3, ["C12", "UC35"], 105, 120),
-        new("CONVOY", 4, ["C40", "C130"], 130, 140),
-        new("RAWHIDE", 2, ["C2"], 110, 120),
-        new("VIPER", 2, ["F35"], 135, 150),
-        new("RAGE", 2, ["F18S"], 135, 150),
-        new("BOLT", 2, ["F18S"], 135, 150),
-        new("SHOGUN", 2, ["AV8B"], 120, 140),
-        new("VIKING", 2, ["P8"], 135, 145),
+        new("VV", 4, ["TEX2", "P8", "F18S", "F18H", "P3", "B737"]),
+        new("VM", 4, ["C30J", "F18H", "BE20", "C560"]),
+        new("R", 5, ["BE20", "C560"]),
+        new("AF", 4, ["C17", "C30J", "T38", "TEX2", "K35R"]),
+        new("REACH", 3, ["C17", "K35R", "C30J"]),
+        new("PAT", 3, ["BE20", "C560"]),
+        new("CONVOY", 4, ["B737", "C30J"]),
+        new("VIPER", 2, ["F16"], FlightNumbers: true),
+        new("RAGE", 2, ["F18S"], FlightNumbers: true),
+        new("BOLT", 2, ["F18H"], FlightNumbers: true),
     ];
+
+    /// <summary>Approach speed for a type from the FAA database, with a little pilot variation; 130 kt if unknown.</summary>
+    private double ApproachSpeed(string type) =>
+        (AircraftPerformance.Find(type)?.ApproachSpeedKt ?? 130) + _rng.Next(0, 9);
 
     private readonly List<SimAircraft> _aircraft = [];
     private readonly Random _rng = new();
@@ -70,23 +74,25 @@ public sealed class TrainingTraffic
     {
         var geo = Geometry ?? throw new InvalidOperationException("Select a runway before spawning training traffic.");
         var style = Styles[_rng.Next(Styles.Length)];
-        string cs;
-        do
+        string cs = o.Callsign is { Length: > 0 } custom ? custom.Trim().ToUpperInvariant().Replace(" ", "") : "";
+        while (cs.Length == 0 || _aircraft.Any(a => a.Callsign == cs))
         {
-            // Tactical flights are numbered like 21, 32; the leading digit is never zero.
-            int lo = (int)Math.Pow(10, style.Digits - 1), hi = (int)Math.Pow(10, style.Digits);
-            cs = style.Prefix + _rng.Next(lo, hi);
+            // Fighter flights are numbered 11–14, 21–24, …; others use mission/tail-style numbers.
+            int number = style.FlightNumbers
+                ? _rng.Next(1, 9) * 10 + _rng.Next(1, 5)
+                : _rng.Next((int)Math.Pow(10, style.Digits - 1), (int)Math.Pow(10, style.Digits));
+            cs = style.Prefix + number;
         }
-        while (_aircraft.Any(a => a.Callsign == cs));
 
+        string type = o.TypeCode is { Length: > 0 } t ? t.Trim().ToUpperInvariant() : style.Types[_rng.Next(style.Types.Length)];
         double rangeFt = o.RangeNm * Units.FeetPerNm;
-        var ac = new SimAircraft(cs, o.TypeCode ?? style.Types[_rng.Next(style.Types.Length)], o, _rng)
+        var ac = new SimAircraft(cs, type, o, _rng)
         {
             RangeFt = rangeFt,
             CrossFt = o.CrossFt,
             HeightFt = geo.GlidepathHeightFt(rangeFt) + o.HeightOffsetFt,
             TrackRelDeg = -o.InterceptAngleDeg * Math.Sign(o.CrossFt == 0 ? 1 : o.CrossFt),
-            SpeedKt = o.SpeedKt > 0 ? o.SpeedKt : _rng.Next(style.SpeedLo, style.SpeedHi + 1),
+            SpeedKt = o.SpeedKt > 0 ? o.SpeedKt : ApproachSpeed(type),
             GearDown = _rng.NextDouble() < 0.5,
         };
         ac.HeadingRelDeg = ac.TrackRelDeg;
@@ -95,10 +101,12 @@ public sealed class TrainingTraffic
         return ac;
     }
 
-    public SimAircraft SpawnRandom(PilotMode mode)
+    public SimAircraft SpawnRandom(PilotMode mode, string? callsign = null, string? typeCode = null)
     {
         return Spawn(new SpawnOptions
         {
+            Callsign = callsign,
+            TypeCode = typeCode,
             RangeNm = 6 + _rng.NextDouble() * 4,
             CrossFt = (_rng.NextDouble() - 0.5) * 1600,
             HeightOffsetFt = -400 + _rng.NextDouble() * 300,

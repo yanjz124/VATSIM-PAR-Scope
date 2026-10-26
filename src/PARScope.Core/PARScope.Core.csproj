@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Sim\aircraft.csv" LogicalName="PARScope.Core.Sim.aircraft.csv" />
+  </ItemGroup>
+
 </Project>

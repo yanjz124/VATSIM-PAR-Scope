@@ -484,6 +484,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     [ObservableProperty] public partial bool TrainingPaused { get; set; }
     [ObservableProperty] public partial bool SpawnSelfFlying { get; set; }
+    /// <summary>Optional custom callsign / ICAO type for the next spawn (blank = realistic random).</summary>
+    [ObservableProperty] public partial string SpawnCallsign { get; set; } = "";
+    [ObservableProperty] public partial string SpawnType { get; set; } = "";
 
     partial void OnTrainingPausedChanged(bool value) => Engine.Training.Paused = value;
 
@@ -491,8 +494,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private void SpawnTraining()
     {
         if (Engine.Geometry == null || Engine.Runway is not { } rw) { StatusMessage = "Select a runway first"; return; }
-        var ac = Engine.Training.SpawnRandom(SpawnSelfFlying ? PilotMode.SelfFlying : PilotMode.ControllerDirected);
-        StatusMessage = $"{ac.Callsign} ({ac.TypeCode}) handed off {ac.RangeFt / Units.FeetPerNm:0.0} NM out";
+        var ac = Engine.Training.SpawnRandom(SpawnSelfFlying ? PilotMode.SelfFlying : PilotMode.ControllerDirected,
+            string.IsNullOrWhiteSpace(SpawnCallsign) ? null : SpawnCallsign, string.IsNullOrWhiteSpace(SpawnType) ? null : SpawnType);
+        var perf = AircraftPerformance.Find(ac.TypeCode);
+        StatusMessage = $"{ac.Callsign} ({ac.TypeCode}{(perf != null ? $", cat {perf.ApproachCategory}" : ", type not in FAA database")}, {ac.SpeedKt:0} kt) handed off {ac.RangeFt / Units.FeetPerNm:0.0} NM out";
         Select(ac.Callsign);
 
         // The pilot switches to the final frequency and checks in (NAVAIR 00-80T-112 ¶25.3.1.1).

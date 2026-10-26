@@ -142,7 +142,7 @@ public class AdvisoryTrendTests
         var geo = new ParGeometry(GeometryTests.Runway, GeometryTests.Site);
         var store = new TrackStore();
         var sim = new TrainingTraffic { Geometry = geo };
-        var ac = sim.Spawn(new SpawnOptions { RangeNm = 9, HeightOffsetFt = -400, Mode = PilotMode.ControllerDirected, Skill = 1 });
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 9, HeightOffsetFt = -400, Mode = PilotMode.ControllerDirected, Skill = 1, SpeedKt = 140, TypeCode = "C30J" });
         var radar = new RadarSimulator(RadarPreset.Fpn68 with { NoiseFactor = 0.25 }, geo, seed: 11) { ClutterEnabled = false, SimulateErrors = true };
         for (double t = 0; t <= 25; t += 1 / 30.0)
         {
