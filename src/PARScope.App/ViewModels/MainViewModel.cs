@@ -58,6 +58,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         Difficulty = settings.TrainingDifficulty;
         Engine.Training.Difficulty = Difficulty;
         Engine.Training.ReturnForAnotherApproach = settings.TrainingReturnForAnother;
+        Engine.Training.Handoffs = Enum.TryParse<HandoffMix>(settings.TrainingHandoffs, out var mix) ? mix : HandoffMix.FinalOnly;
         settings.MaxCallsignLength = Math.Clamp(settings.MaxCallsignLength, 5, 6);
         Engine.Training.MaxCallsignLength = settings.MaxCallsignLength;
         ShowScan = settings.ShowScan;
@@ -635,7 +636,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private void OfferToFinal(SimAircraft ac, RunwayEnd rw)
     {
         string handoff = _approach.OfferHandoff(ac.Callsign, ac.RangeFt / Units.FeetPerNm,
-            Units.Norm360(rw.MagneticCourseDeg + ac.CommandedHeadingRelDeg), ac.AltitudeAboveThresholdFt + rw.ThresholdElevFt, Engine.Training.SimTime);
+            Units.Norm360(rw.MagneticCourseDeg + ac.CommandedHeadingRelDeg), ac.AltitudeAboveThresholdFt + rw.ThresholdElevFt, Engine.Training.SimTime, ac.HandoffLeg);
         _voice.Approach(handoff, 0.5, OnUi(() => Log("APPROACH", handoff)));
     }
 
@@ -678,6 +679,20 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     [ObservableProperty] public partial string PatternText { get; set; } = "";
+
+    /// <summary>Where approach hands arrivals over (Training traffic panel).</summary>
+    public IReadOnlyList<string> HandoffChoices { get; } = ["On final", "Final, dogleg or base (mixed)", "Dogleg or base only"];
+    public string HandoffChoice
+    {
+        get => HandoffChoices[(int)Engine.Training.Handoffs];
+        set
+        {
+            int i = Math.Max(0, HandoffChoices.ToList().IndexOf(value));
+            Engine.Training.Handoffs = (HandoffMix)i;
+            _settings.TrainingHandoffs = ((HandoffMix)i).ToString();
+            OnPropertyChanged();
+        }
+    }
 
     public bool ReturnForAnotherApproach
     {

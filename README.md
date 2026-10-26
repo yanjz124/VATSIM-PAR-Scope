@@ -153,6 +153,9 @@ keeps it. Transmissions that were not understood are flagged in orange at the st
 Start a call with **Local** (or **Tower**), **Approach** or **Departure** and it goes to that controller
 instead of the pilot. Wording can be loose; the aircraft is found by its callsign or number.
 
+* **Where**: on final by default; in the Training traffic panel, approach can also hand arrivals over on a
+  dogleg (1.5–3 NM off the centerline, 30–45° toward it) or a base leg (3–5 NM abeam, heading for the
+  centerline) for you to turn onto final.
 * **Handoff in**: approach calls "handoff, one four mile final, Navy one two three four, two thousand
   five hundred, heading two four zero". Accept with "Navy one two three four, radar contact" and your
   initials. Approach answers with theirs and switches the pilot, who checks in. Unanswered handoffs are

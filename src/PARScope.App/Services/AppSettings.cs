@@ -47,6 +47,8 @@ public sealed class AppSettings
     public int MaxCallsignLength { get; set; } = 5;
     /// <summary>Missed approaches, touch and goes and low approaches come round again for another approach.</summary>
     public bool TrainingReturnForAnother { get; set; } = true;
+    /// <summary>Where approach hands arrivals over: FinalOnly, Mixed or BaseAndDogleg (HandoffMix).</summary>
+    public string TrainingHandoffs { get; set; } = "FinalOnly";
     /// <summary>Record received traffic to CSV for update-rate diagnostics.</summary>
     public bool RecordTraffic { get; set; } = true;
     public string? AirportId { get; set; }

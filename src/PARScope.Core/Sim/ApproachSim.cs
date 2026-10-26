@@ -33,14 +33,23 @@ public sealed class ApproachSim
     public IReadOnlyCollection<PendingHandoff> Pending => _pending.Values;
 
     /// <summary>"Final, approach, handoff, one four miles east, Navy one two three four, two thousand five hundred, heading two four zero."</summary>
-    public static string HandoffToFinal(string callsign, double rangeNm, double headingMagDeg, double altitudeFt) =>
-        $"Final, approach, handoff, {RadioSpeech.Digits(((int)Math.Round(rangeNm)).ToString())} mile final, {RadioSpeech.Callsign(callsign)}, "
-        + $"{RadioSpeech.Altitude(altitudeFt)}, heading {RadioSpeech.Heading(headingMagDeg)}.";
+    public static string HandoffToFinal(string callsign, double rangeNm, double headingMagDeg, double altitudeFt, HandoffLeg leg = HandoffLeg.Final)
+    {
+        string miles = RadioSpeech.Digits(((int)Math.Round(rangeNm)).ToString());
+        string where = leg switch
+        {
+            HandoffLeg.Base => $"{miles} miles from touchdown, on base leg",
+            HandoffLeg.Dogleg => $"{miles} miles from touchdown, on a dogleg to final",
+            _ => $"{miles} mile final",
+        };
+        return $"Final, approach, handoff, {where}, {RadioSpeech.Callsign(callsign)}, "
+               + $"{RadioSpeech.Altitude(altitudeFt)}, heading {RadioSpeech.Heading(headingMagDeg)}.";
+    }
 
     /// <summary>Approach offers an arrival to final; returns the call.</summary>
-    public string OfferHandoff(string callsign, double rangeNm, double headingMagDeg, double altitudeFt, double now)
+    public string OfferHandoff(string callsign, double rangeNm, double headingMagDeg, double altitudeFt, double now, HandoffLeg leg = HandoffLeg.Final)
     {
-        string text = HandoffToFinal(callsign, rangeNm, headingMagDeg, altitudeFt);
+        string text = HandoffToFinal(callsign, rangeNm, headingMagDeg, altitudeFt, leg);
         _pending[callsign] = new PendingHandoff(callsign, text, now + RepeatSec, 1);
         return text;
     }

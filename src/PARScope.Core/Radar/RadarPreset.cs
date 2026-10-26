@@ -185,7 +185,9 @@ public sealed record RadarPreset
         NoiseFactor = 1.0, Style = DisplayStyle.Digital, Tracking = true, MaxTracks = 6, RangeScalesNm = [5, 10],
         LogRangeDefault = true,
         LogStraightLines = true,
-        AzimuthAntennaCentered = true,
+        // The footage shows the course straight along the middle of the azimuth display, so it is drawn from
+        // the final course like the others: a saved siting with the antenna aimed in can no longer tilt it.
+        AzimuthAntennaCentered = false,
         AsrCompassRose = true,
         DefaultAntennaAimDeg = 0,
     };

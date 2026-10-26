@@ -301,6 +301,9 @@
                             <TextBlock Text="Difficulty" Style="{StaticResource MetricLabel}" />
                             <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding Difficulties}" SelectedItem="{Binding Difficulty}" Margin="0,2,0,2" />
                             <TextBlock Text="{Binding DifficultyText}" Style="{StaticResource MetricLabel}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                            <TextBlock Text="Handoffs" Style="{StaticResource MetricLabel}" />
+                            <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding HandoffChoices}" SelectedItem="{Binding HandoffChoice}" Margin="0,2,0,10"
+                                      ToolTip="Where approach hands arrivals to you. Dogleg: 1.5-3 NM off the centerline, 30-45° toward it. Base: 3-5 NM abeam, heading for the centerline, for you to turn onto final (on the ASR until it is inside the PAR's coverage)." />
                             <ui:ToggleSwitch IsChecked="{Binding ReturnForAnotherApproach}" OnContent="Missed approaches come back for another try" OffContent="Missed approaches come back for another try" Margin="0,0,0,4"
                                              ToolTip="After a missed approach, touch and go or low approach, approach vectors the aircraft round (about 2 minutes) and hands it off to you again." />
                             <TextBlock Text="{Binding PatternText}" Style="{StaticResource MetricLabel}" Margin="0,0,0,8"

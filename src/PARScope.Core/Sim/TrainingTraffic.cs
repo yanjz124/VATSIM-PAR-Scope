@@ -16,6 +16,12 @@ public enum PilotMode
 public enum TrainingDifficulty { Easy, Normal, Hard, Expert }
 
 /// <summary>Spawn and pilot parameters for a difficulty level.</summary>
+/// <summary>Where approach hands an arrival to final.</summary>
+public enum HandoffLeg { Final, Dogleg, Base }
+
+/// <summary>Which handoff positions training arrivals use.</summary>
+public enum HandoffMix { FinalOnly, Mixed, BaseAndDogleg }
+
 public sealed record DifficultyProfile(
     double SkillLo, double SkillHi, int WindKtLo, int WindKtHi, double CrossFt, double InterceptDeg,
     double HeadingDriftDegPerMin, double VsDriftFpmPerMin, double WindVeerDeg, double WindShearKt, double GustKt)
@@ -47,6 +53,8 @@ public sealed record SpawnOptions
     /// <summary>Height above the threshold to spawn level at (a GCA pattern altitude); overrides <see cref="HeightOffsetFt"/>.
     /// Kept at least 300 ft under the glidepath so the aircraft intercepts it from below.</summary>
     public double? AltitudeFt { get; init; }
+    /// <summary>Where approach hands the arrival over (sets nothing by itself; for the handoff call).</summary>
+    public HandoffLeg Leg { get; init; } = HandoffLeg.Final;
     /// <summary>Approach speed; 0 = typical for the aircraft type chosen.</summary>
     public double SpeedKt { get; init; }
     public double InterceptAngleDeg { get; init; } = 0;
@@ -196,6 +204,9 @@ public sealed class TrainingTraffic
     /// pattern and handed off again for another approach, as in GCA pattern work. They stay on radar throughout.</summary>
     public bool ReturnForAnotherApproach { get; set; } = true;
 
+    /// <summary>Handoffs on final only, or also on a dogleg or base leg for final to turn in.</summary>
+    public HandoffMix Handoffs { get; set; } = HandoffMix.FinalOnly;
+
     /// <summary>Aircraft that have flown approach's pattern back to final, reset for another approach; approach
     /// then offers them to the final controller.</summary>
     public IReadOnlyList<SimAircraft> TakeReturningAircraft()
@@ -287,17 +298,33 @@ public sealed class TrainingTraffic
         var d = DifficultyProfile.For(Difficulty);
         double Between(double lo, double hi) => lo + _rng.NextDouble() * (hi - lo);
         var live = SurfaceWind;
+        var leg = Handoffs switch
+        {
+            HandoffMix.FinalOnly => HandoffLeg.Final,
+            HandoffMix.BaseAndDogleg => _rng.Next(2) == 0 ? HandoffLeg.Dogleg : HandoffLeg.Base,
+            _ => _rng.Next(4) switch { 0 => HandoffLeg.Dogleg, 1 => HandoffLeg.Base, _ => HandoffLeg.Final },
+        };
+        int side = _rng.Next(2) == 0 ? -1 : 1;
+        // Final: 12-15 NM out at 2,000-3,000 ft, time for the radio check, brief and missed approach
+        // instructions before glidepath intercept (about 6-9 NM on a 3° path). Dogleg: 1.5-3 NM off the
+        // centerline, 30-45° toward it. Base: 3-5 NM abeam, heading straight for the centerline, for final
+        // to turn in (outside the PAR's azimuth coverage until then; on the ASR).
+        var (rangeNm, crossFt, intercept) = leg switch
+        {
+            HandoffLeg.Dogleg => (11 + _rng.NextDouble() * 2, side * (1.5 + _rng.NextDouble() * 1.5) * Units.FeetPerNm, 30 + _rng.NextDouble() * 15),
+            HandoffLeg.Base => (9 + _rng.NextDouble() * 2, side * (3 + _rng.NextDouble() * 2) * Units.FeetPerNm, 90.0),
+            _ => (12 + _rng.NextDouble() * 3, (_rng.NextDouble() - 0.5) * 2 * d.CrossFt, _rng.NextDouble() * d.InterceptDeg),
+        };
         return Spawn(new SpawnOptions
         {
             Callsign = callsign,
             TypeCode = typeCode,
-            // Handed to final 12-15 NM out at 2,000-3,000 ft: time for the radio check, approach brief and
-            // missed approach instructions before glidepath intercept (about 6-9 NM on a 3° path).
-            RangeNm = 12 + _rng.NextDouble() * 3,
-            CrossFt = (_rng.NextDouble() - 0.5) * 2 * d.CrossFt,
+            RangeNm = rangeNm,
+            CrossFt = crossFt,
             AltitudeFt = 2000 + _rng.Next(0, 11) * 100,
             SpeedKt = 0, // from the callsign style's aircraft
-            InterceptAngleDeg = _rng.NextDouble() * d.InterceptDeg,
+            InterceptAngleDeg = intercept,
+            Leg = leg,
             Mode = mode,
             Skill = skill ?? Between(d.SkillLo, d.SkillHi),
             WindFromDeg = live?.FromDeg ?? _rng.Next(0, 36) * 10,
@@ -371,6 +398,7 @@ public sealed class SimAircraft
         TypeCode = typeCode;
         _opt = opt;
         _rng = rng;
+        HandoffLeg = opt.Leg;
         Mode = opt.Mode;
         Descending = opt.Mode == PilotMode.SelfFlying;
         // A self-flying arrival is like a pilot flying the ILS on another frequency: tower has cleared them.
@@ -436,6 +464,9 @@ public sealed class SimAircraft
     }
     private bool _decided;
     private (double? CeilingFt, double? VisibilitySm) _wx;
+
+    /// <summary>Where approach handed this arrival over: on final, a dogleg or a base leg.</summary>
+    public HandoffLeg HandoffLeg { get; internal set; }
 
     /// <summary>Back from approach's pattern for another approach (says so on check-in).</summary>
     public bool AnotherApproach { get; internal set; }
@@ -1030,6 +1061,7 @@ public sealed class SimAircraft
         _grade = new ApproachGrader();
         NoAcknowledge = GearReportedDown = false;
         AnotherApproach = true;
+        HandoffLeg = HandoffLeg.Final;
         Clearance = Mode == PilotMode.SelfFlying ? LandingIntent.FullStop : null;
         Descending = Mode == PilotMode.SelfFlying;
         GoAroundReason = null;

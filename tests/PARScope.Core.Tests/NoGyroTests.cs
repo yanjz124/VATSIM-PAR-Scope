@@ -3,6 +3,33 @@ using PARScope.Core.Sim;
 
 namespace PARScope.Core.Tests;
 
+/// <summary>Approach can hand arrivals over on final, on a dogleg or on a base leg.</summary>
+public class HandoffLegTests
+{
+    [Fact]
+    public void Dogleg_and_base_handoffs_are_placed_and_announced()
+    {
+        const double nm = PARScope.Core.Geo.Units.FeetPerNm;
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site), Handoffs = HandoffMix.BaseAndDogleg };
+        var seen = new HashSet<HandoffLeg>();
+        for (int i = 0; i < 60; i++)
+        {
+            var ac = sim.SpawnRandom(PilotMode.ControllerDirected);
+            seen.Add(ac.HandoffLeg);
+            double abeam = Math.Abs(ac.CrossFt) / nm, toward = -Math.Sign(ac.CrossFt) * ac.HeadingRelDeg;
+            if (ac.HandoffLeg == HandoffLeg.Base) { Assert.InRange(abeam, 3, 5); Assert.InRange(toward, 89, 91); Assert.InRange(ac.RangeFt / nm, 9, 11); }
+            else { Assert.Equal(HandoffLeg.Dogleg, ac.HandoffLeg); Assert.InRange(abeam, 1.5, 3); Assert.InRange(toward, 30, 45); }
+            string call = ApproachSim.HandoffToFinal(ac.Callsign, ac.RangeFt / nm, 243, 2500, ac.HandoffLeg);
+            Assert.Contains(ac.HandoffLeg == HandoffLeg.Base ? "on base leg" : "on a dogleg to final", call);
+            sim.Remove(ac.Callsign);
+        }
+        Assert.Equal(2, seen.Count);
+        sim.Handoffs = HandoffMix.FinalOnly;
+        Assert.Equal(HandoffLeg.Final, sim.SpawnRandom(PilotMode.ControllerDirected).HandoffLeg);
+        Assert.Contains("mile final", ApproachSim.HandoffToFinal("VV1234", 13, 243, 2500));
+    }
+}
+
 /// <summary>Wordings Whisper produced in real sessions that must still be understood.</summary>
 public class RecognizerVariantTests
 {
