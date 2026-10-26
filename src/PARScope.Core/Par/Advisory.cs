@@ -40,8 +40,9 @@ public static class AdvisoryEngine
 
     /// <param name="headingMagDeg">The aircraft's heading if the controller knows it (the last assigned heading, or
     /// the reported one), so the suggested heading keeps the wind correction; null = estimate from the track.</param>
+    /// <param name="wheelsReportedDown">The pilot has reported the gear down on this approach, so the wheels check is not repeated (§2-1-25).</param>
     public static Advisory Evaluate(RadarTrack track, ParGeometry geo, RadarPreset preset, DeviationBands bands, double magneticCourseDeg,
-        double? headingMagDeg = null)
+        double? headingMagDeg = null, bool wheelsReportedDown = false)
     {
         var dev = geo.DeviationOf(track.Point);
         double rangeFt = Math.Max(dev.RangeFt, 1);
@@ -93,7 +94,12 @@ public static class AdvisoryEngine
         double rod = gsKt * Units.FeetPerNm / 60.0 * gpSlope;
 
         string text;
-        if (safety != null)
+        if (dev.RangeFt < geo.ThresholdRangeFt - 100)
+        {
+            // Guidance is discontinued once over the landing threshold (§5-12-8a3).
+            text = "";
+        }
+        else if (safety != null)
         {
             text = safety.StartsWith("LOW ALTITUDE")
                 ? safety + "."
@@ -103,7 +109,10 @@ public static class AdvisoryEngine
         {
             var parts = new List<string>();
             if (heading.HasValue) parts.Add($"TURN {(Units.Norm180(heading.Value - currentHeading) >= 0 ? "RIGHT" : "LEFT")} HEADING {heading.Value:000}");
-            parts.Add(preDescent ? PreDescentCall(dev, devRateGp, elHalf) : gp);
+            // Before glidepath intercept only course information is given; elevation starts with
+            // "approaching glidepath" (§5-12-1, §5-12-4).
+            if (!preDescent) parts.Add(gp);
+            else if (PreDescentCall(dev, devRateGp, elHalf, wheelsReportedDown) is { } pre) parts.Add(pre);
             parts.Add(course);
             text = string.Join(", ", parts) + ".";
             if (belowDh) text = "(ADVISORY) " + text;
@@ -116,12 +125,12 @@ public static class AdvisoryEngine
     /// Before final descent: "APPROACHING GLIDEPATH" 10–30 s before intercept (§5-12-1), with the USN/USA
     /// wheels-down check (§2-1-25), then "BEGIN DESCENT" (§5-12-3).
     /// </summary>
-    private static string PreDescentCall(Deviation dev, double devRateGp, double elHalf)
+    private static string? PreDescentCall(Deviation dev, double devRateGp, double elHalf, bool wheelsReportedDown)
     {
         double toIntercept = devRateGp > 0.5 ? -dev.AboveGlidepathFt / devRateGp : double.PositiveInfinity;
         if (toIntercept <= 10 || dev.AboveGlidepathFt > -elHalf) return "BEGIN DESCENT";
-        if (toIntercept <= 30) return "APPROACHING GLIDEPATH. WHEELS SHOULD BE DOWN";
-        return "BELOW GLIDEPATH";
+        if (toIntercept <= 30) return wheelsReportedDown ? "APPROACHING GLIDEPATH" : "APPROACHING GLIDEPATH. WHEELS SHOULD BE DOWN";
+        return null;
     }
 
     public static string GlidepathPhrase(double aboveFt, double rateFps, DeviationBands b, double holdingFps = HoldingFps, double targetHalfFt = 60)
@@ -219,10 +228,12 @@ public static class AdvisoryEngine
     /// (7110.65BB §5-12-5), "AT DECISION ALTITUDE" (§5-12-6), "OVER APPROACH LIGHTS" at half a mile and
     /// "OVER LANDING THRESHOLD" (§5-12-7; MCAS Cherry Point P3722.1S §6-323).
     /// </summary>
-    public static string? PositionCall(double rangeFt, ParGeometry geo)
+    public static string? PositionCall(double rangeFt, ParGeometry geo, string? coursePhrase = null)
     {
         const double window = 250;
-        if (Math.Abs(rangeFt - geo.ThresholdRangeFt) < window) return "OVER LANDING THRESHOLD";
+        // §5-12-7c: "OVER LANDING THRESHOLD, (position with respect to course)".
+        if (Math.Abs(rangeFt - geo.ThresholdRangeFt) < window)
+            return coursePhrase is { Length: > 0 } ? $"OVER LANDING THRESHOLD, {coursePhrase}" : "OVER LANDING THRESHOLD";
         if (Math.Abs(rangeFt - 0.5 * Units.FeetPerNm) < window) return "OVER APPROACH LIGHTS";
         if (Math.Abs(rangeFt - geo.DecisionHeightRangeFt) < window) return "AT DECISION ALTITUDE";
         double nm = rangeFt / Units.FeetPerNm, mile = Math.Round(nm);

@@ -286,6 +286,40 @@ public class RadioTests
         Assert.Contains(RadioSpeech.Altitude(2000 + thr) + ",", ac.CheckInCall("Miramar", 243, thr)); // spoken MSL
     }
 
+    // FAA JO 7110.65 §5-10-11/12 forms are instructions for later, not to fly now.
+    [Theory]
+    [InlineData("your missed approach procedure is climb and maintain three thousand, turn left heading one eight zero")]
+    [InlineData("after completing low approach, climb and maintain two thousand, turn right heading zero six zero")]
+    [InlineData("after completing touch and go climb and maintain 2000")]
+    public void Faa_missed_approach_and_climbout_forms_are_remembered(string text)
+    {
+        var p = Phraseology.Parse(text);
+        Assert.True(p.MissedApproachInstructions);
+        Assert.False(p.MissedApproach);
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 8, Skill = 1, Mode = PilotMode.ControllerDirected });
+        ac.Receive(p, 0, 243, 700);
+        for (double t = 0; t <= 10; t += 0.1) sim.Step(t).ToList();
+        Assert.Equal(0, ac.CommandedHeadingRelDeg);
+        Assert.False(ac.GoingAround);
+    }
+
+    [Theory]
+    [InlineData(null, false)]   // clear: runway in sight, continues
+    [InlineData(150.0, true)]   // ceiling below the aircraft: goes around
+    public void Conditional_missed_approach_depends_on_seeing_the_runway(double? ceiling, bool goesAround)
+    {
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site), FieldWeather = (ceiling, 3) };
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 1.2, HeightOffsetFt = -40, SpeedKt = 130, Skill = 1, GearDown = true, Mode = PilotMode.ControllerDirected });
+        sim.Step(0).ToList(); sim.Step(0.1).ToList();
+        var call = Phraseology.Parse("too low for safe approach, if runway or approach lights not in sight, execute missed approach");
+        Assert.True(call.ConditionalMissedApproach);
+        var r = ac.Receive(call, 0.1, 243, 700);
+        for (double t = 0.2; t <= 6; t += 0.1) sim.Step(t).ToList();
+        Assert.Equal(goesAround, ac.GoingAround);
+        Assert.StartsWith(goesAround ? "Going missed" : "Runway in sight", r.Reply);
+        Assert.False(Phraseology.Parse("tower clearance not received, if runway or approach lights not in sight, execute missed approach").ConditionalMissedApproach);
+    }
     [Fact]
     public void Pause_freezes_aircraft_and_holds_pilot_reactions()
     {

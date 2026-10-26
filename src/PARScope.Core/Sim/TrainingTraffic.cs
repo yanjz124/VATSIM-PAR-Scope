@@ -311,6 +311,22 @@ public sealed class SimAircraft
     public string? GoAroundReason { get; private set; }
     internal Queue<string> Calls { get; } = new();
     private bool _decided;
+    private (double? CeilingFt, double? VisibilitySm) _wx;
+
+    /// <summary>Gear reported down to the final controller (check-in or wheels check), so the reminder can be dropped (§2-1-25).</summary>
+    public bool GearReportedDown { get; private set; }
+
+    /// <summary>Below the ceiling and within the visibility of the runway environment.</summary>
+    public bool RunwayInSight
+    {
+        get
+        {
+            double distNm = Math.Max(0, RangeFt - ThresholdRangeFt) / Units.FeetPerNm;
+            bool belowCeiling = _wx.CeilingFt is not double c || AltitudeAboveThresholdFt <= c;
+            double visNm = (_wx.VisibilitySm ?? 10) * 0.869;
+            return belowCeiling && distNm <= Math.Min(visNm, 5) && (_wx.VisibilitySm ?? 10) >= 0.5;
+        }
+    }
     /// <summary>Told to level off; holds altitude until told to resume descent.</summary>
     private bool _levelled;
     private double _rollSec;
@@ -337,6 +353,7 @@ public sealed class SimAircraft
     /// </summary>
     public string CheckInCall(string facility, double courseMagDeg, double thresholdElevFt)
     {
+        GearReportedDown |= GearDown;
         double hdg = Units.Norm360(courseMagDeg + CommandedHeadingRelDeg);
         return $"{facility} final, {RadioSpeech.Callsign(Callsign)}, heading {RadioSpeech.Heading(hdg)}, "
                + $"{RadioSpeech.Altitude(AltitudeAboveThresholdFt + thresholdElevFt)}, gear {(GearDown ? "down" : "up")}.";
@@ -382,6 +399,17 @@ public sealed class SimAircraft
             if (hdgRel is double rh) parts.Add(Hdg(rh));
             string? rb = NoAcknowledge ? null : $"{char.ToUpperInvariant(parts[0][0])}{string.Join(", ", parts)[1..]}, {cs}.";
             return new PilotResponse(LastReadback, rb);
+        }
+        if (t.MissedApproach && t.ConditionalMissedApproach && RunwayInSight)
+        {
+            // "…if runway or approach lights not in sight, execute missed approach": they are in sight.
+            LastReadback = "runway in sight, continuing";
+            return new PilotResponse(LastReadback, $"Runway in sight, {cs}.");
+        }
+        if (t.ContactTower)
+        {
+            LastReadback = "will contact tower after landing";
+            return new PilotResponse(LastReadback, NoAcknowledge ? null : $"Wilco, {cs}.");
         }
         if (t.MissedApproach)
         {
@@ -434,6 +462,7 @@ public sealed class SimAircraft
         if (t.WheelsDown && !GearDown)
         {
             _pending.Enqueue((now + delay, () => GearDown = true));
+            GearReportedDown = true;
             actions.Add("lowering gear");
             readback.Add("gear down");
         }
@@ -547,6 +576,7 @@ public sealed class SimAircraft
 
     internal void Step(double dt, double now, ParGeometry geo, (double? CeilingFt, double? VisibilitySm) wx = default)
     {
+        _wx = wx;
         if (!_decided && Descending && !GoingAround && !Landed && RangeFt <= geo.DecisionHeightRangeFt) DecideAtMinimums(geo, wx);
         // Low approach: go around over the runway without touching down.
         if (Clearance == LandingIntent.LowApproach && !GoingAround && !Landed && RangeFt <= geo.ThresholdRangeFt && HeightFt <= 100)

@@ -510,7 +510,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         CurrentAdvisory = null;
         if (SelectedCallsign is null || Engine.Radar is not { } radar || Engine.Geometry is not { } geo || Engine.Runway is not { } rw) return;
         if (!radar.Tracks.TryGetValue(SelectedCallsign, out var tr) || !tr.IsCorrelated) return;
-        CurrentAdvisory = AdvisoryEngine.Evaluate(tr, geo, radar.Preset, _settings.Bands, rw.MagneticCourseDeg, KnownHeadingMag(SelectedCallsign, rw));
+        CurrentAdvisory = AdvisoryEngine.Evaluate(tr, geo, radar.Preset, _settings.Bands, rw.MagneticCourseDeg, KnownHeadingMag(SelectedCallsign, rw),
+            Engine.Training.Find(SelectedCallsign) is { GearReportedDown: true });
     }
 
     private void RefreshSelection()
@@ -563,7 +564,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         AdvisoryLevel = adv.Level;
 
         // "(n) MILES FROM TOUCHDOWN" at least once each mile (7110.65 §5-12-5).
-        RangeCallText = aids && Engine.Geometry is { } g ? AdvisoryEngine.PositionCall(d.RangeFt, g) ?? "" : "";
+        RangeCallText = aids && Engine.Geometry is { } g ? AdvisoryEngine.PositionCall(d.RangeFt, g, CurrentAdvisory?.CoursePhrase) ?? "" : "";
     }
 
     // ---- Training ------------------------------------------------------------------------------
@@ -719,6 +720,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (t.LostCommsInstructions) parts.Add("lost communications instructions");
         if (t.MissedApproachInstructions) parts.Add("missed approach instructions");
         if (t.ContactApproach) parts.Add("contact approach");
+        if (t.ContactTower) parts.Add("contact tower after landing");
+        if (t.ConditionalMissedApproach) parts.Add("(conditional: if runway not in sight)");
         if (t.ClimbToFt is double climb) parts.Add($"climb {climb:0}");
         return parts.Count == 0 ? "NOTHING (not understood)" : string.Join("; ", parts);
     }

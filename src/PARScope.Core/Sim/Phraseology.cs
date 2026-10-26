@@ -31,6 +31,11 @@ public sealed record Transmission(string Text)
     public bool MissedApproachInstructions { get; init; }
     /// <summary>"Contact approach/departure": frequency change off final.</summary>
     public bool ContactApproach { get; init; }
+    /// <summary>"Contact tower/ground (after landing)" (§5-12-9).</summary>
+    public bool ContactTower { get; init; }
+    /// <summary>"(Reason), if runway/approach lights not in sight, execute missed approach" (§5-10-14): the pilot
+    /// continues if they have the runway environment in sight.</summary>
+    public bool ConditionalMissedApproach { get; init; }
     /// <summary>"Level off (your aircraft)": stop descending (e.g. dangerously below the glidepath).</summary>
     public bool LevelOff { get; init; }
     /// <summary>"Resume normal rate of descent" / "resume descent".</summary>
@@ -42,7 +47,7 @@ public sealed record Transmission(string Text)
 
     public bool IsEmpty => HeadingDeg is null && Glidepath == GlidepathCall.None && !BeginDescent && !MissedApproach && CourseCall is null
                            && !HowDoYouHear && !DoNotAcknowledge && !WheelsDown && !ClearedToLand && ClimbToFt is null
-                           && !MissedApproachInstructions && !ContactApproach && !LevelOff && !ResumeDescent && !LostCommsInstructions;
+                           && !MissedApproachInstructions && !ContactApproach && !ContactTower && !LevelOff && !ResumeDescent && !LostCommsInstructions;
 }
 
 /// <summary>
@@ -105,6 +110,8 @@ public static partial class Phraseology
             ClimbToFt = climb,
             MissedApproachInstructions = instructions,
             ContactApproach = ContactRx().IsMatch(s),
+            ContactTower = ContactTowerRx().IsMatch(s),
+            ConditionalMissedApproach = missed && NotInSightRx().IsMatch(s) && !TowerClearanceRx().IsMatch(s),
             LevelOff = LevelOffRx().IsMatch(s),
             ResumeDescent = ResumeRx().IsMatch(s),
             AcknowledgeRequested = AckRequestRx().IsMatch(s),
@@ -179,7 +186,12 @@ public static partial class Phraseology
     // "…, acknowledge" at the end of a call, not "do not acknowledge".
     [GeneratedRegex(@"(?<!\bnot |\bno need to |\bdon t |\bdont |\bto not )\backnowledge\s*$")] private static partial Regex AckRequestRx();
     [GeneratedRegex(@"\bif no transmissions? (?:are )?received\b|\blost comm(?:unication)?s?\b")] private static partial Regex LostCommsRx();
-    [GeneratedRegex(@"\b(?:in the event of (?:a )?missed approach|if (?:you )?(?:go |are )?missed approach|missed approach instructions)\b")] private static partial Regex MissedInstructionsRx();
+    // Instructions to remember, not to fly now: "in the event of missed approach…", 7110.65 §5-10-11 "your missed
+    // approach procedure is…", §5-10-12 "after completing low approach/touch and go: climb and maintain…".
+    [GeneratedRegex(@"\b(?:in the event of (?:a )?missed approach|if (?:you )?(?:go |are )?missed approach|missed approach instructions|your missed approach procedure is|after (?:completing |your )?(?:a |the )?(?:low approach|touch and go|option)|climb ?out instructions)\b")] private static partial Regex MissedInstructionsRx();
+    [GeneratedRegex(@"\bif (?:the )?(?:runway|approach lights|runway lights)\b[^.]*?\bnot in sight\b")] private static partial Regex NotInSightRx();
+    [GeneratedRegex(@"\btower clearance (?:not received|cancell?ed)\b")] private static partial Regex TowerClearanceRx();
+    [GeneratedRegex(@"\b(?:contact|switch to|monitor) (?:tower|ground)\b")] private static partial Regex ContactTowerRx();
     // "climb and maintain 2 thousand 5 hundred" after digit merging, or "climb and maintain 2500".
     [GeneratedRegex(@"\bclimb (?:and maintain |to )?(?<a>\d+)(?: (?<k>thousand))?(?: (?<h>\d) hundred)?\b")] private static partial Regex ClimbRx();
     [GeneratedRegex(@"\b(?:contact|switch to|monitor) (?:approach|departure|arrival|radar)\b")] private static partial Regex ContactRx();

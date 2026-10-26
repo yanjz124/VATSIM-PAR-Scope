@@ -180,6 +180,24 @@ public class RadarAndAdvisoryTests
         Assert.InRange(Math.Abs(change), 1, 12); // a correction from the crab, not from the course
     }
 
+    /// <summary>§5-12-1/4: before intercept only course information; elevation starts with "approaching glidepath".</summary>
+    [Fact]
+    public void No_glidepath_calls_before_intercept()
+    {
+        var (geo, store, sim) = Setup();
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 11, AltitudeFt = 2000, SpeedKt = 130, Skill = 1, Mode = PilotMode.ControllerDirected });
+        var radar = new RadarSimulator(RadarPreset.Fpn68, geo, seed: 6) { ClutterEnabled = false };
+        for (double t = 0; t <= 10; t += 1 / 30.0)
+        {
+            foreach (var m in sim.Step(t)) store.Apply(m);
+            radar.Advance(t, store.Snapshot(t));
+        }
+        var adv = AdvisoryEngine.Evaluate(radar.Tracks[ac.Callsign], geo, RadarPreset.Fpn68, new DeviationBands(), GeometryTests.Runway.MagneticCourseDeg);
+        Assert.True(adv.PreDescent);
+        Assert.DoesNotContain("GLIDEPATH", adv.Transmission);
+        Assert.Contains("COURSE", adv.Transmission);
+        Assert.Equal("OVER LANDING THRESHOLD, SLIGHTLY LEFT OF COURSE", AdvisoryEngine.PositionCall(geo.ThresholdRangeFt, geo, "SLIGHTLY LEFT OF COURSE"));
+    }
     [Fact]
     public void Metar_decoding()
     {

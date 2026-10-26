@@ -189,3 +189,40 @@ and downloads at files.flying-fox.de/forum/vatsim/vpar.
   aircraft, acknowledge"; "resume normal rate of descent"; tower clearance relayed with wind and "check
   gear down, acknowledge" at 2 miles; "passing through radar control limits". The pilot model
   understands these, and answers an explicit "acknowledge" even after "do not acknowledge".
+
+## Published PAR data (FAA d-TPP Radar Minimums)
+
+The FAA's digital terminal procedures include the DoD "Radar Instrument Approach Minimums" pages for US
+military and joint-use airports (`aeronav.faa.gov/d-tpp/{cycle}/`, files `*RAD.PDF`, listed in the
+d-TPP metafile). Each PAR row gives `GP/TCH/RPI` (glidepath angle, threshold crossing height, runway
+point of intercept from the threshold) and `DA/HAT`. `src/PARScope.Core/Par/par-minimums.csv` holds
+102 runways at 38 airports from cycle 2610. Many pages draw their tables as vector shapes, not text, so
+the values were read from the rendered pages and checked: DA − HAT equals the NASR touchdown zone
+elevation for every row, RPI agrees with TCH/tan(GP), and every row that does exist as text matched
+digit for digit. Notable values: KNKX 24R/24L 3.2°; KNFL 31L/31R 3.5°; KNFG 21 3.6°; KPAM 2.5°.
+
+The site setup uses the RPI as the glidepath intercept point (it allows for runway slope, unlike
+TCH/tan GPA) and measures DH (HAT) from the touchdown zone elevation.
+
+Lost communications intervals on these pages vary by facility: one minute in the pattern and 15 s on
+final (Whiteman AFB), one minute and 5/15 s (MCAS Beaufort); 7110.65 §5-10-4 allows up to one minute in
+the pattern and 5 or 15 s on final.
+
+## Magnetic variation
+
+US runways use NASR's variation of record (what procedures are built on). Elsewhere the World Magnetic
+Model 2025 (NOAA/BGS, public domain coefficients) gives the declination at the threshold; the
+implementation matches NOAA's published test values. ATC issues wind magnetic, so the METAR (true)
+wind is converted when tower's clearance is relayed.
+
+## Sources added in the October 2026 audit
+
+* FAA JO 7110.65 (X text via SKYbrary mirror; BB is current): §5-10-11 "your missed approach procedure
+  is…", §5-10-12 "after completing low approach/touch and go…", §5-10-14 conditional missed approach,
+  §5-12-1/3/4 order (no elevation information before glidepath intercept), §5-12-7c "over landing
+  threshold, (course)", §5-12-8a3 guidance ends at the threshold, §5-12-9 contact tower after landing,
+  §2-1-25 wheels check dropped once the pilot has reported gear down.
+* FAA Order 8260.3G (effective 1 July 2024) supersedes 8260.3F; the obstacle clearance surface
+  references above are to F and their G paragraph numbers have not been re-checked.
+* L3Harris PAR-2020/FPN-68A sell sheet: 30° azimuth, −1° to +7°, 20 NM, update under 1 s, CAT II.
+* Leonardo PAR 2090C (Italian and Swiss air forces): X band, ±15° × 10°, 20 NM, ≥32 tracks.
