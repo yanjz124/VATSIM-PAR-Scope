@@ -21,7 +21,20 @@
     <views:NotNullToVisibilityConverter x:Key="NotNullToVisibility" />
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
     <views:InverseBoolConverter x:Key="InverseBool" />
-    <views:RadioLogBrushConverter x:Key="RadioLogBrush" />
+    <views:RadioLogKindConverter x:Key="RadioLogKind" />
+
+    <!-- Radio log line: the theme's text color, orange for warnings, green for approach results. -->
+    <Style x:Key="RadioLogLine" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Converter={StaticResource RadioLogKind}}" Value="Warning">
+                <Setter Property="Foreground" Value="#FFB020" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Converter={StaticResource RadioLogKind}}" Value="Result">
+                <Setter Property="Foreground" Value="#5CD67A" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
 
     <!-- Small caps-style section label used across the side panel. -->
     <Style x:Key="SectionLabel" TargetType="TextBlock">
