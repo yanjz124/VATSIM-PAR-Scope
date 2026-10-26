@@ -78,6 +78,8 @@ public sealed class TrainingTraffic
     public IReadOnlyList<SimAircraft> Aircraft => _aircraft;
     public ParGeometry? Geometry { get; set; }
     public bool Paused { get; set; }
+    /// <summary>Simulation clock, seconds: stops while paused, so pilot reaction delays wait out a pause.</summary>
+    public double SimTime { get; private set; }
 
     public SimAircraft Spawn(SpawnOptions o)
     {
@@ -145,7 +147,10 @@ public sealed class TrainingTraffic
         double dt = double.IsNaN(_lastStep) ? 0 : Math.Min(now - _lastStep, 0.5);
         _lastStep = now;
         if (!Paused && dt > 0)
-            foreach (var a in _aircraft) a.Step(dt, now, geo);
+        {
+            SimTime += dt;
+            foreach (var a in _aircraft) a.Step(dt, SimTime, geo);
+        }
 
         foreach (var gone in _aircraft.Where(a => a.Finished).ToList())
         {
@@ -164,7 +169,7 @@ public sealed class TrainingTraffic
             double gs = Paused ? 0 : a.GroundSpeedKt * Units.MpsPerKnot;
             var vel = new Vec3(gs * Math.Sin(trackTrue), gs * Math.Cos(trackTrue), Paused ? 0 : a.VerticalSpeedFpm / 60.0 * Units.MetersPerFoot);
             yield return new PositionReport(a.Callsign, now, ReportSource.Simulated, geoPt, vel, a.TypeCode,
-                geoPt.AltFt, Units.Norm360(courseTrue + a.HeadingRelDeg), a.GroundSpeedKt);
+                geoPt.AltFt, Units.Norm360(courseTrue + a.HeadingRelDeg), a.GroundSpeedKt, Frozen: Paused);
         }
     }
 }

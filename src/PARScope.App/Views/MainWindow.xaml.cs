@@ -146,6 +146,7 @@ public partial class MainWindow : FluentWindow
             case Key.G: _vm.KeyCall("wheels should be down"); break;
             case Key.M: _vm.KeyCall("execute missed approach"); break;
             case Key.T: _vm.RequestTowerCommand.Execute(null); break;
+            case Key.P: _vm.TogglePause(); break;
             case Key.Left: _vm.NudgeHeading(shift ? -5 : -1); break;
             case Key.Right: _vm.NudgeHeading(shift ? 5 : 1); break;
             default: return;

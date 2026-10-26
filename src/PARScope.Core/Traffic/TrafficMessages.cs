@@ -20,6 +20,7 @@ public abstract record TrafficMessage;
 
 /// <param name="Time">Local monotonic time in seconds (see <see cref="IClock"/>).</param>
 /// <param name="VelocityEnu">East/north/up m/s when the report carries velocities (Velocity fast packets).</param>
+/// <param name="Frozen">Training aircraft held by a training pause: stationary but still shown as a moving target.</param>
 public sealed record PositionReport(
     string Callsign,
     double Time,
@@ -29,7 +30,8 @@ public sealed record PositionReport(
     string? TypeCode = null,
     double? PressureAltFt = null,
     double? HeadingDeg = null,
-    double? GroundSpeedKt = null) : TrafficMessage;
+    double? GroundSpeedKt = null,
+    bool Frozen = false) : TrafficMessage;
 
 public sealed record TargetRemoved(string Callsign) : TrafficMessage;
 

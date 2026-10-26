@@ -48,7 +48,7 @@ public sealed class AsrSimulator
             if (!t.Initialized) continue;
             // Parked and taxiing aircraft: MTI cancels the primary return and the transponder is in
             // standby, so a real ASR does not show them.
-            if (Math.Max(t.VelocityEcef.Length / Units.MpsPerKnot, t.GroundSpeedKt ?? 0) < MinSpeedKt) continue;
+            if (!t.Frozen && Math.Max(t.VelocityEcef.Length / Units.MpsPerKnot, t.GroundSpeedKt ?? 0) < MinSpeedKt) continue;
             var ecef = t.PositionAt(now);
             var enu = _frame.EcefToEnu(ecef);
             double range = enu.HorizontalLength;

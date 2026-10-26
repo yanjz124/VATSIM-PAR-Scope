@@ -1,5 +1,6 @@
 using PARScope.Core.Par;
 using PARScope.Core.Sim;
+using PARScope.Core.Traffic;
 
 namespace PARScope.Core.Tests;
 
@@ -47,6 +48,32 @@ public class RadioTests
 
         var r4 = ac.Receive(Phraseology.Parse("too high for safe approach, if runway or approach lights not in sight execute missed approach"), 3, 243, 700);
         Assert.Contains("going missed", r4.Reply);
+    }
+
+    [Fact]
+    public void Pause_freezes_aircraft_and_holds_pilot_reactions()
+    {
+        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site) };
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 8, Mode = PilotMode.ControllerDirected });
+        for (double t = 0; t <= 1; t += 0.1) sim.Step(t).ToList();
+
+        sim.Paused = true;
+        double range = ac.RangeFt, simTime = sim.SimTime;
+        ac.Receive(Phraseology.Parse("turn left heading two three zero"), sim.SimTime, 243, 700);
+        var reports = new List<TrafficMessage>();
+        for (double t = 1.1; t <= 30; t += 0.1) reports.AddRange(sim.Step(t));
+
+        Assert.Equal(range, ac.RangeFt);
+        Assert.Equal(simTime, sim.SimTime);
+        Assert.Equal(0, ac.CommandedHeadingRelDeg);
+        Assert.All(reports.OfType<PositionReport>(), r => Assert.True(r.Frozen));
+
+        sim.Paused = false;
+        for (double t = 30.1; t <= 31; t += 0.1) sim.Step(t).ToList();
+        Assert.True(ac.RangeFt < range);
+        Assert.Equal(0, ac.CommandedHeadingRelDeg); // reaction delay still running in sim time
+        for (double t = 31.1; t <= 40; t += 0.1) sim.Step(t).ToList();
+        Assert.Equal(-13, ac.CommandedHeadingRelDeg, 1);
     }
 
     [Fact]

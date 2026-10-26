@@ -488,7 +488,17 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] public partial string SpawnCallsign { get; set; } = "";
     [ObservableProperty] public partial string SpawnType { get; set; } = "";
 
-    partial void OnTrainingPausedChanged(bool value) => Engine.Training.Paused = value;
+    partial void OnTrainingPausedChanged(bool value)
+    {
+        Engine.Training.Paused = value;
+        StatusMessage = value ? "Training paused (P to resume)" : "Training resumed";
+    }
+
+    /// <summary>P key / toolbar: freezes training aircraft, their pilots and the transmission timer.</summary>
+    public void TogglePause()
+    {
+        if (TrainingMode) TrainingPaused = !TrainingPaused;
+    }
 
     [RelayCommand]
     private void SpawnTraining()
@@ -670,14 +680,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         var target = (SelectedCallsign is { } cs ? Engine.Training.Find(cs) : null)
                      ?? (Engine.Training.Aircraft.Count == 1 ? Engine.Training.Aircraft[0] : null);
         Log("FINAL", text.ToUpperInvariant() + (t.IsEmpty ? "  (not understood)" : ""));
-        _lastTxTime = Engine.Now;
+        _lastTxTime = Engine.Training.SimTime;
         if (t.IsEmpty || target == null || Engine.Runway is not { } rw)
         {
             if (target == null && !t.IsEmpty) StatusMessage = "Select a training aircraft first";
             return;
         }
         double rod = CurrentAdvisory?.RecommendedDescentFpm ?? 700;
-        var response = target.Receive(t, Engine.Now, rw.MagneticCourseDeg, rod);
+        var response = target.Receive(t, Engine.Training.SimTime, rw.MagneticCourseDeg, rod);
         if (response.Reply is { } reply)
             _ = SayLaterAsync(1.0 + Random.Shared.NextDouble(), () => PilotSays(target.Callsign, reply));
     }
@@ -696,7 +706,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public void BeginDescent()
     {
         if (SelectedCallsign is not { } cs || Engine.Training.Find(cs) is not { } ac) return;
-        ac.BeginDescent(Engine.Now, CurrentAdvisory?.RecommendedDescentFpm ?? 700);
+        ac.BeginDescent(Engine.Training.SimTime, CurrentAdvisory?.RecommendedDescentFpm ?? 700);
         Log("FINAL", "BEGIN DESCENT");
     }
 
@@ -788,8 +798,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (double.IsNaN(_lastTxTime) || !HasTraining) { TxTimerText = ""; TxTimerLevel = AdvisoryLevel.Normal; }
         else
         {
-            double since = now - _lastTxTime;
-            TxTimerText = $"Last transmission {since:0} s ago";
+            double since = Engine.Training.SimTime - _lastTxTime;
+            TxTimerText = $"Last transmission {since:0} s ago" + (TrainingPaused ? " (paused)" : "");
             TxTimerLevel = since < 5 ? AdvisoryLevel.Normal : since < 10 ? AdvisoryLevel.Caution : AdvisoryLevel.Warning;
         }
 

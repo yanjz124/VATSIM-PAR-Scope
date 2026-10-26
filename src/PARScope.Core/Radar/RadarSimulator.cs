@@ -70,7 +70,7 @@ public sealed class RadarSimulator
             var truth = Geometry.FromEcef(t.PositionAt(now));
             var polar = Geometry.ToPolar(truth);
             if (polar.RangeFt > Preset.EffectiveMaxRangeNm(MtiEnabled) * Units.FeetPerNm) continue;
-            if (MtiEnabled && t.VelocityEcef.Length / Units.MpsPerKnot < MtiMinSpeedKt) continue;
+            if (MtiEnabled && !t.Frozen && t.VelocityEcef.Length / Units.MpsPerKnot < MtiMinSpeedKt) continue;
 
             bool inAzSector = polar.AzimuthDeg >= -Preset.AzLeftDeg && polar.AzimuthDeg <= Preset.AzRightDeg;
             if (!inAzSector) continue;

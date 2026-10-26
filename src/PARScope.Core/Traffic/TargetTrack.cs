@@ -41,6 +41,8 @@ public sealed class TargetTrack
     public double LastReportTime { get; private set; } = double.NegativeInfinity;
     public double LastFastTime { get; private set; } = double.NegativeInfinity;
     public bool IsSimulated { get; private set; }
+    /// <summary>Training aircraft held still by a training pause; MTI keeps it on the scope.</summary>
+    public bool Frozen { get; private set; }
     /// <summary>Last report came from the 15 s public data feed.</summary>
     public bool IsFeed { get; private set; }
     public bool Initialized { get; private set; }
@@ -57,6 +59,7 @@ public sealed class TargetTrack
         if (r.HeadingDeg.HasValue) HeadingDeg = r.HeadingDeg;
         if (r.GroundSpeedKt.HasValue) GroundSpeedKt = r.GroundSpeedKt;
         IsSimulated |= r.Source == ReportSource.Simulated;
+        Frozen = r.Frozen;
 
         if (r.Source == ReportSource.Fast) { _fastRate.Mark(r.Time); LastFastTime = r.Time; }
         else
