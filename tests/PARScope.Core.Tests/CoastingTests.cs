@@ -57,8 +57,13 @@ public class CoastingTests
         Assert.Equal(CoastReason.SignalLost, rig.Track!.Coast);
         Assert.Equal(plots, rig.Radar.Plots.Count); // no phantom returns from an extrapolated position
         // The coasting track keeps moving inbound on its measured rate.
-        var (range, _) = rig.Track.DisplayAt(ScopeKind.Elevation, rig.T);
+        double scan = RadarPreset.Fpn68.ElScanSec;
+        var (range, _) = rig.Track.DisplayAt(ScopeKind.Elevation, rig.T, scan);
         Assert.True(range < rig.Track.RangeAtElevationFt - 100);
+        // It steps once per scan rather than gliding: unchanged within a scan, moved by the next.
+        double t0 = rig.Track.LastElPaint + 3 * scan + 0.01;
+        Assert.Equal(rig.Track.DisplayAt(ScopeKind.Elevation, t0, scan).RangeFt, rig.Track.DisplayAt(ScopeKind.Elevation, t0 + scan * 0.9, scan).RangeFt);
+        Assert.NotEqual(rig.Track.DisplayAt(ScopeKind.Elevation, t0, scan).RangeFt, rig.Track.DisplayAt(ScopeKind.Elevation, t0 + scan, scan).RangeFt);
 
         rig.Run(10, _ => null);
         Assert.Null(rig.Track); // dropped after the signal-lost coast limit
@@ -88,6 +93,24 @@ public class CoastingTests
         Assert.Equal(CoastReason.OutOfCoverage, rig.Track!.Coast);
         rig.Run(4, t => (5 * Nm, 3 * Nm));
         Assert.Null(rig.Track);
+    }
+
+    [Fact]
+    public void Stars_only_aircraft_are_not_painted_on_the_par()
+    {
+        var rig = new Rig();
+        for (; rig.T <= 10; rig.T += 0.05)
+        {
+            if (Math.Abs(rig.T - Math.Round(rig.T)) < 0.025)
+            {
+                double r = 6 * Nm - 140 * Nm / 3600 * rig.T;
+                var p = new ApproachPoint(r, 0, Math.Round(rig.Geo.GlidepathHeightFt(r) / 100) * 100);
+                rig.Store.Apply(new PositionReport("RCH481", rig.T, ReportSource.Crc, Wgs84.FromEcef(rig.Geo.ToEcef(p)), CoarseAltitude: true));
+            }
+            rig.Radar.Advance(rig.T, rig.Store.Snapshot(rig.T));
+        }
+        Assert.Null(rig.Track);
+        Assert.Empty(rig.Radar.Plots.Where(p => p.Callsign == "RCH481"));
     }
 
     [Fact]

@@ -62,6 +62,7 @@ public sealed class RadarSimulator
         CoastReason.OutOfCoverage => 6,
         CoastReason.SignalLost => 12,
         CoastReason.DataLost => 30,
+        CoastReason.CoarseData => 6,
         _ => 12,
     };
 
@@ -88,6 +89,8 @@ public sealed class RadarSimulator
             if (!t.Initialized) continue;
             // A silent aircraft returns nothing: its track coasts rather than being painted from a guess.
             if (!t.IsReporting(now)) continue;
+            // STARS-only data (Mode C in 100 ft steps) would draw a staircase on the elevation scope: not painted.
+            if (t.CoarseAltitude && !t.IsSimulated) continue;
             var truth = Geometry.FromEcef(t.PositionAt(now));
             var polar = Geometry.ToPolar(truth);
             if (!InCoverage(polar, t)) continue;
@@ -128,6 +131,7 @@ public sealed class RadarSimulator
             if (since <= CoastAfterSec) { tr.Coast = CoastReason.None; continue; }
             tr.Coast = DataLost ? CoastReason.DataLost
                 : !byCallsign.TryGetValue(key, out var t) || !t.IsReporting(now) ? CoastReason.SignalLost
+                : t.CoarseAltitude ? CoastReason.CoarseData
                 : !InCoverage(Geometry.ToPolar(Geometry.FromEcef(t.PositionAt(now))), t) ? CoastReason.OutOfCoverage
                 : CoastReason.Missed;
             if (since > CoastLimitSec(tr.Coast)) _tracks.Remove(key);

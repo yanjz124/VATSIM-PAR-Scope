@@ -70,7 +70,12 @@ public sealed class TrafficRecorder : IDisposable
                 v?.X.ToString("F2", CultureInfo.InvariantCulture) ?? "",
                 v?.Y.ToString("F2", CultureInfo.InvariantCulture) ?? "",
                 v?.Z.ToString("F2", CultureInfo.InvariantCulture) ?? "",
-                double.IsNaN(interval) ? "" : interval.ToString("F3", CultureInfo.InvariantCulture)));
+                double.IsNaN(interval) ? "" : interval.ToString("F3", CultureInfo.InvariantCulture),
+                r.PressureAltFt?.ToString("F0", CultureInfo.InvariantCulture) ?? "",
+                r.GroundSpeedKt?.ToString("F0", CultureInfo.InvariantCulture) ?? "",
+                r.Beacon?.ToString("0000", CultureInfo.InvariantCulture) ?? "",
+                // STARS data (100 ft Mode C) is marked, so a stepped altitude in the log can be told from the pilot's.
+                r.CoarseAltitude ? "stars" : ""));
         }
     }
 
@@ -114,7 +119,7 @@ public sealed class TrafficRecorder : IDisposable
                 old.Delete();
             var path = Path.Combine(Folder, $"traffic-{DateTime.UtcNow:yyyyMMdd-HHmmss}.csv");
             _csv = new StreamWriter(path, false, new UTF8Encoding(false)) { AutoFlush = true };
-            _csv.WriteLine("recv_s,report_s,utc,source,callsign,lat,lon,alt_ft,v_east_mps,v_north_mps,v_up_mps,interval_s");
+            _csv.WriteLine("recv_s,report_s,utc,source,callsign,lat,lon,alt_ft,v_east_mps,v_north_mps,v_up_mps,interval_s,mode_c_ft,gs_kt,beacon,coarse_alt");
             return _csv;
         }
         catch (IOException) { return null; }

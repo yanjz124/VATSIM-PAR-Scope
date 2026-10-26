@@ -63,6 +63,10 @@ public sealed class AppSettings
     public bool SimulateErrors { get; set; }
     /// <summary>Scope font family; null = best installed (FixedDemiBold if present).</summary>
     public string? ScopeFont { get; set; }
+    /// <summary>Scope text size, 1 = default (Settings › Display).</summary>
+    public double ScopeTextScale { get; set; } = 1.0;
+    /// <summary>Scope target symbols, history dots and brackets, 1 = default (Settings › Display).</summary>
+    public double ScopeSymbolScale { get; set; } = 1.0;
     public bool Mti { get; set; } = true;
     public bool ShowSafetyLimits { get; set; } = true;
     public bool ShowCourseWedge { get; set; }

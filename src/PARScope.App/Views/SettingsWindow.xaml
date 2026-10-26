@@ -85,6 +85,23 @@
                             <DockPanel Margin="0,0,0,10">
                                 <TextBlock Text="Scope font" Style="{StaticResource MetricLabel}" VerticalAlignment="Center" Margin="0,0,10,0" />
                                 <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding ScopeFonts}" SelectedItem="{Binding ScopeFont}" />
+                                <Grid Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="12" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Text size" Style="{StaticResource MetricLabel}" />
+                                        <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding ScopeScales}" SelectedItem="{Binding ScopeTextScale}" ItemStringFormat="P0"
+                                                  ToolTip="Data blocks, labels and readouts on the PAR and ASR scopes." />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Symbol size" Style="{StaticResource MetricLabel}" />
+                                        <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding ScopeScales}" SelectedItem="{Binding ScopeSymbolScale}" ItemStringFormat="P0"
+                                                  ToolTip="Target symbols, raw video, history dots, beacon slashes and the selection bracket." />
+                                    </StackPanel>
+                                </Grid>
                             </DockPanel>
                             <ui:ToggleSwitch IsChecked="{Binding ShowCompassRose}" Margin="0,0,0,10"
                                              OnContent="ASR compass rose" OffContent="ASR compass rose"

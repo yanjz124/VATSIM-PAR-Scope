@@ -76,7 +76,8 @@ public sealed class VnasUdpDecoder
         double pressureFt = modeC100 * 100;
         double trueFt = pressureFt + (AltimeterInHg - 29.92) * 1000;
         return new PositionReport(cs, now, ReportSource.Crc, new GeoPoint(lat, lon, trueFt * Units.MetersPerFoot),
-            PressureAltFt: pressureFt, HeadingDeg: AsDouble(p[16]), GroundSpeedKt: AsDouble(p[15]));
+            PressureAltFt: pressureFt, HeadingDeg: AsDouble(p[16]), GroundSpeedKt: AsDouble(p[15]),
+            Beacon: AsDouble(p[10]) is double code ? (int)code : null, CoarseAltitude: true);
     }
 
     private static (double, double)? LatLon(object? o) =>

@@ -23,6 +23,8 @@ public abstract record TrafficMessage;
 /// <param name="Time">Local monotonic time in seconds (see <see cref="IClock"/>).</param>
 /// <param name="VelocityEnu">East/north/up m/s when the report carries velocities (Velocity fast packets).</param>
 /// <param name="Frozen">Training aircraft held by a training pause: stationary but still shown as a moving target.</param>
+/// <param name="Beacon">Transponder code as its four octal digits read as a decimal number (1200), when the source has it.</param>
+/// <param name="CoarseAltitude">Altitude is Mode C in 100 ft steps (CRC STARS targets): fine for the ASR, useless for a glidepath.</param>
 public sealed record PositionReport(
     string Callsign,
     double Time,
@@ -33,7 +35,9 @@ public sealed record PositionReport(
     double? PressureAltFt = null,
     double? HeadingDeg = null,
     double? GroundSpeedKt = null,
-    bool Frozen = false) : TrafficMessage;
+    bool Frozen = false,
+    int? Beacon = null,
+    bool CoarseAltitude = false) : TrafficMessage;
 
 public sealed record TargetRemoved(string Callsign) : TrafficMessage;
 

@@ -15,6 +15,8 @@ public enum CoastReason
     SignalLost,
     /// <summary>The whole traffic feed has gone silent.</summary>
     DataLost,
+    /// <summary>Only STARS data (Mode C, 100 ft steps) for this aircraft: not precise enough to paint on a PAR.</summary>
+    CoarseData,
 }
 
 /// <summary>
@@ -45,14 +47,16 @@ public sealed class RadarTrack
 
     /// <summary>
     /// Where the track is drawn on a scope: its last paint while being painted; while coasting, that paint moved
-    /// on by the measured rates (at most 15 s), as a tracker coasts a lost target.
+    /// on by the measured rates (at most 15 s), as a tracker coasts a lost target. The coasted position steps once
+    /// per scan (<paramref name="scanSec"/>), the way painted tracks move, rather than gliding.
     /// </summary>
-    public (double RangeFt, double OffsetFt) DisplayAt(ScopeKind scope, double now)
+    public (double RangeFt, double OffsetFt) DisplayAt(ScopeKind scope, double now, double scanSec)
     {
         bool el = scope == ScopeKind.Elevation;
         double range = el ? RangeAtElevationFt : RangeAtAzimuthFt, offset = el ? HeightFt : CrossFt;
         if (!IsCoasting) return (range, offset);
-        double dt = Math.Clamp(now - (el ? LastElPaint : LastAzPaint), 0, 15);
+        double since = Math.Clamp(now - (el ? LastElPaint : LastAzPaint), 0, 15);
+        double dt = scanSec > 0 ? Math.Floor(since / scanSec) * scanSec : since;
         return (range + RangeRateFps * dt, offset + (el ? HeightRateFps : CrossRateFps) * dt);
     }
     public double LastAzPaint { get; private set; } = double.NegativeInfinity;

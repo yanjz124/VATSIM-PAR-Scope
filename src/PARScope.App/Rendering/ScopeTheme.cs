@@ -148,16 +148,31 @@ internal sealed class Ink : IDisposable
     private readonly SKPathEffect _dot = SKPathEffect.CreateDash([1.5f, 3f], 0);
     private readonly SKMaskFilter _glow = SKMaskFilter.CreateBlur(SKBlurStyle.Solid, 1.8f);
 
-    public Ink(string? family = null)
+    /// <param name="fontScale">Scope text size (Settings › Display), 1 = default.</param>
+    /// <param name="symbolScale">Target symbols, history dots and brackets (Settings › Display), 1 = default.</param>
+    public Ink(string? family = null, float fontScale = 1f, float symbolScale = 1f)
     {
         var face = Resolve(family);
         FamilyName = face.FamilyName;
+        FontScale = fontScale;
+        Sym = symbolScale;
         // FixedDemiBold is an X11 terminal face drawn for small sizes; it reads best a little larger.
         bool fixedFace = FamilyName.StartsWith("Fixed", StringComparison.OrdinalIgnoreCase);
-        Font = new SKFont(face, fixedFace ? 13f : 11.5f) { Edging = SKFontEdging.Antialias, Hinting = SKFontHinting.Full };
-        FontSmall = new SKFont(face, fixedFace ? 12f : 10f) { Edging = SKFontEdging.Antialias, Hinting = SKFontHinting.Full };
+        Font = new SKFont(face, (fixedFace ? 13f : 11.5f) * fontScale) { Edging = SKFontEdging.Antialias, Hinting = SKFontHinting.Full };
+        FontSmall = new SKFont(face, (fixedFace ? 12f : 10f) * fontScale) { Edging = SKFontEdging.Antialias, Hinting = SKFontHinting.Full };
         HasArrows = Font.ContainsGlyphs("↑↓");
+        LineHeight = Font.Size + 1.5f;
     }
+
+    public float FontScale { get; }
+    /// <summary>Symbol scale: multiply symbol dimensions by this.</summary>
+    public float Sym { get; }
+    /// <summary>Data-block line spacing for the current text size.</summary>
+    public float LineHeight { get; }
+
+    /// <summary>True when this kit was made for the same face and sizes.</summary>
+    public bool Matches(string? family, float fontScale, float symbolScale) =>
+        (family == null || family.Equals(FamilyName, StringComparison.OrdinalIgnoreCase)) && FontScale == fontScale && Sym == symbolScale;
 
     /// <summary>Scope fonts in order of preference: the STARS/ERAM-style FixedDemiBold if installed, then
     /// plain terminal faces that ship with Windows.</summary>

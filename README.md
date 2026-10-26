@@ -79,8 +79,9 @@ on your own PC by packet capture. It is read-only: nothing is sent, and CRC and 
      restart.
    * **Npcap:** install [Npcap](https://npcap.com) once, then vibe PAR runs normally.
 2. Connect to your position in CRC and open a **Tower Cab** window at the PAR's field. That gives exact
-   altitude for aircraft out to 70 NM or so. A STARS display also works, with Mode C altitude in 100 ft
-   steps, corrected with the altimeter setting.
+   altitude for aircraft out to 70 NM or so, and it is what the PAR uses. STARS data (Mode C in 100 ft
+   steps) only feeds the ASR, because on the elevation scope it would draw a staircase. While aircraft
+   near the field are known only from STARS, the PAR shows a **STARS DATA ONLY** warning.
 3. The status bar shows **CRC (vNAS) · 1 Hz**.
 
 This is unofficial and may stop working with a vNAS update. The format is documented in
@@ -104,15 +105,16 @@ precision guidance.
 
 ### When data stops
 
-A track that stops being painted **coasts**: it moves on at its last measured rates with a hollow symbol
-and **CST** in its data block. The side panel says why, and the track is dropped after a time that depends
+A track that stops being painted **coasts**: it moves on at its last measured rates, one step per scan,
+with a hollow symbol and **CST** in its data block (on the ASR, a **#** with CST). The side panel says why, and the track is dropped after a time that depends
 on the reason:
 
 | Reason | Dropped after |
 |---|---|
 | Out of coverage: still reporting, but outside the radar's range, sector or elevation | 6 s |
 | Signal lost: this aircraft's reports stopped (no phantom returns are painted) | 12 s |
-| Data lost: the whole feed went silent (status bar **DATA LOST**) | 30 s |
+| Data lost: the whole feed went silent (**DATA LOST** on the status bar and across the PAR) | 30 s |
+| STARS only: the aircraft fell back to 100 ft Mode C (not used on the PAR) | 6 s |
 
 No suggested calls are made from a coasting track. Hover the status text for details; **Settings ›
 Diagnostics** shows live rates per aircraft.
@@ -125,6 +127,7 @@ Diagnostics** shows live rates per aircraft.
 | **ASR**, pop-out | Flip the scope to the ASR (**Z**), or put the ASR in its own window. |
 | Range 5/10/20 NM | **PgUp / PgDn**. |
 | **MTI**, **Safety**, **2°/5°**, **Scan**, **Log** | Moving target indicator, safe limits, UK 2°/5° azimuth lines, antenna sweep, compressed range. |
+| Text and symbol size | **Settings › Display**, 80–200 %, for both scopes. |
 | Target | Click, or **Tab** / **Esc**. The side panel shows range, glidepath and course deviation. |
 | Gear button | **Settings**: per-runway PAR siting, display, data sources, training aids, audio, diagnostics. |
 

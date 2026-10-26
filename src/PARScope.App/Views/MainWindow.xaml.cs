@@ -68,7 +68,7 @@ public partial class MainWindow : FluentWindow
     private void ParView_PaintSurface(object? sender, SKPaintSurfaceEventArgs e)
     {
         float scale = DpiScale(ParView, e);
-        _par.SetFont(_vm.ScopeFont);
+        _par.SetFont(_vm.ScopeFont, (float)_vm.ScopeTextScale, (float)_vm.ScopeSymbolScale);
         var c = e.Surface.Canvas;
         c.Save();
         c.Scale(scale);
@@ -86,6 +86,7 @@ public partial class MainWindow : FluentWindow
             HistoryDots = _vm.HistoryDots,
             Selected = _vm.SelectedCallsign,
             SelectedAdvisory = _vm.CurrentAdvisory,
+            Warning = _vm.ScopeWarning,
         };
         _par.Render(c, e.Info.Width / scale, e.Info.Height / scale, _vm.Engine.Geometry, _vm.Engine.Radar, _vm.Engine.Now, opt);
         c.Restore();
@@ -97,13 +98,13 @@ public partial class MainWindow : FluentWindow
     internal void PaintPlan(PlanRenderer plan, FrameworkElement view, SKPaintSurfaceEventArgs e)
     {
         float scale = DpiScale(view, e);
-        plan.SetFont(_vm.ScopeFont);
+        plan.SetFont(_vm.ScopeFont, (float)_vm.ScopeTextScale, (float)_vm.ScopeSymbolScale);
         var c = e.Surface.Canvas;
         c.Save();
         c.Scale(scale);
         var engine = _vm.Engine;
         plan.Render(c, e.Info.Width / scale, e.Info.Height / scale, engine.Geometry, engine.Asr, engine.Airport,
-            engine.Preset, engine.Targets, engine.Now, _vm.PlanRangeNm, _vm.SelectedCallsign, _vm.MetarStars, _vm.ShowCompassRose);
+            engine.Preset, engine.Targets, engine.Now, _vm.PlanRangeNm, _vm.SelectedCallsign, _vm.MetarStars, _vm.ShowCompassRose, engine.DataLost);
         c.Restore();
     }
 

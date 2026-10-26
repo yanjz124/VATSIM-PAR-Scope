@@ -18,6 +18,8 @@ public sealed record ParRenderOptions
     public int HistoryDots { get; init; } = 6;
     public string? Selected { get; init; }
     public Advisory? SelectedAdvisory { get; init; }
+    /// <summary>Warning drawn across the scope when there is no good data (data lost, STARS-only traffic); null for none.</summary>
+    public string? Warning { get; init; }
     public bool MtiEnabled { get; init; } = true;
     /// <summary>Wind and altimeter line for the status window, e.g. "WIND 300/09  ALT 30.02".</summary>
     public string? Weather { get; init; }
@@ -41,11 +43,12 @@ public sealed class ParDisplayRenderer : IDisposable
     private Ink _ink = new();
 
     /// <summary>Switches the scope font; takes effect on the next frame.</summary>
-    public void SetFont(string? family)
+    /// <summary>Scope face and the text and symbol sizes from Settings › Display; rebuilt only when they change.</summary>
+    public void SetFont(string? family, float fontScale = 1f, float symbolScale = 1f)
     {
-        if (family != null && family.Equals(_ink.FamilyName, StringComparison.OrdinalIgnoreCase)) return;
+        if (_ink.Matches(family, fontScale, symbolScale)) return;
         var old = _ink;
-        _ink = new Ink(family);
+        _ink = new Ink(family, fontScale, symbolScale);
         old.Dispose();
     }
     private readonly List<HitTarget> _hits = [];
@@ -86,6 +89,20 @@ public sealed class ParDisplayRenderer : IDisposable
             if (!_logStraight) DrawAxisLabels(c);
             DrawStatusBox(c, geo, radar, opt);
         }
+        if (opt.Warning is { Length: > 0 } warning) DrawWarning(c, width, height, warning);
+    }
+
+    /// <summary>A banner across the middle of the scope: there is traffic the PAR cannot show, or no data at all.</summary>
+    private void DrawWarning(SKCanvas c, float width, float height, string text)
+    {
+        using var font = new SKFont(_ink.Font.Typeface, _ink.Font.Size * 1.5f) { Edging = SKFontEdging.Antialias };
+        var lines = text.Split('\n');
+        float lineH = font.Size * 1.3f, w = lines.Max(l => font.MeasureText(l)) + 40, h = lineH * lines.Length + 20;
+        var box = SKRect.Create(width / 2 - w / 2, height / 2 - h / 2, w, h);
+        c.DrawRect(box, _ink.Solid(new SKColor(0, 0, 0, 0xD8)));
+        c.DrawRect(box, _ink.Line(_t.Warning, 2f));
+        for (int i = 0; i < lines.Length; i++)
+            c.DrawText(lines[i], width / 2, box.Top + 10 + lineH * (i + 0.8f), SKTextAlign.Center, font, _ink.TextPaint(i == 0 ? _t.Warning : SKColors.White));
     }
 
     // ---- Layout & mapping ------------------------------------------------------------------------
@@ -347,7 +364,7 @@ public sealed class ParDisplayRenderer : IDisposable
                     for (int i = start; i < list.Count - 1; i++)
                     {
                         double f = (i - start + 1.0) / (list.Count - start);
-                        c.DrawCircle(Project(scope, list[i]), 1.5f, _ink.Solid(_t.History.Fade(0.2 + 0.6 * f)));
+                        c.DrawCircle(Project(scope, list[i]), 1.5f * _ink.Sym, _ink.Solid(_t.History.Fade(0.2 + 0.6 * f)));
                     }
                 }
             }
@@ -369,12 +386,12 @@ public sealed class ParDisplayRenderer : IDisposable
                     double halfFt = scope == ScopeKind.Elevation
                         ? radar.Preset.ElevationTargetHalfFt(p.Polar.RangeFt)
                         : radar.Preset.AzimuthTargetHalfFt(p.Polar.RangeFt);
-                    float halfPx = (float)Math.Clamp(halfFt * VerticalScale(scope == ScopeKind.Elevation ? _elPxPerFt : _azPxPerFt, p.Point.RangeFt), 1.5, 14);
-                    c.DrawRoundRect(pt.X - 3, pt.Y - halfPx, 6, halfPx * 2, 2, 2, _ink.Solid(color.Fade(alpha)));
+                    float halfPx = (float)Math.Clamp(halfFt * VerticalScale(scope == ScopeKind.Elevation ? _elPxPerFt : _azPxPerFt, p.Point.RangeFt), 1.5 * _ink.Sym, 14 * _ink.Sym);
+                    c.DrawRoundRect(pt.X - 3 * _ink.Sym, pt.Y - halfPx, 6 * _ink.Sym, halfPx * 2, 2, 2, _ink.Solid(color.Fade(alpha)));
                 }
                 else if (p.IsClutter || !radar.Preset.Tracking)
                 {
-                    c.DrawCircle(pt, 1.6f, _ink.Solid(color.Fade(1 - age / rawWindow * 0.6)));
+                    c.DrawCircle(pt, 1.6f * _ink.Sym, _ink.Solid(color.Fade(1 - age / rawWindow * 0.6)));
                 }
             }
             _ink.Glow = false;
@@ -387,7 +404,7 @@ public sealed class ParDisplayRenderer : IDisposable
                 if (!inThisScope) continue;
                 // Each scope plots its own return: height at the elevation paint's range, lateral at the azimuth
                 // paint's; a coasting track moves on by its measured rates until the radar drops it.
-                var (tr0, offset) = tr.DisplayAt(scope, now);
+                var (tr0, offset) = tr.DisplayAt(scope, now, scope == ScopeKind.Elevation ? radar.Preset.ElScanSec : radar.Preset.AzScanSec);
                 float x = X(tr0), y = scope == ScopeKind.Elevation ? YEl(offset, tr0) : YAz(offset, tr0);
                 if (!clip.Contains(x, y)) continue;
                 _hits.Add(new HitTarget(tr.Callsign, x, y));
@@ -403,8 +420,9 @@ public sealed class ParDisplayRenderer : IDisposable
                 if (radar.Preset.Tracking)
                 {
                     // Coasting: hollow symbol and CST in the data block (the STARS/ERAM coast indicator).
-                    if (s.Track.IsCoasting) c.DrawRect(s.X - 2.5f, s.Y - 2.5f, 5, 5, _ink.Line(col, 1f));
-                    else c.DrawRect(s.X - 2, s.Y - 2, 4, 4, _ink.Solid(col));
+                    float q = 2f * _ink.Sym;
+                    if (s.Track.IsCoasting) c.DrawRect(s.X - q - 0.5f, s.Y - q - 0.5f, 2 * q + 1, 2 * q + 1, _ink.Line(col, 1f));
+                    else c.DrawRect(s.X - q, s.Y - q, 2 * q, 2 * q, _ink.Solid(col));
                     DrawDataBlock(c, geo, scope, s.Track, s.X, s.Y, col);
                 }
                 // Systems without a tracker (FPN-63) have no symbology; the bracket only marks which
@@ -430,7 +448,7 @@ public sealed class ParDisplayRenderer : IDisposable
             : $"{(dev.RightOfCourseFt >= 0 ? "R" : "L")}{Math.Abs(dev.RightOfCourseFt):0}{Trend(tr.CrossRateFps, holding, up, down)}";
 
         float w = new[] { line1, line2, line3 }.Max(s => _ink.Font.MeasureText(s)) + 2;
-        const float lineH = 13, h = lineH * 3;
+        float lineH = _ink.LineHeight, h = lineH * 3, top = _ink.Font.Size * 0.8f;
         var box = _labels.Place(x, y, w, h);
 
         float lx = box.MidX < x ? box.Right : box.Left;
@@ -438,9 +456,9 @@ public sealed class ParDisplayRenderer : IDisposable
         c.DrawLine(x, y, lx, ly, _ink.Line(col, 1f));
 
         var tp = _ink.TextPaint(col);
-        c.DrawText(line1, box.Left + 1, box.Top + 10, SKTextAlign.Left, _ink.Font, tp);
-        c.DrawText(line2, box.Left + 1, box.Top + 10 + lineH, SKTextAlign.Left, _ink.Font, tp);
-        c.DrawText(line3, box.Left + 1, box.Top + 10 + 2 * lineH, SKTextAlign.Left, _ink.Font, tp);
+        c.DrawText(line1, box.Left + 1, box.Top + top, SKTextAlign.Left, _ink.Font, tp);
+        c.DrawText(line2, box.Left + 1, box.Top + top + lineH, SKTextAlign.Left, _ink.Font, tp);
+        c.DrawText(line3, box.Left + 1, box.Top + top + 2 * lineH, SKTextAlign.Left, _ink.Font, tp);
     }
 
     private static string Trend(double rate, double holding, string up, string down) =>
@@ -449,7 +467,7 @@ public sealed class ParDisplayRenderer : IDisposable
     private void DrawBracket(SKCanvas c, float x, float y, SKColor col)
     {
         var p = _ink.Line(col, 1.2f);
-        const float r = 9, k = 4;
+        float r = 9 * _ink.Sym, k = 4 * _ink.Sym;
         c.DrawLine(x - r, y - r, x - r + k, y - r, p); c.DrawLine(x - r, y - r, x - r, y - r + k, p);
         c.DrawLine(x + r, y - r, x + r - k, y - r, p); c.DrawLine(x + r, y - r, x + r, y - r + k, p);
         c.DrawLine(x - r, y + r, x - r + k, y + r, p); c.DrawLine(x - r, y + r, x - r, y + r - k, p);

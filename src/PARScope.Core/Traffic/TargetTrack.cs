@@ -37,6 +37,8 @@ public sealed class TargetTrack
     public double? PressureAltFt { get; private set; }
     public double? HeadingDeg { get; private set; }
     public double? GroundSpeedKt { get; private set; }
+    /// <summary>Transponder code (four octal digits as a number, e.g. 1200), when the source sends it.</summary>
+    public int? Beacon { get; private set; }
     public bool HasVelocity { get; private set; }
     public double LastReportTime { get; private set; } = double.NegativeInfinity;
     public double LastFastTime { get; private set; } = double.NegativeInfinity;
@@ -45,6 +47,8 @@ public sealed class TargetTrack
     public bool Frozen { get; private set; }
     /// <summary>Last report came from the 15 s public data feed.</summary>
     public bool IsFeed { get; private set; }
+    /// <summary>Altitude only in 100 ft Mode C steps (CRC STARS data): the PAR does not paint the aircraft.</summary>
+    public bool CoarseAltitude { get; private set; }
     /// <summary>Where the last report came from.</summary>
     public ReportSource LastSource { get; private set; }
     public bool Initialized { get; private set; }
@@ -74,6 +78,7 @@ public sealed class TargetTrack
         if (r.PressureAltFt.HasValue) PressureAltFt = r.PressureAltFt;
         if (r.HeadingDeg.HasValue) HeadingDeg = r.HeadingDeg;
         if (r.GroundSpeedKt.HasValue) GroundSpeedKt = r.GroundSpeedKt;
+        if (r.Beacon.HasValue) Beacon = r.Beacon;
         IsSimulated |= r.Source == ReportSource.Simulated;
         Frozen = r.Frozen;
 
@@ -90,6 +95,7 @@ public sealed class TargetTrack
 
         if (!Initialized)
         {
+            CoarseAltitude = r.CoarseAltitude;
             Initialized = true;
             _measEcef = pos;
             _measTime = r.Time;
@@ -111,6 +117,7 @@ public sealed class TargetTrack
             return;
         }
 
+        CoarseAltitude = r.CoarseAltitude;
         var predicted = PositionAt(r.Time);
 
         if (r.VelocityEnu is { } v)

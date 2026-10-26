@@ -37,6 +37,9 @@ public class VnasUdpTests
         Assert.Equal(3500, r.PressureAltFt);
         Assert.Equal(3650, r.Position.AltFt, 0); // 3,500 + (30.07 − 29.92) × 1,000
         Assert.Equal(124, r.GroundSpeedKt);
+        Assert.Equal(1200, r.Beacon);
+        Assert.True(r.CoarseAltitude); // 100 ft steps: ASR only
+        Assert.False(Assert.Single(new VnasUdpDecoder().Decode(Convert.FromHexString(TowerCab), 10)).CoarseAltitude);
         Assert.InRange(r.HeadingDeg!.Value, 100, 130);
     }
 

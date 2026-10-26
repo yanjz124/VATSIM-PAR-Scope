@@ -479,6 +479,19 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     partial void OnShowClutterChanged(bool value) { _settings.ShowClutter = value; Engine.ClutterEnabled = value; }
     partial void OnSimulateErrorsChanged(bool value) { _settings.SimulateErrors = value; Engine.SimulateErrors = value; }
     partial void OnScopeFontChanged(string? value) => _settings.ScopeFont = value;
+
+    /// <summary>Text and symbol size choices for the scopes (Settings › Display).</summary>
+    public IReadOnlyList<double> ScopeScales { get; } = [0.8, 0.9, 1.0, 1.15, 1.3, 1.5, 1.75, 2.0];
+    public double ScopeTextScale
+    {
+        get => _settings.ScopeTextScale;
+        set { _settings.ScopeTextScale = Math.Clamp(value, 0.5, 3); OnPropertyChanged(); }
+    }
+    public double ScopeSymbolScale
+    {
+        get => _settings.ScopeSymbolScale;
+        set { _settings.ScopeSymbolScale = Math.Clamp(value, 0.5, 3); OnPropertyChanged(); }
+    }
     partial void OnMtiChanged(bool value)
     {
         _settings.Mti = value;
@@ -595,6 +608,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         CoastReason.SignalLost => "Coasting: this aircraft's position reports have stopped (signal lost).",
         CoastReason.DataLost => "Coasting: the traffic feed has gone silent (data lost). Check CRC or vPilot.",
         CoastReason.Missed => "Coasting: no return on the last scans.",
+        CoastReason.CoarseData => "Not on the PAR: only STARS data (altitude in 100 ft steps). Open a Tower Cab view at the field in CRC.",
         _ => "",
     };
 
@@ -1403,6 +1417,24 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>STARS SSA form for the ASR.</summary>
     public string? MetarStars { get; private set; }
 
+    /// <summary>Banner across the PAR scope when there is no good data (null when all is well).</summary>
+    public string? ScopeWarning { get; private set; }
+
+    /// <summary>
+    /// The PAR needs precise altitude: the feed lost altogether, or aircraft near the field known only from STARS
+    /// (Mode C in 100 ft steps, not painted on the PAR), gets a warning across the scope.
+    /// </summary>
+    private string? BuildScopeWarning(double now)
+    {
+        if (Engine.DataLost) return "DATA LOST\nNo traffic data from CRC or vPilot. Tracks are coasting.";
+        if (Engine.Geometry is not { } geo || Engine.Radar is not { } radar) return null;
+        double rangeFt = radar.Preset.MaxRangeNm * 1.5 * Units.FeetPerNm;
+        int coarse = Engine.Targets.Count(t => !t.IsSimulated && t.CoarseAltitude && t.IsReporting(now)
+            && geo.ToPolar(geo.FromEcef(t.PositionAt(now))).RangeFt < rangeFt);
+        return coarse == 0 ? null
+            : $"STARS DATA ONLY ({coarse} AIRCRAFT)\nAltitude in 100 ft steps is not used on the PAR. Open a Tower Cab view at the field in CRC.";
+    }
+
     /// <summary>Called at a few hertz by the view.</summary>
     public void RefreshStatus()
     {
@@ -1463,6 +1495,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
 
         RefreshCrcStatus();
+        ScopeWarning = BuildScopeWarning(now);
         int real = Engine.Targets.Count(t => !t.IsSimulated);
         int sim = Engine.Targets.Count - real;
         int fastNow = Engine.Targets.Count(t => t.IsFastActive(now));
