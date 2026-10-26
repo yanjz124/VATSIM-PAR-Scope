@@ -141,7 +141,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (DemoMode && Engine.Geometry != null)
         {
             TrainingMode = true;
-            for (int i = 0; i < 3; i++) Engine.Training.SpawnRandom(PilotMode.SelfFlying);
+            // Already established on final at 4, 6.5 and 9 NM so there is something on the scope straight away.
+            var rng = new Random();
+            for (int i = 0; i < 3; i++)
+                Engine.Training.Spawn(new SpawnOptions
+                {
+                    RangeNm = 4 + i * 2.5, HeightOffsetFt = rng.Next(-80, 80), CrossFt = rng.Next(-400, 400),
+                    Mode = PilotMode.SelfFlying, Skill = 0.5 + rng.NextDouble() * 0.4, WindFromDeg = 220, WindKt = 8,
+                });
             Select(Engine.Training.Aircraft[0].Callsign);
         }
     }

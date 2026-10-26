@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Description>vibe PAR core: geodesy, traffic tracking, PAR geometry and radar models, phraseology, airport data, METAR and training simulation.</Description>
   </PropertyGroup>
 
   <ItemGroup>
