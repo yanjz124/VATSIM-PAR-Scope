@@ -4,7 +4,8 @@ param(
 )
 # Builds a release zip:
 #   PARScope.exe                 self-contained single file (no .NET install needed)
-#   TrafficProbe.exe             diagnostic: measures plugin update rates
+#   runtimes\win-x64\            Whisper speech-recognition native libraries (must stay beside the exe)
+#   TrafficProbe.exe            diagnostic: measures plugin update rates
 #   Plugin\RadarStreamerPlugin.dll + .ini   copy into %LOCALAPPDATA%\vPilot\Plugins
 # Requires the .NET 10 SDK and a local vPilot install (for the plugin reference assemblies).
 

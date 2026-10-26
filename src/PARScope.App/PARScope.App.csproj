@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -33,5 +33,17 @@
   <ItemGroup>
     <Resource Include="Assets\PARScope.ico" />
   </ItemGroup>
+
+  <!-- Whisper.net looks for its native libraries in runtimes\<rid>\ next to the exe, which a single-file
+       bundle's extraction folder isn't. Publish only the win-x64 ones, beside the exe. -->
+  <Target Name="KeepWhisperNativesBesideExe" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                             Condition="($([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').StartsWith('runtimes')) And !$([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').Contains('win-x64'))) Or '%(Extension)' == '.metal'" />
+      <ResolvedFileToPublish Update="@(ResolvedFileToPublish)"
+                             Condition="$([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').StartsWith('runtimes')) And $([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').Contains('win-x64'))"
+                             ExcludeFromSingleFile="true" />
+    </ItemGroup>
+  </Target>
 
 </Project>
