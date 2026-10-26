@@ -68,6 +68,9 @@ public sealed record RadarPreset
     /// straight (ATNAVICS footage). Otherwise height stays linear in feet and those lines curve.
     /// </summary>
     public bool LogStraightLines { get; init; }
+    /// <summary>Azimuth display centred on the antenna boresight (limits symmetric, course line tilted), as on
+    /// ATNAVICS footage; otherwise centred on the final course.</summary>
+    public bool AzimuthAntennaCentred { get; init; }
     /// <summary>Whether the system runs a track-while-scan tracker (track symbols, data blocks).</summary>
     public bool Tracking { get; init; } = true;
     public int MaxTracks { get; init; } = 6;
@@ -167,6 +170,7 @@ public sealed record RadarPreset
         NoiseFactor = 1.0, Style = DisplayStyle.Digital, Tracking = true, MaxTracks = 6, RangeScalesNm = [5, 10],
         LogRangeDefault = true,
         LogStraightLines = true,
+        AzimuthAntennaCentred = true,
     };
 
     public static IReadOnlyList<RadarPreset> All { get; } = [Fpn68, Tpn31, Fpn63, Gpn22, Fpn67, Mpn25, Icao];

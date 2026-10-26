@@ -43,6 +43,8 @@ public sealed class ParGeometry
 
         double alongFt = GpiFromThresholdFt + site.AntennaSetbackFt;
         _antennaEnu = (_inbound * alongFt + _right * site.AntennaOffsetFt + new Vec3(0, 0, site.AntennaHeightFt)) * Units.MetersPerFoot;
+        // Aim toward the centreline: an antenna right of the runway turns its sector left, and vice versa.
+        BoresightAzDeg = -Math.Sign(site.AntennaOffsetFt) * site.AntennaAimDeg;
     }
 
     public RunwayEnd Runway { get; }
@@ -56,6 +58,9 @@ public sealed class ParGeometry
     public double ThresholdRangeFt => GpiFromThresholdFt;
 
     public ApproachPoint AntennaPoint => FromEnu(_antennaEnu);
+
+    /// <summary>Antenna boresight relative to the final course direction, degrees (positive = toward the pilot's right).</summary>
+    public double BoresightAzDeg { get; }
 
     // ---- Coordinate conversions -------------------------------------------------------------
 
@@ -78,7 +83,7 @@ public sealed class ParGeometry
 
     public Vec3 ToEcef(ApproachPoint p) => _frame.EnuToEcef(ToEnu(p));
 
-    /// <summary>Range/azimuth/elevation as measured at the antenna (boresight parallel to the final course).</summary>
+    /// <summary>Range/azimuth/elevation as measured at the antenna; azimuth is relative to its boresight.</summary>
     public RadarPolar ToPolar(ApproachPoint p)
     {
         var d = ToEnu(p) - _antennaEnu;
@@ -86,14 +91,14 @@ public sealed class ParGeometry
         double horiz = Math.Sqrt(fwd * fwd + cross * cross);
         return new RadarPolar(
             d.Length * Units.FeetPerMeter,
-            Units.RadToDeg(Math.Atan2(cross, fwd)),
+            Units.RadToDeg(Math.Atan2(cross, fwd)) - BoresightAzDeg,
             Units.RadToDeg(Math.Atan2(up, horiz)));
     }
 
     public ApproachPoint FromPolar(RadarPolar r)
     {
         double rm = r.RangeFt * Units.MetersPerFoot;
-        double az = Units.DegToRad(r.AzimuthDeg), el = Units.DegToRad(r.ElevationDeg);
+        double az = Units.DegToRad(r.AzimuthDeg + BoresightAzDeg), el = Units.DegToRad(r.ElevationDeg);
         var d = -_inbound * (rm * Math.Cos(el) * Math.Cos(az)) + _right * (rm * Math.Cos(el) * Math.Sin(az)) + new Vec3(0, 0, rm * Math.Sin(el));
         return FromEnu(_antennaEnu + d);
     }

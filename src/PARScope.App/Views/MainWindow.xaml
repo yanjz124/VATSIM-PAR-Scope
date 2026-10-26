@@ -299,6 +299,11 @@
                                     <TextBlock Text="Antenna offset ft (+ right)" Style="{StaticResource MetricLabel}" />
                                     <ui:NumberBox Value="{Binding SiteOffset}" SmallChange="50" MaxDecimalPlaces="0" Minimum="-2500" Maximum="2500" />
                                 </StackPanel>
+                                <StackPanel Grid.Row="2" Grid.Column="2" Margin="0,0,0,8">
+                                    <TextBlock Text="Antenna aim ° toward centreline" Style="{StaticResource MetricLabel}"
+                                               ToolTip="ICAO Annex 10 siting example: 15°/5° asymmetric scan, i.e. the sector turned 5° toward the runway centreline." />
+                                    <ui:NumberBox Value="{Binding SiteAim}" SmallChange="0.5" MaxDecimalPlaces="1" Minimum="0" Maximum="15" />
+                                </StackPanel>
                             </Grid>
                             <ui:ToggleSwitch IsChecked="{Binding UseDataFeed}" Margin="0,0,0,8"
                                              OnContent="Use VATSIM data feed without vPilot" OffContent="Use VATSIM data feed without vPilot"

@@ -10,6 +10,7 @@ public sealed record ParRenderOptions
     public double RangeScaleNm { get; init; } = 10;
     public bool LogRange { get; init; }
     public bool LogStraightLines { get; init; }
+    public bool AzimuthAntennaCentred { get; init; }
     public bool ShowSafetyLimits { get; init; } = true;
     /// <summary>UK RA 3291 blue 2° and 5° azimuth lines (not on US displays).</summary>
     public bool ShowCourseWedge { get; init; }
@@ -56,7 +57,9 @@ public sealed class ParDisplayRenderer : IDisposable
     private ScopeTheme _t = ScopeTheme.Digital;
     private float _left, _right, _elTop, _elBottom, _azTop, _azBottom, _elZeroY, _azZeroY;
     private double _rMinNm, _rMaxNm, _elPxPerFt, _azPxPerFt;
-    private bool _log, _logStraight;
+    private bool _log, _logStraight, _azAntenna;
+    private ApproachPoint _ant;
+    private double _tanBoresight;
 
     public void Render(SKCanvas c, float width, float height, ParGeometry? geo, RadarSimulator? radar, double now, ParRenderOptions opt)
     {
@@ -101,6 +104,9 @@ public sealed class ParDisplayRenderer : IDisposable
 
         _log = opt.LogRange;
         _logStraight = opt.LogRange && opt.LogStraightLines;
+        _azAntenna = opt.AzimuthAntennaCentred;
+        _ant = geo.AntennaPoint;
+        _tanBoresight = Math.Tan(Units.DegToRad(geo.BoresightAzDeg));
         _rMaxNm = opt.RangeScaleNm;
         _rMinNm = -Math.Max(0.04 * opt.RangeScaleNm, 0.2);
 
@@ -142,7 +148,12 @@ public sealed class ParDisplayRenderer : IDisposable
     private float YEl(double heightFt, double rangeFt) => (float)(_elZeroY - heightFt * VerticalScale(_elPxPerFt, rangeFt));
 
     /// <summary>Right of course is drawn up: a plan view seen from above, the aircraft flying toward touchdown at the left.</summary>
-    private float YAz(double crossFt, double rangeFt) => (float)(_azZeroY - crossFt * VerticalScale(_azPxPerFt, rangeFt));
+    private float YAz(double crossFt, double rangeFt)
+    {
+        // Antenna-centred: offset from the boresight line through the antenna, so the course line tilts.
+        if (_azAntenna) crossFt -= _ant.CrossFt + _tanBoresight * (rangeFt - _ant.RangeFt);
+        return (float)(_azZeroY - crossFt * VerticalScale(_azPxPerFt, rangeFt));
+    }
 
     private double RangeMinFt => _rMinNm * Units.FeetPerNm;
     private double RangeMaxFt => _rMaxNm * Units.FeetPerNm;
@@ -263,13 +274,13 @@ public sealed class ParDisplayRenderer : IDisposable
         float rx0 = X(geo.ThresholdRangeFt), rx1 = X(geo.ThresholdRangeFt - len);
         float ry0 = YAz(halfW, -1), ry1 = YAz(-halfW, -1);
         c.DrawRect(SKRect.Create(Math.Min(rx0, rx1), Math.Min(ry0, ry1), Math.Abs(rx0 - rx1), Math.Max(2, Math.Abs(ry1 - ry0))), _ink.Line(_t.Runway, 1f));
-        c.DrawRect(X(0) - 4, _azZeroY - 4, 8, 8, _ink.Line(_t.Runway, 1f));
+        c.DrawRect(X(0) - 4, YAz(0, 1) - 4, 8, 8, _ink.Line(_t.Runway, 1f));
 
         // Antenna sector limits.
         var ant = geo.AntennaPoint;
         foreach (double az in new[] { -radar.Preset.AzLeftDeg, radar.Preset.AzRightDeg })
         {
-            double tan = Math.Tan(Units.DegToRad(az));
+            double tan = Math.Tan(Units.DegToRad(az + geo.BoresightAzDeg));
             Curve(c, _ink.Line(_t.Coverage, 1.2f, _t.CoverageStyle), r => ant.CrossFt + tan * (r - ant.RangeFt), YAz, Math.Max(ant.RangeFt, 1), RangeMaxFt);
         }
 
@@ -282,11 +293,12 @@ public sealed class ParDisplayRenderer : IDisposable
 
 
         // Course cursor with mile ticks.
-        c.DrawLine(X(0), _azZeroY, _right, _azZeroY, _ink.Line(_t.Cursor, 1.6f));
+        Curve(c, _ink.Line(_t.Cursor, 1.6f), _ => 0, YAz, 1, RangeMaxFt);
         for (int nm = 1; nm <= (int)_rMaxNm; nm++)
         {
-            float x = X(nm * Units.FeetPerNm);
-            c.DrawLine(x, _azZeroY - 5, x, _azZeroY + 5, _ink.Line(_t.Cursor, 1.2f));
+            double rr = nm * Units.FeetPerNm;
+            float x = X(rr), yc = YAz(0, rr);
+            c.DrawLine(x, yc - 5, x, yc + 5, _ink.Line(_t.Cursor, 1.2f));
         }
         _ink.Glow = false;
         c.Restore();

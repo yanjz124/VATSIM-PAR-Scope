@@ -79,9 +79,14 @@ public class GeometryTests
         Assert.Equal(p.CrossFt, back.CrossFt, 3);
         Assert.Equal(p.HeightFt, back.HeightFt, 3);
 
-        // Antenna sits 400 ft right of centreline, so a centreline target appears left of boresight.
-        var onCl = geo.ToPolar(new ApproachPoint(3 * Units.FeetPerNm, 0, 1000));
-        Assert.True(onCl.AzimuthDeg < 0);
+        // With the boresight parallel to the runway, a centreline target is left of boresight (antenna is right).
+        var straight = new ParGeometry(Runway, Site with { AntennaAimDeg = 0 });
+        Assert.True(straight.ToPolar(new ApproachPoint(3 * Units.FeetPerNm, 0, 1000)).AzimuthDeg < 0);
+
+        // Default ICAO 15°/5° siting: sector turned 5° toward the centreline, so the left edge reaches 15°.
+        Assert.Equal(-5, geo.BoresightAzDeg, 6);
+        var farLeft = geo.ToPolar(new ApproachPoint(5 * Units.FeetPerNm, -5 * Units.FeetPerNm * Math.Tan(Units.DegToRad(12)), 1000));
+        Assert.InRange(farLeft.AzimuthDeg, -10, -6);
     }
 
     [Fact]

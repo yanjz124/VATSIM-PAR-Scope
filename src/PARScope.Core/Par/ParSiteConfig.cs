@@ -1,8 +1,9 @@
 namespace PARScope.Core.Par;
 
 /// <summary>
-/// Per-runway PAR installation parameters. Defaults follow ICAO Annex 10 Vol I §3.2 siting guidance
-/// (antenna about 3,000 ft past touchdown, 400 ft to the side, scanning ±10°).
+/// Per-runway PAR installation parameters. Defaults follow the ICAO Annex 10 Vol I §3.2 siting example
+/// with an asymmetric 15°/5° azimuth scan: antenna 2,250 ft past touchdown, 400 ft to the side, its
+/// sector turned 5° toward the runway centreline.
 /// </summary>
 public sealed record ParSiteConfig
 {
@@ -12,10 +13,12 @@ public sealed record ParSiteConfig
     public double DecisionHeightFt { get; init; } = 200.0;
 
     /// <summary>Antenna distance beyond the glidepath intercept point, along the runway, feet.</summary>
-    public double AntennaSetbackFt { get; init; } = 3000.0;
+    public double AntennaSetbackFt { get; init; } = 2250.0;
     /// <summary>Antenna offset from the runway centreline, feet; positive = right side as seen by a landing pilot.</summary>
     public double AntennaOffsetFt { get; init; } = 400.0;
     public double AntennaHeightFt { get; init; } = 10.0;
+    /// <summary>Azimuth boresight turned toward the runway centreline, degrees (ICAO 15°/5° example: 5°).</summary>
+    public double AntennaAimDeg { get; init; } = 5.0;
 }
 
 public enum DeviationStandard

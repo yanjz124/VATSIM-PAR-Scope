@@ -235,6 +235,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] public partial double SiteDh { get; set; }
     [ObservableProperty] public partial double SiteSetback { get; set; }
     [ObservableProperty] public partial double SiteOffset { get; set; }
+    [ObservableProperty] public partial double SiteAim { get; set; }
 
     private void LoadSiteFields()
     {
@@ -243,6 +244,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         SiteDh = Site.DecisionHeightFt;
         SiteSetback = Site.AntennaSetbackFt;
         SiteOffset = Site.AntennaOffsetFt;
+        SiteAim = Site.AntennaAimDeg;
     }
 
     [RelayCommand]
@@ -256,6 +258,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             DecisionHeightFt = Math.Clamp(SiteDh, 100, 1000),
             AntennaSetbackFt = Math.Clamp(SiteSetback, 0, 10000),
             AntennaOffsetFt = Math.Clamp(SiteOffset, -2500, 2500),
+            AntennaAimDeg = Math.Clamp(SiteAim, 0, 15),
         };
         _settings.Sites[AppSettings.SiteKey(rw)] = site;
         Reconfigure();
