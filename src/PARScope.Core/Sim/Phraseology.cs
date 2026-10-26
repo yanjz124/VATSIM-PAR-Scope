@@ -16,8 +16,17 @@ public sealed record Transmission(string Text)
     public bool MissedApproach { get; init; }
     /// <summary>Course call, signed: negative = left of course. Informational to the pilot.</summary>
     public string? CourseCall { get; init; }
+    /// <summary>"HOW DO YOU HEAR ME?" (7110.65 §5-10-9).</summary>
+    public bool HowDoYouHear { get; init; }
+    /// <summary>"DO NOT ACKNOWLEDGE FURTHER TRANSMISSIONS" (§5-10-10).</summary>
+    public bool DoNotAcknowledge { get; init; }
+    /// <summary>"WHEELS SHOULD BE DOWN" (§2-1-25).</summary>
+    public bool WheelsDown { get; init; }
+    /// <summary>Relayed tower clearance: cleared to land / touch and go / low approach / option.</summary>
+    public bool ClearedToLand { get; init; }
 
-    public bool IsEmpty => HeadingDeg is null && Glidepath == GlidepathCall.None && !BeginDescent && !MissedApproach && CourseCall is null;
+    public bool IsEmpty => HeadingDeg is null && Glidepath == GlidepathCall.None && !BeginDescent && !MissedApproach && CourseCall is null
+                           && !HowDoYouHear && !DoNotAcknowledge && !WheelsDown && !ClearedToLand;
 }
 
 /// <summary>
@@ -59,6 +68,10 @@ public static partial class Phraseology
             BeginDescent = descend,
             MissedApproach = missed,
             CourseCall = course,
+            HowDoYouHear = s.Contains(" how do you hear"),
+            DoNotAcknowledge = s.Contains(" do not acknowledge"),
+            WheelsDown = s.Contains(" wheels should be down") || s.Contains(" check wheels down"),
+            ClearedToLand = ClearedRx().IsMatch(s),
         };
     }
 
@@ -113,5 +126,6 @@ public static partial class Phraseology
     [GeneratedRegex(@"\b(?:(?<going>going) |(?<mag>slightly|well) )?(?<side>above|below) (?:the )?glidepath\b")] private static partial Regex GlidepathRx();
     [GeneratedRegex(@"\b(?:on course|(?:going |slightly |well )?(?:left|right) of course)\b")] private static partial Regex CourseRx();
     [GeneratedRegex(@"\bbegin descent\b|\bstart descent\b")] private static partial Regex DescentRx();
-    [GeneratedRegex(@"\bexecute missed approach\b|\bgo around\b|\bwave ?off\b")] private static partial Regex MissedRx();
+    [GeneratedRegex(@"\bexecute missed approach\b|\bgo around\b|\bwave ?off\b|\btower clearance (?:not received|cancell?ed)\b")] private static partial Regex MissedRx();
+    [GeneratedRegex(@"\bcleared (?:to land|for (?:the )?option|touch and go|low approach)\b")] private static partial Regex ClearedRx();
 }

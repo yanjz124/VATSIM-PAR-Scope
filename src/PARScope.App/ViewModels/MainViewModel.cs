@@ -39,6 +39,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         ShowCourseWedge = settings.ShowCourseWedge;
         UseUkBands = settings.Bands.Standard == DeviationStandard.UkRa3291;
         UseDataFeed = settings.UseDataFeed;
+        TrainingMode = settings.TrainingMode;
         bool Panel(string key, bool def) => settings.Panels.TryGetValue(key, out var v) ? v : def;
         ExpandTarget = Panel("target", true);
         ExpandAsr = Panel("asr", true);
@@ -89,6 +90,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         if (DemoMode && Engine.Geometry != null)
         {
+            TrainingMode = true;
             for (int i = 0; i < 3; i++) Engine.Training.SpawnRandom(PilotMode.SelfFlying);
             Select(Engine.Training.Aircraft[0].Callsign);
         }
@@ -143,7 +145,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         RefreshRangeScales(value);
         IsAnalogPreset = value.Style == DisplayStyle.Phosphor;
         // Each model brings its own sweep-trace default; the Scan button overrides it.
-        if (oldValue is not null && oldValue.Id != value.Id) ShowScan = value.SweepTrace;
+        if (oldValue is not null && oldValue.Id != value.Id)
+        {
+            ShowScan = value.SweepTrace;
+            LogRange = value.LogRangeDefault;
+        }
         _settings.PresetId = value.Id;
         Reconfigure();
     }
@@ -277,6 +283,25 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] public partial bool IsAnalogPreset { get; set; }
     [ObservableProperty] public partial bool UseDataFeed { get; set; }
 
+    /// <summary>Training master switch. Off: plain VATSIM scope, no training traffic, radio, suggested calls or microphone.</summary>
+    [ObservableProperty] public partial bool TrainingMode { get; set; }
+    /// <summary>Radio panel: training on and training traffic present.</summary>
+    public bool ShowRadio => TrainingMode && HasTraining;
+
+    partial void OnTrainingModeChanged(bool value)
+    {
+        _settings.TrainingMode = value;
+        OnPropertyChanged(nameof(ShowRadio));
+        if (value) StartVoice();
+        else
+        {
+            ClearTraining();
+            SuggestionsVisible = false;
+        }
+    }
+
+    partial void OnHasTrainingChanged(bool value) => OnPropertyChanged(nameof(ShowRadio));
+
     // Side-panel sections: open/closed state is remembered.
     [ObservableProperty] public partial bool ExpandTarget { get; set; }
     [ObservableProperty] public partial bool ExpandAsr { get; set; }
@@ -403,7 +428,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             : "slow 5 s updates";
         SelectedSub = $"{target.TypeCode ?? "type unknown"} · {src}";
         SpeedText = $"{gs:0} kt";
-        bool aids = target.IsSimulated ? ShowAdvisories : ShowAdvisoriesOnNetwork;
+        PilotStatus = Engine.Training.Find(cs) is { } st && Engine.Runway is { } rwy
+            ? st.Status(rwy.MagneticCourseDeg, rwy.ThresholdElevFt) : "";
+        bool aids = TrainingMode && (target.IsSimulated ? ShowAdvisories : ShowAdvisoriesOnNetwork);
         SuggestionsVisible = aids;
 
         if (CurrentAdvisory is not { } adv)
@@ -420,7 +447,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         GlidepathText = $"{(d.AboveGlidepathFt >= 0 ? "+" : "−")}{Math.Abs(d.AboveGlidepathFt):0} ft";
         CourseText = $"{(d.RightOfCourseFt >= 0 ? "R" : "L")} {Math.Abs(d.RightOfCourseFt):0} ft";
         RodText = $"{adv.RecommendedDescentFpm:0} fpm";
-        AdvisoryText = aids ? adv.Transmission : "";
+        AdvisoryText = !aids ? ""
+            : Engine.Training.Find(cs) is { } simAc ? TrainingPrefix(simAc, adv) + adv.Transmission
+            : adv.Transmission;
         AdvisoryLevel = adv.Level;
 
         // "(n) MILES FROM TOUCHDOWN" at least once each mile (7110.65 §5-12-5).
@@ -437,37 +466,97 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void SpawnTraining()
     {
-        if (Engine.Geometry == null) { StatusMessage = "Select a runway first"; return; }
+        if (Engine.Geometry == null || Engine.Runway is not { } rw) { StatusMessage = "Select a runway first"; return; }
         var ac = Engine.Training.SpawnRandom(SpawnSelfFlying ? PilotMode.SelfFlying : PilotMode.ControllerDirected);
-        StatusMessage = $"{ac.Callsign} ({ac.TypeCode}) spawned {ac.RangeFt / Units.FeetPerNm:0.0} NM out, "
-                        + (ac.Mode == PilotMode.SelfFlying ? "flying the approach" : "awaiting instructions");
+        StatusMessage = $"{ac.Callsign} ({ac.TypeCode}) handed off {ac.RangeFt / Units.FeetPerNm:0.0} NM out";
         Select(ac.Callsign);
+
+        // The pilot switches to the final frequency and checks in (NAVAIR 00-80T-112 ¶25.3.1.1).
+        string call = ac.CheckInCall(FacilityName, rw.MagneticCourseDeg, rw.ThresholdElevFt);
+        _ = SayLaterAsync(1.5, () => PilotSays(ac.Callsign, call));
     }
 
     [RelayCommand]
     private void ClearTraining()
     {
+        foreach (var a in Engine.Training.Aircraft) _tower.Forget(a.Callsign);
         Engine.ClearTraining();
         if (SelectedIsTraining) Select(null);
     }
 
-    // Voice (push-to-talk) and typed transmissions share one phraseology parser.
+    // ---- Radio: pilot and tower voices, radio log ---------------------------------------------
+
     private readonly SpeechInput _speech = new();
+    private readonly RadioVoice _voice = new();
+    private readonly TowerSim _tower = new();
 
     [ObservableProperty] public partial string VoiceState { get; set; } = "Voice not started";
-    [ObservableProperty] public partial string LastTransmission { get; set; } = "";
     [ObservableProperty] public partial string TypedTransmission { get; set; } = "";
+    [ObservableProperty] public partial string PilotStatus { get; set; } = "";
+    [ObservableProperty] public partial bool PilotVoices { get; set; } = true;
+    [ObservableProperty] public partial LandingIntent TowerIntent { get; set; }
 
+    public IReadOnlyList<LandingIntent> TowerIntents { get; } = Enum.GetValues<LandingIntent>();
+
+    /// <summary>Most recent transmissions, newest last (fixed length so the panel does not resize).</summary>
+    public ObservableCollection<string> RadioLog { get; } = ["", "", "", "", "", ""];
+
+    partial void OnPilotVoicesChanged(bool value) => _voice.Enabled = value;
+
+    /// <summary>"Miramar" from "MIRAMAR MCAS (JOE FOSS FLD)"; used in "(facility) final".</summary>
+    private string FacilityName
+    {
+        get
+        {
+            var words = (SelectedAirport?.Name ?? "Approach").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            string w = words.FirstOrDefault(x => x.Length > 3 && x.All(char.IsLetter)) ?? words.FirstOrDefault() ?? "Approach";
+            return char.ToUpperInvariant(w[0]) + w[1..].ToLowerInvariant();
+        }
+    }
+
+    private void Log(string who, string text)
+    {
+        RadioLog.RemoveAt(0);
+        RadioLog.Add($"{DateTime.UtcNow:HH:mm:ss}  {who}: {text}");
+    }
+
+    private void PilotSays(string callsign, string text)
+    {
+        Log(callsign, text);
+        _voice.Pilot(text);
+    }
+
+    private static async Task SayLaterAsync(double seconds, Action say)
+    {
+        await Task.Delay(TimeSpan.FromSeconds(seconds));
+        say();
+    }
+
+    private bool _voiceStarted;
+
+    /// <summary>Starts the speech recogniser (microphone) the first time training mode is on.</summary>
     public void StartVoice()
     {
+        if (!TrainingMode || _voiceStarted) return;
+        _voiceStarted = true;
         _speech.StateChanged += s => App.Current.Dispatcher.BeginInvoke(() => VoiceState = s);
         _speech.Heard += text => App.Current.Dispatcher.BeginInvoke(() => ProcessTransmission(text, spoken: true));
         _speech.Start();
         VoiceState = _speech.State;
     }
 
-    public void PressToTalk() => _speech.PressToTalk();
-    public void ReleaseToTalk() => _speech.ReleaseToTalk();
+    public void PressToTalk()
+    {
+        if (!TrainingMode) return;
+        _voice.PauseForTransmit();
+        _speech.PressToTalk();
+    }
+
+    public void ReleaseToTalk()
+    {
+        _speech.ReleaseToTalk();
+        _voice.ResumeAfterTransmit();
+    }
 
     [RelayCommand]
     private void SendTyped()
@@ -481,29 +570,36 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public void ProcessTransmission(string text, bool spoken)
     {
         var t = Phraseology.Parse(text);
-        string shown = (spoken ? "🎙 " : "") + text.ToUpperInvariant();
         var target = (SelectedCallsign is { } cs ? Engine.Training.Find(cs) : null)
                      ?? (Engine.Training.Aircraft.Count == 1 ? Engine.Training.Aircraft[0] : null);
-        if (t.IsEmpty)
+        Log("FINAL", text.ToUpperInvariant() + (t.IsEmpty ? "  (not understood)" : ""));
+        if (t.IsEmpty || target == null || Engine.Runway is not { } rw)
         {
-            LastTransmission = shown + "  —  not an instruction the pilot can act on";
-            return;
-        }
-        if (target == null || Engine.Runway is not { } rw)
-        {
-            LastTransmission = shown + "  —  select a training aircraft first";
+            if (target == null && !t.IsEmpty) StatusMessage = "Select a training aircraft first";
             return;
         }
         double rod = CurrentAdvisory?.RecommendedDescentFpm ?? 700;
-        string result = target.Receive(t, Engine.Now, rw.MagneticCourseDeg, rod);
-        LastTransmission = $"{shown}  →  {target.Callsign}: {result}";
+        var response = target.Receive(t, Engine.Now, rw.MagneticCourseDeg, rod);
+        if (response.Reply is { } reply)
+            _ = SayLaterAsync(1.0 + Random.Shared.NextDouble(), () => PilotSays(target.Callsign, reply));
+    }
+
+    /// <summary>Interphone request to tower for the selected training aircraft (7110.65 §5-10-13).</summary>
+    [RelayCommand]
+    private void RequestTower()
+    {
+        if (SelectedCallsign is not { } cs || Engine.Training.Find(cs) is not { } ac || Engine.Runway is not { } rw) return;
+        Log("FINAL", TowerSim.RequestText(cs, ac.RangeFt / Units.FeetPerNm, TowerIntent));
+        bool occupied = Engine.Training.Aircraft.Any(a => a != ac && a.Landed && !a.Finished);
+        string answer = _tower.Request(cs, TowerIntent, rw.RunwayId, occupied);
+        _ = SayLaterAsync(2.0, () => { Log("TOWER", answer); _voice.Tower(answer); });
     }
 
     public void BeginDescent()
     {
         if (SelectedCallsign is not { } cs || Engine.Training.Find(cs) is not { } ac) return;
         ac.BeginDescent(Engine.Now, CurrentAdvisory?.RecommendedDescentFpm ?? 700);
-        LastTransmission = $"BEGIN DESCENT  →  {cs}: descending";
+        Log("FINAL", "BEGIN DESCENT");
     }
 
     public void NudgeHeading(int degrees)
@@ -511,9 +607,26 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (SelectedCallsign is not { } cs || Engine.Training.Find(cs) is not { } ac || Engine.Runway is not { } rw) return;
         double current = Units.Norm360(rw.MagneticCourseDeg + ac.CommandedHeadingRelDeg);
         double next = Units.Norm360(Math.Round(current) + degrees);
-        ac.SetHeading(next, rw.MagneticCourseDeg, Engine.Now);
-        LastTransmission = $"TURN {(degrees > 0 ? "RIGHT" : "LEFT")} HEADING {(next == 0 ? 360 : next):000}  →  {cs}";
+        ProcessTransmission($"turn {(degrees > 0 ? "right" : "left")} heading {(next == 0 ? 360 : next):000}", spoken: false);
     }
+
+    /// <summary>Training-only lines added ahead of the glidepath/course call.</summary>
+    private string TrainingPrefix(SimAircraft ac, Advisory adv)
+    {
+        if (Engine.Runway is not { } rw) return "";
+        var answer = _tower.AnswerFor(ac.Callsign);
+        if (answer == TowerAnswer.Cleared && !ac.ClearedToLand)
+        {
+            string wind = MetarWindPhrase;
+            return $"{(wind.Length > 0 ? wind + ", " : "")}RUNWAY {rw.RunwayId}, {TowerSim.ClearanceWords(_tower.IntentFor(ac.Callsign)).ToUpperInvariant()}. ";
+        }
+        // No clearance by 2 miles (MCAS Cherry Point P3722.1S §6-316b).
+        if (answer != TowerAnswer.Cleared && adv.Deviation.RangeNm < 2 && !adv.BelowDecisionHeight)
+            return "TOWER CLEARANCE NOT RECEIVED, IF RUNWAY OR APPROACH LIGHTS NOT IN SIGHT, EXECUTE MISSED APPROACH. ";
+        return "";
+    }
+
+    private string MetarWindPhrase { get; set; } = "";
 
     // ---- Status --------------------------------------------------------------------------------
 
@@ -586,6 +699,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             MetarRaw = m?.Raw ?? $"No METAR for {apt.MetarId}";
             MetarSpoken = m?.Spoken ?? "";
             MetarShort = m?.Short;
+            MetarWindPhrase = m is null ? "" : RadioSpeech.Wind(m.WindDirDeg, m.WindSpeedKt, m.WindVariable).ToUpperInvariant();
             MetarStars = m?.StarsShort;
             MetarCategory = m?.Category ?? FlightCategory.Unknown;
         }
@@ -610,6 +724,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         _metarCts?.Cancel();
         _speech.Dispose();
+        _voice.Dispose();
         Engine.Dispose();
     }
 }

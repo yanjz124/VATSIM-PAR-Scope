@@ -18,7 +18,8 @@ public sealed record SpawnOptions
     public double CrossFt { get; init; } = 0;
     /// <summary>Height relative to the glidepath at the spawn range (negative = below).</summary>
     public double HeightOffsetFt { get; init; } = -300;
-    public double SpeedKt { get; init; } = 140;
+    /// <summary>Approach speed; 0 = typical for the aircraft type chosen.</summary>
+    public double SpeedKt { get; init; }
     public double InterceptAngleDeg { get; init; } = 0;
     public PilotMode Mode { get; init; } = PilotMode.ControllerDirected;
     /// <summary>0 = sloppy, 1 = precise.</summary>
@@ -31,8 +32,30 @@ public sealed record SpawnOptions
 /// <summary>Simulated arrivals for PAR training. All kinematics run in the runway's approach frame.</summary>
 public sealed class TrainingTraffic
 {
-    private static readonly string[] Prefixes = ["NAVY", "MARINE", "REACH", "TOPCAT", "VIPER", "HAWK", "JAKE", "SPAR", "TALON", "BOLT"];
-    private static readonly string[] Types = ["F18S", "C130", "T45", "C17", "F35", "KC46", "P8", "MV22", "T6", "B738"];
+    /// <summary>
+    /// Callsign styles used by US military traffic at a GCA field. Service prefixes per FAA JO 7110.65
+    /// §2-4-20 (VV "Navy", VM "Marine", R "Army", AF "Air Force"); mission callsigns REACH (AMC airlift),
+    /// PAT (Army priority air transport), CONVOY (Navy fleet logistics), RAWHIDE (C-2 COD); squadron
+    /// tactical callsigns are two-digit flight numbers. Each style carries plausible types and approach speeds.
+    /// </summary>
+    private sealed record CallsignStyle(string Prefix, int Digits, string[] Types, int SpeedLo, int SpeedHi);
+
+    private static readonly CallsignStyle[] Styles =
+    [
+        new("VV", 4, ["T45", "T6", "P8", "E2"], 120, 140),
+        new("VM", 4, ["C130", "MV22", "UC35"], 110, 130),
+        new("R", 5, ["C12", "UH60", "C26"], 100, 120),
+        new("AF", 4, ["C130", "T38", "C17"], 120, 140),
+        new("REACH", 3, ["C17", "C5M", "KC46"], 130, 145),
+        new("PAT", 3, ["C12", "UC35"], 105, 120),
+        new("CONVOY", 4, ["C40", "C130"], 130, 140),
+        new("RAWHIDE", 2, ["C2"], 110, 120),
+        new("VIPER", 2, ["F35"], 135, 150),
+        new("RAGE", 2, ["F18S"], 135, 150),
+        new("BOLT", 2, ["F18S"], 135, 150),
+        new("SHOGUN", 2, ["AV8B"], 120, 140),
+        new("VIKING", 2, ["P8"], 135, 145),
+    ];
 
     private readonly List<SimAircraft> _aircraft = [];
     private readonly Random _rng = new();
@@ -46,18 +69,25 @@ public sealed class TrainingTraffic
     public SimAircraft Spawn(SpawnOptions o)
     {
         var geo = Geometry ?? throw new InvalidOperationException("Select a runway before spawning training traffic.");
+        var style = Styles[_rng.Next(Styles.Length)];
         string cs;
-        do cs = Prefixes[_rng.Next(Prefixes.Length)] + _rng.Next(10, 99);
+        do
+        {
+            // Tactical flights are numbered like 21, 32; the leading digit is never zero.
+            int lo = (int)Math.Pow(10, style.Digits - 1), hi = (int)Math.Pow(10, style.Digits);
+            cs = style.Prefix + _rng.Next(lo, hi);
+        }
         while (_aircraft.Any(a => a.Callsign == cs));
 
         double rangeFt = o.RangeNm * Units.FeetPerNm;
-        var ac = new SimAircraft(cs, o.TypeCode ?? Types[_rng.Next(Types.Length)], o, _rng)
+        var ac = new SimAircraft(cs, o.TypeCode ?? style.Types[_rng.Next(style.Types.Length)], o, _rng)
         {
             RangeFt = rangeFt,
             CrossFt = o.CrossFt,
             HeightFt = geo.GlidepathHeightFt(rangeFt) + o.HeightOffsetFt,
             TrackRelDeg = -o.InterceptAngleDeg * Math.Sign(o.CrossFt == 0 ? 1 : o.CrossFt),
-            SpeedKt = o.SpeedKt,
+            SpeedKt = o.SpeedKt > 0 ? o.SpeedKt : _rng.Next(style.SpeedLo, style.SpeedHi + 1),
+            GearDown = _rng.NextDouble() < 0.5,
         };
         ac.HeadingRelDeg = ac.TrackRelDeg;
         ac.CommandedHeadingRelDeg = ac.HeadingRelDeg;
@@ -72,7 +102,7 @@ public sealed class TrainingTraffic
             RangeNm = 6 + _rng.NextDouble() * 4,
             CrossFt = (_rng.NextDouble() - 0.5) * 1600,
             HeightOffsetFt = -400 + _rng.NextDouble() * 300,
-            SpeedKt = 120 + _rng.Next(0, 6) * 10,
+            SpeedKt = 0, // from the callsign style's aircraft
             InterceptAngleDeg = _rng.NextDouble() * 10,
             Mode = mode,
             Skill = 0.4 + _rng.NextDouble() * 0.5,
@@ -157,28 +187,82 @@ public sealed class SimAircraft
     public bool Finished { get; private set; }
     public string? LastReadback { get; private set; }
 
+    /// <summary>Landing gear; the USN/USA wheels-down check (§2-1-25) lowers it if it is up.</summary>
+    public bool GearDown { get; internal set; }
+    /// <summary>Told "DO NOT ACKNOWLEDGE FURTHER TRANSMISSIONS" (§5-10-10): no more readbacks.</summary>
+    public bool NoAcknowledge { get; private set; }
+    public bool ClearedToLand { get; private set; }
+
     private double ReactionDelay => 1.0 + (1 - _opt.Skill) * 2.0 + _rng.NextDouble();
 
     /// <summary>
-    /// A controller transmission. On PAR final the pilot does not read back; they fly the heading and
-    /// adjust rate of descent in proportion to the glidepath call, after a human reaction delay.
+    /// Initial call to the final controller: "the last assigned heading, altitude, and the current status
+    /// of the gear" (NAVAIR 00-80T-112 ¶25.3.1.1).
     /// </summary>
-    /// <returns>What the pilot will do, for the status line.</returns>
-    public string Receive(Transmission t, double now, double courseMagDeg, double recommendedFpm)
+    public string CheckInCall(string facility, double courseMagDeg, double thresholdElevFt)
+    {
+        double hdg = Units.Norm360(courseMagDeg + CommandedHeadingRelDeg);
+        return $"{facility} final, {RadioSpeech.Callsign(Callsign)}, heading {RadioSpeech.Heading(hdg)}, "
+               + $"{RadioSpeech.Altitude(HeightFt + thresholdElevFt)}, gear {(GearDown ? "down" : "up")}.";
+    }
+
+    /// <summary>What the pilot is doing, for the controller's training display.</summary>
+    public string Status(double courseMagDeg, double thresholdElevFt)
+    {
+        double hdg = Units.Norm360(courseMagDeg + HeadingRelDeg);
+        string vs = Math.Abs(VerticalSpeedFpm) < 100 ? "level" : VerticalSpeedFpm < 0 ? $"descending {-VerticalSpeedFpm:0} fpm" : $"climbing {VerticalSpeedFpm:0} fpm";
+        string phase = Landed ? "landed" : GoingAround ? "going missed" : !Descending ? "awaiting descent"
+            : ClearedToLand ? "on final, cleared to land" : "on final";
+        return $"HDG {(hdg < 0.5 ? 360 : hdg):000} · {HeightFt + thresholdElevFt:#,0} FT · {vs} · {SpeedKt:0} KT · GEAR {(GearDown ? "DOWN" : "UP")} · {phase}";
+    }
+
+    /// <summary>
+    /// A controller transmission. The pilot repeats headings and clearances "until the final controller
+    /// advises 'do not acknowledge further transmissions'" (AFMAN 11-217v1 ¶12.3.3), then flies silently,
+    /// adjusting rate of descent in proportion to glidepath calls. A missed approach is always acknowledged
+    /// (NAVEDTRA 14342A ch. 10). Actions happen after a human reaction delay.
+    /// </summary>
+    public PilotResponse Receive(Transmission t, double now, double courseMagDeg, double recommendedFpm)
     {
         double delay = ReactionDelay;
         var actions = new List<string>();
+        var readback = new List<string>();
+        string cs = RadioSpeech.Callsign(Callsign);
+        bool wasNoAcknowledge = NoAcknowledge;
 
         if (t.MissedApproach)
         {
             _pending.Enqueue((now + delay, () => GoingAround = true));
-            return "going missed";
+            return new PilotResponse("going missed", $"{cs}, going missed.");
+        }
+        if (t.HowDoYouHear)
+        {
+            actions.Add("radio check");
+            readback.Add("loud and clear");
+        }
+        if (t.WheelsDown && !GearDown)
+        {
+            _pending.Enqueue((now + delay, () => GearDown = true));
+            actions.Add("lowering gear");
+            readback.Add("gear down");
+        }
+        if (t.ClearedToLand)
+        {
+            ClearedToLand = true;
+            actions.Add("cleared to land");
+            readback.Add("cleared to land");
         }
         if (t.HeadingDeg is double hdg)
         {
             double rel = Units.Norm180(hdg - courseMagDeg);
             _pending.Enqueue((now + delay, () => CommandedHeadingRelDeg = rel));
             actions.Add($"heading {hdg:000}");
+            readback.Add($"heading {RadioSpeech.Heading(hdg)}");
+        }
+        if (t.DoNotAcknowledge)
+        {
+            NoAcknowledge = true;
+            actions.Add("no further acknowledgements");
         }
         if (t.BeginDescent)
         {
@@ -205,7 +289,13 @@ public sealed class SimAircraft
             actions.Add($"{-vs:0} fpm");
         }
         LastReadback = string.Join(", ", actions);
-        return actions.Count > 0 ? LastReadback : "no action";
+
+        // A radio check is always answered; everything else only before "do not acknowledge".
+        bool mayReadBack = !wasNoAcknowledge && !t.DoNotAcknowledge;
+        var spoken = readback.Where(r => mayReadBack || r == "loud and clear").ToList();
+        string? reply = spoken.Count == 0 ? null : $"{string.Join(", ", spoken)}, {cs}.";
+        if (reply != null) reply = char.ToUpperInvariant(reply[0]) + reply[1..];
+        return new PilotResponse(actions.Count > 0 ? LastReadback : "no action", reply);
     }
 
     public void BeginDescent(double now, double recommendedFpm)
@@ -311,3 +401,6 @@ public sealed class SimAircraft
         return Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
     }
 }
+
+/// <summary>What the pilot does with a transmission, and what (if anything) they say back.</summary>
+public sealed record PilotResponse(string Action, string? Reply);

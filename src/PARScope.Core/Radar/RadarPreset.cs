@@ -61,6 +61,13 @@ public sealed record RadarPreset
     public DisplayStyle Style { get; init; } = DisplayStyle.Digital;
     /// <summary>Whether the indicator shows the antenna sweep trace (analog B-scope). Default for the Scan toggle.</summary>
     public bool SweepTrace { get; init; }
+    /// <summary>Whether the indicator's range axis is compressed (logarithmic). Default for the Log toggle.</summary>
+    public bool LogRangeDefault { get; init; }
+    /// <summary>
+    /// In log mode, also scale heights and offsets with the range compression so constant-angle lines stay
+    /// straight (ATNAVICS footage). Otherwise height stays linear in feet and those lines curve.
+    /// </summary>
+    public bool LogStraightLines { get; init; }
     /// <summary>Whether the system runs a track-while-scan tracker (track symbols, data blocks).</summary>
     public bool Tracking { get; init; } = true;
     public int MaxTracks { get; init; } = 6;
@@ -147,7 +154,22 @@ public sealed record RadarPreset
         NoiseFactor = 1.5, Style = DisplayStyle.Digital, Tracking = true, RangeScalesNm = [5, 10],
     };
 
-    public static IReadOnlyList<RadarPreset> All { get; } = [Fpn68, Fpn63, Gpn22, Fpn67, Mpn25, Icao];
+    public static readonly RadarPreset Tpn31 = new()
+    {
+        Id = "tpn31",
+        Name = "AN/TPN-31 ATNAVICS",
+        Description = "US Army/USMC tactical ATC system. Display as on the Army radar training simulator and USMC "
+                      + "expeditionary screens: compressed range axis, green cursors, cream limit lines, DH line, "
+                      + "white tracks with leader lines. Coverage and range are assumed (public figures not found).",
+        AzLeftDeg = 10, AzRightDeg = 10, ElMinDeg = -1, ElMaxDeg = 7, MaxRangeNm = 10,
+        AzScanSec = 1.0, ElScanSec = 1.0, Pattern = ScanPattern.Electronic,
+        AzBeamwidthDeg = 1.0, ElBeamwidthDeg = 0.7,
+        NoiseFactor = 1.0, Style = DisplayStyle.Digital, Tracking = true, MaxTracks = 6, RangeScalesNm = [5, 10],
+        LogRangeDefault = true,
+        LogStraightLines = true,
+    };
+
+    public static IReadOnlyList<RadarPreset> All { get; } = [Fpn68, Tpn31, Fpn63, Gpn22, Fpn67, Mpn25, Icao];
 
     public static RadarPreset ById(string? id) => All.FirstOrDefault(p => p.Id == id) ?? Fpn68;
 }

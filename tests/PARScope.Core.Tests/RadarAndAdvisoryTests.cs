@@ -113,7 +113,7 @@ public class RadarAndAdvisoryTests
         Assert.Contains("LEFT OF COURSE", adv.CoursePhrase);
         Assert.NotNull(adv.SuggestedHeadingDeg);
         Assert.True(Units.Norm180(adv.SuggestedHeadingDeg!.Value - GeometryTests.Runway.MagneticCourseDeg) > 0, "should turn right toward course");
-        Assert.InRange(adv.RecommendedDescentFpm, 600, 900);
+        Assert.InRange(adv.RecommendedDescentFpm, 450, 900); // depends on the type's approach speed
     }
 
     [Fact]

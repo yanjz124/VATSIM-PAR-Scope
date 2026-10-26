@@ -90,6 +90,8 @@
                 </StackPanel>
 
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <ToggleButton Style="{StaticResource ToolbarToggle}" Content="Training" IsChecked="{Binding TrainingMode}" Margin="0,0,8,0"
+                                  ToolTip="Training mode: training traffic, simulated pilot/tower radio, suggested calls. Off = plain VATSIM scope." />
                     <ToggleButton Style="{StaticResource ToolbarToggle}" IsChecked="{Binding ShowPlanView}" ToolTip="Show side panel">
                         <ui:SymbolIcon Symbol="PanelRight24" />
                     </ToggleButton>
@@ -141,7 +143,7 @@
                                     <TextBlock Text="Course" Style="{StaticResource MetricLabel}" />
                                     <TextBlock Text="{Binding CourseText}" Style="{StaticResource MetricValue}" />
                                 </StackPanel>
-                                <StackPanel>
+                                <StackPanel Visibility="{Binding TrainingMode, Converter={StaticResource BoolToVisibility}}">
                                     <TextBlock Text="Recommended descent" Style="{StaticResource MetricLabel}" />
                                     <TextBlock Text="{Binding RodText}" Style="{StaticResource MetricValue}" />
                                 </StackPanel>
@@ -202,9 +204,9 @@
                         </StackPanel>
                     </ui:CardExpander>
 
-                    <!-- Controller transmissions to training traffic: push-to-talk or typed. -->
-                    <ui:CardExpander Header="Transmissions" Icon="{ui:SymbolIcon Mic24}" Margin="0,0,0,6" IsExpanded="{Binding ExpandVoice}"
-                                     Visibility="{Binding HasTraining, Converter={StaticResource BoolToVisibility}}">
+                    <!-- Training radio: push-to-talk or typed transmissions, simulated pilot and tower. -->
+                    <ui:CardExpander Header="Radio (training)" Icon="{ui:SymbolIcon Mic24}" Margin="0,0,0,6" IsExpanded="{Binding ExpandVoice}"
+                                     Visibility="{Binding ShowRadio, Converter={StaticResource BoolToVisibility}}">
                         <StackPanel>
                             <DockPanel Margin="0,0,0,8">
                                 <ui:SymbolIcon DockPanel.Dock="Left" Symbol="Mic24" Margin="0,0,8,0" />
@@ -212,14 +214,37 @@
                             </DockPanel>
                             <ui:TextBox x:Name="TypedBox" PlaceholderText="…or type: turn left heading 240, slightly above glidepath"
                                         Text="{Binding TypedTransmission, UpdateSourceTrigger=PropertyChanged}" KeyDown="TypedBox_KeyDown" />
-                            <TextBlock Text="{Binding LastTransmission}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" Height="32" Margin="0,8,0,0"
-                                       FontSize="11.5" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+                            <!-- Fixed-height log so the panel never resizes. -->
+                            <Border Margin="0,8,0,0" Padding="8,6" CornerRadius="6" Height="112"
+                                    Background="{DynamicResource ControlFillColorSecondaryBrush}">
+                                <ItemsControl ItemsSource="{Binding RadioLog}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" FontSize="11" TextTrimming="CharacterEllipsis" Height="16" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Border>
+
+                            <TextBlock Text="PILOT" Style="{StaticResource SectionLabel}" Margin="0,10,0,2" />
+                            <TextBlock Text="{Binding PilotStatus}" FontSize="12" TextTrimming="CharacterEllipsis" Height="18" />
+
+                            <TextBlock Text="TOWER" Style="{StaticResource SectionLabel}" Margin="0,8,0,4" />
+                            <DockPanel>
+                                <ui:Button DockPanel.Dock="Right" Content="Request" Margin="6,0,0,0" Command="{Binding RequestTowerCommand}"
+                                           ToolTip="Interphone request to tower for the selected aircraft; relay the clearance with wind (7110.65 §5-10-13)" />
+                                <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding TowerIntents}" SelectedItem="{Binding TowerIntent}" />
+                            </DockPanel>
+
+                            <ui:ToggleSwitch IsChecked="{Binding PilotVoices}" OnContent="Pilot and tower voices" OffContent="Pilot and tower voices" Margin="0,10,0,0" />
                             <TextBlock Margin="0,8,0,0" Style="{StaticResource MetricLabel}" TextWrapping="Wrap"
-                                       Text="Shortcuts: Tab next target · D begin descent · ←/→ heading ±1° (Shift ±5°) · PgUp/PgDn range" />
+                                       Text="Hold Space to talk · Tab next target · D begin descent · ←/→ heading ±1° (Shift ±5°)" />
                         </StackPanel>
                     </ui:CardExpander>
 
-                    <ui:CardExpander Header="Training traffic" Icon="{ui:SymbolIcon Airplane24}" Margin="0,0,0,6" IsExpanded="{Binding ExpandTraining}">
+                    <ui:CardExpander Header="Training traffic" Icon="{ui:SymbolIcon Airplane24}" Margin="0,0,0,6" IsExpanded="{Binding ExpandTraining}"
+                                     Visibility="{Binding TrainingMode, Converter={StaticResource BoolToVisibility}}">
                         <StackPanel>
                             <TextBlock TextWrapping="Wrap" Style="{StaticResource MetricLabel}" Margin="0,0,0,10"
                                        Text="Simulated arrivals for practising talk-downs. Controller-directed pilots hold heading and altitude until you talk to them: hold Space and speak (or type) headings, 'begin descent' and glidepath calls." />

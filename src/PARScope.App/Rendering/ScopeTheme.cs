@@ -33,6 +33,14 @@ public sealed record ScopeTheme
     public bool Analog { get; init; }
     /// <summary>Afterglow time constant for raw video, seconds.</summary>
     public double PersistenceSec { get; init; }
+    public LineStyle CoverageStyle { get; init; } = LineStyle.Dashed;
+    public LineStyle SafetyStyle { get; init; } = LineStyle.Dotted;
+    /// <summary>Solid (major) range lines at 1 NM as well as every 5 NM.</summary>
+    public bool MajorAtOneMile { get; init; }
+    /// <summary>Decision height drawn as a short horizontal line at DH altitude with a tick where the glidepath
+    /// crosses it (ATNAVICS), instead of a tick across the glidepath (FPN-63 "PAR minimums marker").</summary>
+    public bool DhLine { get; init; }
+    public SKColor DhColor { get; init; } = SKColors.White;
 
     public static readonly ScopeTheme Digital = new()
     {
@@ -102,8 +110,25 @@ public sealed record ScopeTheme
         Scan = new SKColor(0xFF, 0xC0, 0x30, 0x22),
     };
 
+    /// <summary>AN/TPN-31 ATNAVICS, from Army radar-training-simulator and USMC expeditionary screen footage.</summary>
+    public static readonly ScopeTheme Atnavics = Digital with
+    {
+        RangeMinor = new SKColor(0x2E, 0xA8, 0x4A),
+        RangeMajor = new SKColor(0x5C, 0xF0, 0x7A),
+        Cursor = new SKColor(0x40, 0xE0, 0x60),
+        Coverage = new SKColor(0xED, 0xE6, 0xCC),
+        Safety = new SKColor(0xED, 0xE6, 0xCC),
+        Ground = new SKColor(0xED, 0xE6, 0xCC),
+        CoverageStyle = LineStyle.Solid,
+        SafetyStyle = LineStyle.Solid,
+        MajorAtOneMile = true,
+        DhLine = true,
+        DhColor = new SKColor(0x3C, 0xC8, 0xF0),
+    };
+
     public static ScopeTheme For(RadarPreset preset) => preset.Style switch
     {
+        _ when preset.Id == "tpn31" => Atnavics,
         DisplayStyle.Phosphor when preset.Id == "gpn22" => AmberPhosphor,
         DisplayStyle.Phosphor => GreenPhosphor,
         _ => Digital,
@@ -188,7 +213,7 @@ internal sealed class Ink : IDisposable
     }
 }
 
-internal enum LineStyle { Solid, Dashed, Dotted }
+public enum LineStyle { Solid, Dashed, Dotted }
 
 internal static class SkExtensions
 {

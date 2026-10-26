@@ -9,6 +9,7 @@ public sealed record ParRenderOptions
 {
     public double RangeScaleNm { get; init; } = 10;
     public bool LogRange { get; init; }
+    public bool LogStraightLines { get; init; }
     public bool ShowSafetyLimits { get; init; } = true;
     /// <summary>UK RA 3291 blue 2° and 5° azimuth lines (not on US displays).</summary>
     public bool ShowCourseWedge { get; init; }
@@ -55,7 +56,7 @@ public sealed class ParDisplayRenderer : IDisposable
     private ScopeTheme _t = ScopeTheme.Digital;
     private float _left, _right, _elTop, _elBottom, _azTop, _azBottom, _elZeroY, _azZeroY;
     private double _rMinNm, _rMaxNm, _elPxPerFt, _azPxPerFt;
-    private bool _log;
+    private bool _log, _logStraight;
 
     public void Render(SKCanvas c, float width, float height, ParGeometry? geo, RadarSimulator? radar, double now, ParRenderOptions opt)
     {
@@ -78,8 +79,8 @@ public sealed class ParDisplayRenderer : IDisposable
         DrawVideo(c, geo, radar, now, opt);
         if (!_t.Analog)
         {
-            // In log mode the vertical scale varies with range, so a fixed feet scale would lie.
-            if (!_log) DrawAxisLabels(c);
+            // With straight-line log scaling the vertical scale varies with range, so a feet scale would lie.
+            if (!_logStraight) DrawAxisLabels(c);
             DrawStatusBox(c, geo, radar, opt);
         }
     }
@@ -99,6 +100,7 @@ public sealed class ParDisplayRenderer : IDisposable
         _azBottom = bottom;
 
         _log = opt.LogRange;
+        _logStraight = opt.LogRange && opt.LogStraightLines;
         _rMaxNm = opt.RangeScaleNm;
         _rMinNm = -Math.Max(0.04 * opt.RangeScaleNm, 0.2);
 
@@ -131,7 +133,7 @@ public sealed class ParDisplayRenderer : IDisposable
     /// <summary>Pixels per foot of height/offset at a range; constant in linear mode, X(r)/r-scaled in log mode.</summary>
     private double VerticalScale(double basePxPerFt, double rangeFt)
     {
-        if (!_log || rangeFt <= 0) return basePxPerFt;
+        if (!_logStraight || rangeFt <= 0) return basePxPerFt;
         double rMaxFt = _rMaxNm * Units.FeetPerNm;
         double x0 = X(0);
         return basePxPerFt * rMaxFt / (X(rMaxFt) - x0) * (X(rangeFt) - x0) / rangeFt;
@@ -175,7 +177,7 @@ public sealed class ParDisplayRenderer : IDisposable
         for (double nm = 0; nm <= _rMaxNm + 1e-6; nm += minor)
         {
             bool whole = Math.Abs(nm - Math.Round(nm)) < 1e-6;
-            bool major = whole && (int)Math.Round(nm) % 5 == 0;
+            bool major = whole && ((int)Math.Round(nm) % 5 == 0 || (_t.MajorAtOneMile && (int)Math.Round(nm) == 1));
             float x = X(nm * Units.FeetPerNm);
             var p = major ? _ink.Line(_t.RangeMajor, 1f)
                   : whole ? _ink.Line(_t.RangeMinor, 1f, LineStyle.Dashed)
@@ -212,12 +214,12 @@ public sealed class ParDisplayRenderer : IDisposable
         foreach (double el in new[] { radar.Preset.ElMinDeg, radar.Preset.ElMaxDeg })
         {
             double tan = Math.Tan(Units.DegToRad(el));
-            Curve(c, _ink.Line(_t.Coverage, 1.2f, LineStyle.Dashed), r => ant.HeightFt + tan * (r - ant.RangeFt), YEl, Math.Max(ant.RangeFt, 1), RangeMaxFt);
+            Curve(c, _ink.Line(_t.Coverage, 1.2f, _t.CoverageStyle), r => ant.HeightFt + tan * (r - ant.RangeFt), YEl, Math.Max(ant.RangeFt, 1), RangeMaxFt);
         }
 
         // Lower safe limit ("B") cursor, glidepath angle less 0.5° from touchdown: dotted under the glidepath.
         if (opt.ShowSafetyLimits)
-            Curve(c, _ink.Line(_t.Safety, 1.4f, LineStyle.Dotted), geo.LowerSafeLimitHeightFt, YEl, 1, RangeMaxFt);
+            Curve(c, _ink.Line(_t.Safety, 1.4f, _t.SafetyStyle), geo.LowerSafeLimitHeightFt, YEl, 1, RangeMaxFt);
 
         // Glidepath cursor from the GPI, with a tick every mile.
         Curve(c, _ink.Line(_t.Cursor, 1.6f), geo.GlidepathHeightFt, YEl, 1, RangeMaxFt);
@@ -228,10 +230,17 @@ public sealed class ParDisplayRenderer : IDisposable
             c.DrawLine(x, y - 5, x, y + 5, _ink.Line(_t.Cursor, 1.2f));
         }
 
-        // Decision height mark across the glidepath.
+        // Decision height: a tick across the glidepath, or (ATNAVICS) a short line at DH altitude with a tick.
         double dhR = geo.DecisionHeightRangeFt;
         float dx = X(dhR), dy = YEl(geo.Site.DecisionHeightFt, dhR);
-        c.DrawLine(dx, dy - 10, dx, dy + 10, _ink.Line(_t.Safety, 1.6f));
+        if (_t.DhLine)
+        {
+            double half = 0.35 * Units.FeetPerNm;
+            var dhPaint = _ink.Line(_t.DhColor, 1.6f);
+            c.DrawLine(X(Math.Max(dhR - half, 0.05 * Units.FeetPerNm)), dy, X(dhR + half), dy, dhPaint);
+            c.DrawLine(dx, dy - 9, dx, dy, dhPaint);
+        }
+        else c.DrawLine(dx, dy - 10, dx, dy + 10, _ink.Line(_t.Safety, 1.6f));
 
         // Touchdown box and threshold mark on the ground line.
         float gy = YEl(0, 1);
@@ -261,7 +270,7 @@ public sealed class ParDisplayRenderer : IDisposable
         foreach (double az in new[] { -radar.Preset.AzLeftDeg, radar.Preset.AzRightDeg })
         {
             double tan = Math.Tan(Units.DegToRad(az));
-            Curve(c, _ink.Line(_t.Coverage, 1.2f, LineStyle.Dashed), r => ant.CrossFt + tan * (r - ant.RangeFt), YAz, Math.Max(ant.RangeFt, 1), RangeMaxFt);
+            Curve(c, _ink.Line(_t.Coverage, 1.2f, _t.CoverageStyle), r => ant.CrossFt + tan * (r - ant.RangeFt), YAz, Math.Max(ant.RangeFt, 1), RangeMaxFt);
         }
 
         if (opt.ShowCourseWedge)

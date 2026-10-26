@@ -15,6 +15,8 @@ public sealed class AppSettings
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
 
     public int UdpPort { get; set; } = 49090;
+    /// <summary>Master switch for training aids (training traffic, radio, suggested calls). Off = plain VATSIM scope.</summary>
+    public bool TrainingMode { get; set; }
     /// <summary>Use the public 15 s VATSIM data feed when no vPilot plugin is streaming. Opt-in.</summary>
     public bool UseDataFeed { get; set; }
     public string? AirportId { get; set; }
