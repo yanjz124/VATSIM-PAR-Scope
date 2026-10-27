@@ -7,6 +7,10 @@
 ; remembered, so updates (the scope runs this installer with /SILENT /UPDATE) go to the same places.
 ; The plugin DLL is only replaced when its file version changes, so an update does not fail on a DLL
 ; that a running vPilot holds open: bump <Version> in RadarStreamerPlugin.csproj when the plugin changes.
+;
+; Npcap (for the CRC feed) is optional and not bundled: its free license does not allow redistribution.
+; When the task is chosen, the current installer is downloaded from npcap.com and run with its own wizard,
+; so the user accepts Npcap's license there. The task is hidden when Npcap is already installed.
 
 #ifndef AppVersion
   #define AppVersion "0.0.0"
@@ -47,6 +51,7 @@ SolidCompression=yes
 
 [Tasks]
 Name: "plugin"; Description: "Install the vPilot plugin (live VATSIM traffic, including 5 Hz Velocity positions)"
+Name: "npcap"; Description: "Download and install Npcap from npcap.com (lets the CRC feed run without administrator rights)"; Flags: unchecked; Check: NpcapWanted
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
@@ -71,8 +76,13 @@ Filename: "{app}\PARScope.exe"; Description: "{cm:LaunchProgram,vibe PAR}"; Flag
 Filename: "{app}\PARScope.exe"; Flags: nowait; Check: IsUpdate
 
 [Code]
+const
+  NpcapFallback = 'npcap-1.90.exe';
+
 var
   PluginPage: TInputDirWizardPage;
+  DownloadPage: TDownloadWizardPage;
+  NpcapFile: String;
 
 function IsUpdate: Boolean;
 begin
@@ -104,6 +114,77 @@ begin
       end;
 end;
 
+function NpcapInstalled: Boolean;
+begin
+  Result := FileExists(ExpandConstant('{sys}\Npcap\wpcap.dll'))
+    or RegKeyExists(HKLM, 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\NpcapInst')
+    or RegKeyExists(HKLM32, 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\NpcapInst');
+end;
+
+function NpcapWanted: Boolean;
+begin
+  Result := not IsUpdate and not NpcapInstalled;
+end;
+
+{ The current installer's name from npcap.com, e.g. npcap-1.90.exe; the pinned one if the page can't be read. }
+function LatestNpcap: String;
+var
+  Page: AnsiString;
+  I, J: Integer;
+begin
+  Result := NpcapFallback;
+  try
+    if DownloadTemporaryFile('https://npcap.com/', 'npcap-home.html', '', nil) > 0 then
+      if LoadStringFromFile(ExpandConstant('{tmp}\npcap-home.html'), Page) then
+      begin
+        I := Pos('dist/npcap-', Page);
+        if I > 0 then
+        begin
+          I := I + Length('dist/');
+          J := I;
+          while (J <= Length(Page)) and (Pos(Page[J], '0123456789.-npcaexNPCAEX') > 0) do J := J + 1;
+          if Copy(Page, J - 4, 4) = '.exe' then Result := Copy(Page, I, J - I);
+        end;
+      end;
+  except
+    Log('Could not read npcap.com: ' + GetExceptionMessage);
+  end;
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  if (CurPageID <> wpReady) or not WizardIsTaskSelected('npcap') then Exit;
+  NpcapFile := LatestNpcap;
+  DownloadPage.Clear;
+  DownloadPage.Add('https://npcap.com/dist/' + NpcapFile, NpcapFile, '');
+  DownloadPage.Show;
+  try
+    try
+      DownloadPage.Download;
+    except
+      if not DownloadPage.AbortedByUser then
+        SuppressibleMsgBox('Npcap could not be downloaded (' + GetExceptionMessage + ').' + #13#10 +
+          'vibe PAR will still be installed; you can install Npcap later from npcap.com.', mbInformation, MB_OK, IDOK);
+      NpcapFile := '';
+    end;
+  finally
+    DownloadPage.Hide;
+  end;
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  Code: Integer;
+begin
+  if (CurStep <> ssPostInstall) or (NpcapFile = '') then Exit;
+  WizardForm.StatusLabel.Caption := 'Installing Npcap (follow its setup window)...';
+  { Npcap's installer asks for administrator rights itself; ShellExec lets Windows show the prompt. }
+  if not ShellExec('', ExpandConstant('{tmp}\' + NpcapFile), '', '', SW_SHOW, ewWaitUntilTerminated, Code) then
+    SuppressibleMsgBox('Npcap setup did not start: ' + SysErrorMessage(Code) + '. You can install it later from npcap.com.',
+      mbInformation, MB_OK, IDOK);
+end;
+
 procedure InitializeWizard;
 var
   VPilot, Default: String;
@@ -113,6 +194,7 @@ begin
     'The plugin goes in vPilot''s Plugins folder. Close vPilot before installing; it loads the plugin at start-up.',
     False, '');
   PluginPage.Add('vPilot Plugins folder:');
+  DownloadPage := CreateDownloadPage('Downloading Npcap', 'Getting the current Npcap installer from npcap.com.', nil);
   VPilot := DetectVPilot;
   if VPilot <> '' then Default := VPilot + '\Plugins'
   else Default := ExpandConstant('{localappdata}\vPilot\Plugins');
