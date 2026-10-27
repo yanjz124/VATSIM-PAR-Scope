@@ -4,8 +4,8 @@
 
 **A Precision Approach Radar scope for VATSIM controllers**, modeled on the US military GCA systems
 it imitates: AN/FPN-68, FPN-63, GPN-22, FPN-67, MPN-25 and TPN-31 ATNAVICS. It runs next to CRC and
-takes live traffic from it (vNAS's 1 Hz target data, no second connection), or from vPilot where there is
-no CRC. It also has a training mode where you talk simulated arrivals down by voice, with pilot, tower and
+takes live traffic from it (vNAS's 1 Hz target data, no second connection), or from a vPilot or xPilot
+tower view where there is no CRC. It also has a training mode where you talk simulated arrivals down by voice, with pilot, tower and
 approach on the other end.
 
 Public information on these radars is scarce, so much of it is a best guess (see
@@ -103,7 +103,8 @@ plugin. The VATSIM Code of Conduct (C7(b)) allows a controller one extra tower-v
 ### With xPilot (X-Plane)
 
 xPilot can copy its traffic to "visual machines" (extra X-Plane PCs), and vibe PAR listens as one on
-`127.0.0.1:53100`. As with vPilot, the simulator has to be running.
+`127.0.0.1:53100`. As with vPilot, the simulator has to be running. **Step-by-step guide with
+troubleshooting: [docs/XPILOT.md](docs/XPILOT.md).**
 
 1. In xPilot, type `.visualip 127.0.0.1` once, then restart xPilot. The command replaces the whole list,
    so if you already have visual PCs, list them all: `.visualip 192.168.1.20 127.0.0.1`.
