@@ -43,6 +43,8 @@ public sealed class AppSettings
     public string CrcFeed { get; set; } = "Auto";
     /// <summary>Source priority when several deliver the same aircraft, e.g. "Crc,VPilot,Feed" (SourceGroup names).</summary>
     public string SourcePriority { get; set; } = "Crc,VPilot,Feed";
+    /// <summary>Listen for xPilot's visual-machine stream on TCP 53100 (local only).</summary>
+    public bool XPilotVisual { get; set; } = true;
     /// <summary>Look for a newer release on GitHub at start-up.</summary>
     public bool CheckForUpdates { get; set; } = true;
     /// <summary>Training arrivals use the live METAR surface wind instead of a random one.</summary>

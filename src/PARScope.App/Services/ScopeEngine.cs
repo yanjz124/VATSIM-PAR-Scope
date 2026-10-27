@@ -65,25 +65,47 @@ public sealed class ScopeEngine : IDisposable
     {
         _feed?.Dispose();
         _feed = new VatsimDataFeed(http, Clock, Ingest,
-            () => enabled() && Clock.Now - Link.LastDatagram > FeedFallbackAfterSec && !CrcLive,
+            () => enabled() && Clock.Now - Link.LastDatagram > FeedFallbackAfterSec && Clock.Now - XPilotLast > FeedFallbackAfterSec && !CrcLive,
             () => Runway is { } r ? GeoPoint.FromFeet(r.ThresholdLat, r.ThresholdLon, r.ThresholdElevFt) : null);
         _feed.Start();
     }
 
     public VatsimDataFeed? Feed => _feed;
 
+    /// <summary>xPilot's visual-machine stream (xPilot command .visualip 127.0.0.1), or null when off.</summary>
+    public XPilotVisualSource? XPilot { get; private set; }
+    public string? XPilotError { get; private set; }
+
+    /// <summary>Starts or stops listening for xPilot (Settings › Data).</summary>
+    public void SetXPilot(bool on)
+    {
+        XPilot?.Dispose();
+        XPilot = null;
+        XPilotError = null;
+        if (!on) return;
+        var x = new XPilotVisualSource(XPilotVisualSource.DefaultPort, Clock, Ingest);
+        x.Error += e => XPilotError = e;
+        x.Start();
+        XPilot = x;
+    }
+
+    /// <summary>Local time of the last xPilot message (positions or heartbeats), or -inf.</summary>
+    public double XPilotLast => XPilot?.LastMessageTime ?? double.NegativeInfinity;
+    public bool XPilotLive => Clock.Now - XPilotLast < 15;
+
     /// <summary>vNAS target data captured from CRC's UDP (Settings › Data). Off unless the user turns it on.</summary>
     public CrcFeed Crc => _crc ??= new CrcFeed(Clock, Ingest);
     private CrcFeed? _crc;
 
     /// <summary>
-    /// Network traffic is on the scope but no source has delivered lately (vPilot or the CRC feed within 6 s,
+    /// Network traffic is on the scope but no source has delivered lately (vPilot, xPilot or the CRC feed within 6 s,
     /// the 15 s data feed within 30 s): the feed as a whole is lost, and tracks coast longer.
     /// </summary>
     public bool DataLost { get; private set; }
 
     private bool AnySourceFresh =>
         Clock.Now - Link.LastDatagram < 6
+        || Clock.Now - XPilotLast < 6
         || (_crc != null && Clock.Now - _crc.LastPacket < 6)
         || (_feed?.LastUpdateUtc is DateTime u && (DateTime.UtcNow - u).TotalSeconds < 30);
 
@@ -163,5 +185,6 @@ public sealed class ScopeEngine : IDisposable
         _udp?.Dispose();
         _feed?.Dispose();
         _crc?.Dispose();
+        XPilot?.Dispose();
     }
 }

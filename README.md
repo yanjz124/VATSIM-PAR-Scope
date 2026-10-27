@@ -100,14 +100,28 @@ plugin. The VATSIM Code of Conduct (C7(b)) allows a controller one extra tower-v
    * **5 Hz data**: Velocity fast positions.
    * **5 s updates only**: normal updates only.
 
-With neither, the **VATSIM data feed (15 s)** can be turned on in **Settings › Data**: fine for watching
+### With xPilot (X-Plane)
+
+xPilot can copy its traffic to "visual machines" (extra X-Plane PCs), and vibe PAR listens as one on
+`127.0.0.1:53100`. As with vPilot, the simulator has to be running.
+
+1. In xPilot, type `.visualip 127.0.0.1` once, then restart xPilot. The command replaces the whole list,
+   so if you already have visual PCs, list them all: `.visualip 192.168.1.20 127.0.0.1`.
+2. Start X-Plane with a flight loaded, then type `.towerview` in xPilot.
+3. The status bar shows **xPilot tower view · 5 Hz data**. xPilot only passes on positions from Velocity
+   fast updates, which VATSIM sends for aircraft near you.
+
+The listener is on by default (**Settings › Data › Receive traffic from xPilot**) and only accepts
+connections from this PC. It reads; it sends nothing to xPilot beyond the connection handshake.
+
+With none of these, the **VATSIM data feed (15 s)** can be turned on in **Settings › Data**: fine for watching
 traffic, too slow for precision guidance.
 
 ### Several sources at once
 
 All sources can run together, and vibe PAR uses whichever is delivering each aircraft. When more than one
-is, **Settings › Data › Source priority** decides (CRC › vPilot › data feed by default, or any other
-order). If the chosen source stops for an aircraft, the next one takes over by itself. CRC STARS-only
+is, **Settings › Data › Source priority** decides (CRC › vPilot/xPilot › data feed by default, or any
+other order). If the chosen source stops for an aircraft, the next one takes over by itself. CRC STARS-only
 data, with its 100 ft altitude steps, always ranks below an exact source.
 
 ### When data stops

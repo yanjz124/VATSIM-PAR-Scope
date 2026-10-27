@@ -100,6 +100,32 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     private void ApplyLiveWind() => Engine.Training.SurfaceWind = _settings.TrainingLiveWind ? _liveWind : null;
 
+    // ---- xPilot (visual-machine stream) ----
+
+    public bool UseXPilot
+    {
+        get => _settings.XPilotVisual;
+        set
+        {
+            _settings.XPilotVisual = value;
+            Engine.SetXPilot(value);
+            OnPropertyChanged();
+            RefreshXPilotStatus();
+        }
+    }
+
+    [ObservableProperty] public partial string XPilotStatus { get; set; } = "";
+
+    private void RefreshXPilotStatus()
+    {
+        var x = Engine.XPilot;
+        XPilotStatus = x == null ? ""
+            : Engine.XPilotError is { } e ? e
+            : Engine.XPilotLive ? $"Receiving from xPilot{(x.Callsign is { } cs ? $" ({cs})" : "")}."
+            : x.Connections > 0 ? "xPilot is connected; waiting for traffic. Type .towerview in xPilot."
+            : $"Listening on 127.0.0.1:{XPilotVisualSource.DefaultPort}. In xPilot, type .visualip 127.0.0.1 once and restart it, then type .towerview.";
+    }
+
     // ---- CRC feed (vNAS UDP) ----
 
     private CrcCaptureMode CrcMode => Enum.TryParse<CrcCaptureMode>(_settings.CrcFeed, out var m) ? m : CrcCaptureMode.Off;
@@ -150,7 +176,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     private static string PriorityText(IReadOnlyList<SourceGroup> order) =>
-        string.Join(" › ", order.Select(g => g switch { SourceGroup.Crc => "CRC", SourceGroup.VPilot => "vPilot", _ => "data feed" }));
+        string.Join(" › ", order.Select(g => g switch { SourceGroup.Crc => "CRC", SourceGroup.VPilot => "vPilot/xPilot", _ => "data feed" }));
 
     private static IReadOnlyList<SourceGroup> ParsePriority(string? s)
     {
@@ -231,6 +257,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         Engine.StartDataFeed(Http, () => _settings.UseDataFeed);
         Engine.Store.Priority = ParsePriority(_settings.SourcePriority);
         if (CrcMode != CrcCaptureMode.Off) Engine.Crc.Start(CrcMode);
+        Engine.SetXPilot(_settings.XPilotVisual);
         bool cached = await Task.Run(_airports.TryLoadCache);
         AirportDbStatus = cached ? DbStatusText() : "No airport data yet";
         if (!cached)
@@ -673,7 +700,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             : target.IsFastActive(Engine.Now) ? $"Velocity {target.FastRateHz(Engine.Now):0.0} Hz"
             : target.IsFeed ? "data feed, 15 s updates"
             : target.LastSource == Core.Traffic.ReportSource.Crc ? "CRC (vNAS) 1 Hz"
-            : "vPilot 5 s updates";
+            : "pilot client 5 s updates";
         if (!target.IsReporting(Engine.Now)) src += $" · no report for {target.Age(Engine.Now):0} s";
         SelectedSub = $"{target.TypeCode ?? "type unknown"} · {src}";
         SpeedText = $"{gs:0} kt";
@@ -1464,7 +1491,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// </summary>
     private string? BuildScopeWarning(double now)
     {
-        if (Engine.DataLost) return "DATA LOST\nNo traffic data from CRC or vPilot. Tracks are coasting.";
+        if (Engine.DataLost) return "DATA LOST\nNo traffic data from CRC, vPilot or xPilot. Tracks are coasting.";
         if (Engine.Geometry is not { } geo || Engine.Radar is not { } radar) return null;
         double rangeFt = radar.Preset.MaxRangeNm * 1.5 * Units.FeetPerNm;
         int coarse = Engine.Targets.Count(t => !t.IsSimulated && t.CoarseAltitude && t.IsReporting(now)
@@ -1478,7 +1505,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         double now = Engine.Now;
         var link = Engine.Link;
-        double age = now - link.LastDatagram;
+        // vPilot (plugin UDP) and xPilot (visual-machine TCP) are both pilot-client links; use the fresher one.
+        bool viaXPilot = Engine.XPilotLast > link.LastDatagram;
+        double age = now - Math.Max(link.LastDatagram, Engine.XPilotLast);
         const string crcDetail = "vNAS target data captured from CRC: Tower Cab aircraft with exact altitude, STARS targets with Mode C (corrected by the altimeter).";
         if (Engine.DataLost)
         {
@@ -1486,9 +1515,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             Link = LinkHealth.Error;
             double silent = Engine.Targets.Where(t => !t.IsSimulated).Select(t => t.Age(now)).DefaultIfEmpty(0).Min();
             LinkText = $"DATA LOST · {silent:0} s, tracks coasting";
-            LinkDetail = "No traffic data from CRC or vPilot. Tracks coast for up to 30 s, then drop. Check that CRC is connected (and the CRC feed running), or vPilot.";
+            LinkDetail = "No traffic data from CRC, vPilot or xPilot. Tracks coast for up to 30 s, then drop. Check that CRC is connected (and the CRC feed running), or the pilot client.";
         }
-        else if (link.Error != null) { Link = LinkHealth.Error; LinkText = "UDP error"; LinkDetail = link.Error; }
+        else if (link.Error != null && !viaXPilot) { Link = LinkHealth.Error; LinkText = "UDP error"; LinkDetail = link.Error; }
         else if (age > 15 && Engine.CrcLive)
         {
             Link = LinkHealth.Fast;
@@ -1505,27 +1534,31 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             Link = LinkHealth.None;
             LinkText = "Waiting for traffic";
-            LinkDetail = $"Turn on the CRC feed (Settings › Data) and open a Tower Cab or STARS display in CRC; or, where there is no CRC, connect vPilot with the plugin (listening on UDP {_settings.UdpPort}).";
+            LinkDetail = $"Turn on the CRC feed (Settings › Data) and open a Tower Cab or STARS display in CRC; or, where there is no CRC, use a tower view in vPilot with the plugin (UDP {_settings.UdpPort}) or in xPilot (.visualip 127.0.0.1).";
         }
         else
         {
             // Report what is actually arriving, not just whether the hook is installed.
             var fastTargets = Engine.Targets.Where(t => t.IsFastActive(now)).ToList();
-            bool towerView = link.Callsign?.EndsWith("_TV", StringComparison.OrdinalIgnoreCase) == true;
-            string who = towerView ? "vPilot tower view" : "vPilot";
+            string? callsign = viaXPilot ? Engine.XPilot?.Callsign : link.Callsign;
+            bool towerView = callsign?.EndsWith("_TV", StringComparison.OrdinalIgnoreCase) == true;
+            string client = viaXPilot ? "xPilot" : "vPilot";
+            string who = towerView ? $"{client} tower view" : client;
             Link = fastTargets.Count > 0 ? LinkHealth.Fast : LinkHealth.Slow;
             LinkText = fastTargets.Count > 0
                 ? $"{who} · 5 Hz data, {fastTargets.Count} aircraft"
                 : $"{who} · 5 s updates only" + (link.FastHook == true ? " (fast hook ready)" : "");
             LinkDetail = fastTargets.Count > 0
                 ? $"Velocity fast positions arriving at ~{fastTargets.Average(t => t.FastRateHz(now)):0.0} Hz per aircraft"
+                : viaXPilot
+                    ? "xPilot passes on positions only from Velocity fast updates, which VATSIM sends for aircraft near you."
                 : link.FastHook == true
                     ? "The plugin is listening for Velocity fast positions but none are arriving; VATSIM only sends them for aircraft near you."
                     : "The plugin's fast-position hook is not active; targets update every ~5 s and are dead-reckoned.";
-            if (link.FastPerMin is double f) LinkDetail += $" Last minute: {f / 60:0.0} fast packets/s.";
+            if (!viaXPilot && link.FastPerMin is double f) LinkDetail += $" Last minute: {f / 60:0.0} fast packets/s.";
             if (Engine.CrcLive)
             {
-                // Both running: vPilot's fast data wins for the aircraft it covers, CRC fills in the rest.
+                // Both running: the source priority decides per aircraft (Settings › Data).
                 LinkText = $"CRC 1 Hz + {LinkText}";
                 LinkDetail = crcDetail + " " + LinkDetail;
                 Link = LinkHealth.Fast;
@@ -1533,6 +1566,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
 
         RefreshCrcStatus();
+        RefreshXPilotStatus();
         ScopeWarning = BuildScopeWarning(now);
         int real = Engine.Targets.Count(t => !t.IsSimulated);
         int sim = Engine.Targets.Count - real;
