@@ -1504,7 +1504,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private void TowerRequest(SimAircraft ac, LandingIntent intent, bool spoken)
     {
         if (Engine.Runway is not { } rw) return;
-        if (!spoken) Log("FINAL", TowerSim.RequestText(ac.Callsign, ac.RangeFt / Units.FeetPerNm, intent));
+        if (!spoken) Log("FINAL", TowerSim.RequestText(ac.Callsign, ac.RangeFt / Units.FeetPerNm, intent, asRequest: Random.Shared.Next(2) == 0));
         TowerIntent = intent;
         bool occupied = Engine.Training.Aircraft.Any(a => a != ac && a.Landed && !a.Finished);
         Reply("LOCAL", _tower.Request(ac.Callsign, intent, rw.RunwayId, occupied));

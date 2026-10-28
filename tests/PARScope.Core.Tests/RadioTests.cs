@@ -529,6 +529,9 @@ public class RadioTests
         Assert.Equal("Local, final, request touch and go, Navy one two three four, three miles.", TowerSim.RequestText("VV1234", 3.1, LandingIntent.TouchAndGo));
         Assert.Equal(LandingIntent.FullStop, Interphone.Parse(TowerSim.RequestText("VV1234", 5.4, LandingIntent.FullStop))!.Intent);
         Assert.Equal(LandingIntent.Option, Interphone.Parse(TowerSim.RequestText("VV1234", 5.4, LandingIntent.Option))!.Intent);
+        // The other wording, by position and intent.
+        Assert.Equal("Local, final, Navy one two three four, five mile final, full stop.", TowerSim.RequestText("VV1234", 5.4, LandingIntent.FullStop, asRequest: false));
+        Assert.Equal(LandingIntent.TouchAndGo, Interphone.Parse(TowerSim.RequestText("VV1234", 5.4, LandingIntent.TouchAndGo, asRequest: false))!.Intent);
         Assert.Equal(TowerAnswer.Cleared, tower.AnswerFor("VV1234"));
         Assert.Contains("continue", tower.Request("VM4685", LandingIntent.TouchAndGo, "24R", true));
         Assert.True(Phraseology.Parse("wind 300 at 9, runway 24 right, cleared to land").ClearedToLand);

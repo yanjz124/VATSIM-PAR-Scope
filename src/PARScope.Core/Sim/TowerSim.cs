@@ -29,12 +29,22 @@ public sealed class TowerSim
     }
 
     /// <summary>
-    /// The final controller's interphone request, as shown/spoken, worded as a US Army GCA controller does:
-    /// "Local, final, request landing clearance, Army two zero one niner zero, five and a half miles."
-    /// On the landline tower is "local".
+    /// The final controller's interphone request, as shown/spoken, in one of two wordings: as a request, the way a
+    /// US Army GCA controller does ("Local, final, request landing clearance, Army two zero one niner zero, five
+    /// and a half miles"), or by position and intent ("Local, final, Army two zero one niner zero, six mile
+    /// final, full stop"). On the landline tower is "local".
     /// </summary>
-    public static string RequestText(string callsign, double rangeNm, LandingIntent intent) =>
-        $"Local, final, request {RequestWords(intent)}, {RadioSpeech.Callsign(callsign)}, {Miles(rangeNm)}.";
+    public static string RequestText(string callsign, double rangeNm, LandingIntent intent, bool asRequest = true) => asRequest
+        ? $"Local, final, request {RequestWords(intent)}, {RadioSpeech.Callsign(callsign)}, {Miles(rangeNm)}."
+        : $"Local, final, {RadioSpeech.Callsign(callsign)}, {RadioSpeech.Digits(Math.Max(1, (int)Math.Round(rangeNm)).ToString())} mile final, {IntentWords(intent)}.";
+
+    private static string IntentWords(LandingIntent intent) => intent switch
+    {
+        LandingIntent.TouchAndGo => "touch and go",
+        LandingIntent.LowApproach => "low approach",
+        LandingIntent.Option => "option",
+        _ => "full stop",
+    };
 
     /// <summary>"five miles", "five and a half miles", "one mile": to the nearest half mile.</summary>
     private static string Miles(double nm)

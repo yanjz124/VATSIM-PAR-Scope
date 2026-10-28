@@ -94,6 +94,8 @@ public sealed partial class AiFinalController
 
 
     private bool _landlineBusy;
+    /// <summary>Picks between wordings that controllers use interchangeably.</summary>
+    private readonly Random _rng = new();
 
     private Progress For(SimAircraft ac)
     {
@@ -128,7 +130,7 @@ public sealed partial class AiFinalController
             && (double.IsNaN(p.TowerRequestedAt) || t.Tower == TowerAnswer.Continue && now - p.TowerRequestedAt >= 15))
         {
             p.TowerRequestedAt = now;
-            return new AiCall(ac.Callsign, TowerSim.RequestText(ac.Callsign, adv.Deviation.RangeNm, Intent), true);
+            return new AiCall(ac.Callsign, TowerSim.RequestText(ac.Callsign, adv.Deviation.RangeNm, Intent, asRequest: _rng.Next(2) == 0), true);
         }
         return null;
     }
