@@ -205,6 +205,10 @@
                                     <ColumnDefinition Width="8" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
                                 <StackPanel>
                                     <TextBlock Text="Pilot voice" Style="{StaticResource MetricLabel}" />
                                     <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding VoiceNames}" SelectedItem="{Binding PilotVoiceName}" />
@@ -217,11 +221,16 @@
                                     <TextBlock Text="Approach voice" Style="{StaticResource MetricLabel}" />
                                     <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding VoiceNames}" SelectedItem="{Binding ApproachVoiceName}" />
                                 </StackPanel>
+                                <StackPanel Grid.Row="1" Margin="0,6,0,0">
+                                    <TextBlock Text="AI final voice" Style="{StaticResource MetricLabel}" />
+                                    <ComboBox IsSynchronizedWithCurrentItem="False" ItemsSource="{Binding VoiceNames}" SelectedItem="{Binding FinalVoiceName}"
+                                              ToolTip="The AI final controller (Training traffic › AI works final)" />
+                                </StackPanel>
                             </Grid>
                             <ui:ToggleSwitch IsChecked="{Binding VaryPilotVoices}" OnContent="Each pilot has their own voice" OffContent="Each pilot has their own voice" Margin="0,0,0,6" />
                             <ui:ToggleSwitch IsChecked="{Binding RadioEffectEnabled}" OnContent="Radio effect (band-limited, squelch)" OffContent="Radio effect (band-limited, squelch)" Margin="0,0,0,8" />
                             <ui:Button Content="{Binding TestVoicesText}" Icon="{ui:SymbolIcon Speaker224}" Command="{Binding TestVoicesCommand}" Margin="0,0,0,14"
-                                       ToolTip="Plays a pilot, tower and approach line; click again to stop" />
+                                       ToolTip="Plays a pilot, tower, approach and AI final line; click again to stop" />
                             <TextBlock Text="Push-to-talk key" Style="{StaticResource MetricLabel}" />
                             <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                 <ui:Button x:Name="PttButton" Content="{Binding PttKeyText}" MinWidth="120" Click="PttButton_Click"

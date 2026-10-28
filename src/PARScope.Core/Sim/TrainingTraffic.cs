@@ -177,7 +177,10 @@ public sealed class TrainingTraffic
         (AircraftPerformance.Find(type)?.ApproachSpeedKt ?? 130) + _rng.Next(0, 9);
 
     private readonly List<SimAircraft> _aircraft = [];
-    private readonly Random _rng = new();
+    private readonly Random _rng;
+
+    /// <param name="seed">Repeatable traffic (tests); null = different every time.</param>
+    public TrainingTraffic(int? seed = null) => _rng = seed is int s ? new Random(s) : new Random();
     private double _lastStep = double.NaN;
     private double _lastReport;
 

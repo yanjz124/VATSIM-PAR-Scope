@@ -770,7 +770,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private void SpawnTraining()
     {
         if (Engine.Geometry == null || Engine.Runway is not { } rw) { StatusMessage = "Select a runway first"; return; }
-        var ac = Engine.Training.SpawnRandom(SpawnSelfFlying ? PilotMode.SelfFlying : PilotMode.ControllerDirected,
+        // With the AI working final, the pilot is talked down like any controller-directed arrival.
+        var ac = Engine.Training.SpawnRandom(SpawnSelfFlying && !AiFinal ? PilotMode.SelfFlying : PilotMode.ControllerDirected,
             string.IsNullOrWhiteSpace(SpawnCallsign) ? null : SpawnCallsign, string.IsNullOrWhiteSpace(SpawnType) ? null : SpawnType);
         var perf = AircraftPerformance.Find(ac.TypeCode);
         StatusMessage = $"{ac.Callsign} ({ac.TypeCode}{(perf != null ? $", cat {perf.ApproachCategory}" : ", type not in FAA database")}, {ac.SpeedKt:0} kt) handed off {ac.RangeFt / Units.FeetPerNm:0.0} NM out";
@@ -847,6 +848,61 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         get => _settings.TrainingReturnForAnother;
         set { _settings.TrainingReturnForAnother = value; Engine.Training.ReturnForAnotherApproach = value; OnPropertyChanged(); }
+    }
+
+    // ---- AI final controller -------------------------------------------------------------------
+
+    private readonly AiFinalController _ai = new();
+
+    /// <summary>An AI works the final position for the training arrivals: watch it, or take over by turning it off.</summary>
+    public bool AiFinal
+    {
+        get => _settings.AiFinalController;
+        set
+        {
+            _settings.AiFinalController = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(SelfFlyingChoiceEnabled));
+            StatusMessage = value ? "AI final controller on: it works the training arrivals" : "AI final controller off: the position is yours";
+            _session.Write(value ? "AI FINAL ON" : "AI FINAL OFF");
+        }
+    }
+
+    /// <summary>With the AI on final the pilots are always talked down.</summary>
+    public bool SelfFlyingChoiceEnabled => !AiFinal;
+
+    /// <summary>
+    /// A few times a second with the AI on: its next call, if one is due, said in its own voice and then fed in
+    /// exactly as if you had said it (so pilots, tower, approach, the log and the grade all treat it the same).
+    /// </summary>
+    private void RunAiFinal()
+    {
+        if (!AiFinal || !TrainingMode || Engine.Training.Paused || Engine.Runway is not { } rw || Engine.Geometry is not { } geo) return;
+        _ai.Facility = FacilityName;
+        _ai.RunwayId = rw.RunwayId;
+        _ai.CourseMagDeg = rw.MagneticCourseDeg;
+        _ai.ThresholdElevFt = rw.ThresholdElevFt;
+        _ai.MissedClimbMslFt = MissedClimbMsl;
+        _ai.WindPhrase = MetarWindPhrase.ToLowerInvariant();
+        _ai.Intent = TowerIntent;
+        _ai.Geometry = geo;
+        var traffic = new List<AiTraffic>();
+        foreach (var a in Engine.Training.Aircraft.Where(a => a.Mode == PilotMode.ControllerDirected && !a.Finished))
+        {
+            RadarTrack? tr = Engine.Radar is { } radar && radar.Tracks.TryGetValue(a.Callsign, out var t) && t.IsCorrelated && !t.IsCoasting ? t : null;
+            var adv = tr == null || Engine.Radar is null ? null
+                : AdvisoryEngine.Evaluate(tr, geo, Engine.Radar.Preset, _settings.Bands, rw.MagneticCourseDeg, KnownHeadingMag(a.Callsign, rw), a.GearReportedDown);
+            traffic.Add(new AiTraffic(a, adv, _approach.IsPending(a.Callsign), _tower.AnswerFor(a.Callsign), _tower.IntentFor(a.Callsign),
+                _approach.IsCoordinated(a.Callsign), tr));
+        }
+        if (_ai.Next(traffic, Engine.Training.SimTime, _voice.RadioBusy, _voice.LandlineBusy) is not { } call) return;
+        var ac = Engine.Training.Find(call.Callsign);
+        bool opens = call.Landline && !call.Text.Contains("radar contact", StringComparison.OrdinalIgnoreCase);
+        _voice.Final(call.Text, call.Landline, opens, onDone: OnUi(() =>
+        {
+            // Once said it was heard, even if the AI was turned off while it spoke.
+            if (ac != null && Engine.Training.Find(ac.Callsign) == ac) ProcessTransmission(call.Text, "AI final", call.Landline ? null : ac);
+        }));
     }
 
     /// <summary>Approach repeats a handoff final has not answered.</summary>
@@ -1004,6 +1060,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public IReadOnlyList<VoiceEngineOption> VoiceEngines => VoiceEngineOption.All;
     [ObservableProperty] public partial VoiceEngineOption? SelectedVoiceEngine { get; set; }
     [ObservableProperty] public partial string? ApproachVoiceName { get; set; }
+    [ObservableProperty] public partial string? FinalVoiceName { get; set; }
     [ObservableProperty] public partial string VoiceEngineStatus { get; set; } = "";
     private bool _loadingVoices;
 
@@ -1044,6 +1101,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         PilotVoiceName = keepSavedVoices && _settings.PilotVoice is { } pv && VoiceNames.Contains(pv) ? pv : _voice.PilotVoice;
         TowerVoiceName = keepSavedVoices && _settings.TowerVoice is { } tv && VoiceNames.Contains(tv) ? tv : _voice.TowerVoice;
         ApproachVoiceName = keepSavedVoices && _settings.ApproachVoice is { } av && VoiceNames.Contains(av) ? av : _voice.ApproachVoice;
+        FinalVoiceName = keepSavedVoices && _settings.FinalVoice is { } fv && VoiceNames.Contains(fv) ? fv : _voice.FinalVoice;
         _loadingVoices = false;
     }
 
@@ -1091,6 +1149,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     partial void OnPilotVoiceNameChanged(string? value) { if (value == null) return; _settings.PilotVoice = value; _voice.PilotVoice = value; }
     partial void OnTowerVoiceNameChanged(string? value) { if (value == null) return; _settings.TowerVoice = value; _voice.TowerVoice = value; }
     partial void OnApproachVoiceNameChanged(string? value) { if (value == null) return; _settings.ApproachVoice = value; _voice.ApproachVoice = value; }
+    partial void OnFinalVoiceNameChanged(string? value) { if (value == null) return; _settings.FinalVoice = value; _voice.FinalVoice = value; }
 
     /// <summary>The voice test is playing; the button then stops it.</summary>
     [ObservableProperty] public partial bool TestingVoices { get; set; }
@@ -1113,6 +1172,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         // One after another for the test, rather than tower and approach on the landline over the pilots.
         _voice.Tower("Navy one two three four, runway two four right, cleared to land.", landline: false);
         _voice.Approach("Final, approach, handoff, one two mile final, Reach four eight one, three thousand.", landline: false);
+        _voice.Final("Slightly above glidepath and coming down, on course. Three miles from touchdown.", landline: false, opensCall: false);
     }
 
     // ---- Keyboard calls (training) -------------------------------------------------------------
@@ -1615,7 +1675,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
 
         RefreshSelection();
-        if (HasTraining) { SnapshotTraining(); RepeatUnansweredHandoffs(); }
+        if (HasTraining) { SnapshotTraining(); RepeatUnansweredHandoffs(); RunAiFinal(); }
         HandOffReturningAircraft();
         foreach (var (cs, text) in Engine.Training.TakePilotCalls()) PilotSays(cs, text);
         foreach (var (cs, text) in Engine.Training.TakeResults())

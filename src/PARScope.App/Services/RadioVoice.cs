@@ -16,7 +16,7 @@ namespace PARScope.App.Services;
 /// </summary>
 public sealed class RadioVoice : IDisposable
 {
-    private sealed record Line(Task<(float[] Samples, int Rate)> Audio, DateTime Due, Action? OnStart, int Generation);
+    private sealed record Line(Task<(float[] Samples, int Rate)> Audio, DateTime Due, Action? OnStart, int Generation, Action? OnDone = null);
 
     private sealed class Lane(bool pausesForTransmit)
     {
@@ -24,6 +24,9 @@ public sealed class RadioVoice : IDisposable
         public readonly bool PausesForTransmit = pausesForTransmit;
         public volatile WasapiOut? Current;
         public volatile bool Playing;
+        /// <summary>Lines "said" with the voices off, still taking their time.</summary>
+        public int Silent;
+        public bool Busy => Playing || Queue.Reader.Count > 0 || Volatile.Read(ref Silent) > 0;
     }
 
     /// <summary>Lines queued before the last <see cref="StopAll"/> are dropped.</summary>
@@ -48,6 +51,11 @@ public sealed class RadioVoice : IDisposable
     public string? PilotVoice { get; set; }
     public string? TowerVoice { get; set; }
     public string? ApproachVoice { get; set; }
+    /// <summary>The AI final controller.</summary>
+    public string? FinalVoice { get; set; }
+    /// <summary>Something is queued or playing on the final frequency, or on the landline.</summary>
+    public bool RadioBusy => _radio.Busy;
+    public bool LandlineBusy => _landline.Busy;
     /// <summary>Each pilot gets their own voice, picked from the callsign.</summary>
     public bool VaryPilotVoices { get; set; } = true;
     public bool RadioEffectEnabled { get; set; } = true;
@@ -63,6 +71,7 @@ public sealed class RadioVoice : IDisposable
         PilotVoice = engine.DefaultPilot;
         TowerVoice = engine.DefaultTower;
         ApproachVoice = engine.DefaultApproach;
+        FinalVoice = engine.Voices.FirstOrDefault(v => v != PilotVoice && v != TowerVoice && v != ApproachVoice) ?? ApproachVoice;
         old.Dispose();
     }
 
@@ -76,25 +85,42 @@ public sealed class RadioVoice : IDisposable
         Enqueue(landline ? _landline : _radio, text, TowerVoice, delaySec, onStart, opensCall);
     public void Approach(string text, double delaySec = 0, Action? onStart = null, bool landline = true, bool opensCall = false) =>
         Enqueue(landline ? _landline : _radio, text, ApproachVoice, delaySec, onStart, opensCall);
+    /// <summary>
+    /// The AI final controller, on the final frequency or (<paramref name="landline"/>) calling tower or approach.
+    /// <paramref name="onDone"/> runs once it has been said, as when the controller lets go of push-to-talk.
+    /// <paramref name="opensCall"/>: a landline call final starts (not an answer to approach's), so the tone plays first.
+    /// </summary>
+    public void Final(string text, bool landline, bool opensCall, Action? onStart = null, Action? onDone = null) =>
+        Enqueue(landline ? _landline : _radio, text, FinalVoice, 0, onStart, landline && opensCall, onDone);
 
-    /// <summary>The voice a pilot speaks with: their own (stable per callsign, never tower's or approach's), or the chosen pilot voice.</summary>
+    /// <summary>The voice a pilot speaks with: their own (stable per callsign, never a controller's), or the chosen pilot voice.</summary>
     private string? PilotVoiceFor(string? callsign)
     {
         if (!VaryPilotVoices || callsign == null) return PilotVoice;
-        var pool = Voices.Where(v => v != TowerVoice && v != ApproachVoice).ToList();
+        var pool = Voices.Where(v => v != TowerVoice && v != ApproachVoice && v != FinalVoice).ToList();
         if (pool.Count == 0) return PilotVoice;
         uint h = 2166136261;
         foreach (char c in callsign.ToUpperInvariant()) h = (h ^ c) * 16777619;
         return pool[(int)(h % (uint)pool.Count)];
     }
 
-    private void Enqueue(Lane lane, string text, string? voice, double delaySec, Action? onStart, bool opensCall = false)
+    private void Enqueue(Lane lane, string text, string? voice, double delaySec, Action? onStart, bool opensCall = false, Action? onDone = null)
     {
         var due = DateTime.UtcNow.AddSeconds(delaySec);
         if (!Enabled || Voices.Count == 0)
         {
-            // Silent: still report the line when it would have been heard.
+            // Silent: still report the line when it would have been heard, and take about as long as saying it.
             if (onStart != null) _ = Task.Delay(TimeSpan.FromSeconds(delaySec)).ContinueWith(_ => onStart());
+            if (onDone != null)
+            {
+                Interlocked.Increment(ref lane.Silent);
+                double speak = text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length / 2.8;
+                _ = Task.Delay(TimeSpan.FromSeconds(delaySec + speak)).ContinueWith(_ =>
+                {
+                    Interlocked.Decrement(ref lane.Silent);
+                    onDone();
+                });
+            }
             return;
         }
         var engine = _engine;
@@ -108,7 +134,7 @@ public sealed class RadioVoice : IDisposable
             if (tone) s = [.. TelephoneEffect.OverrideTone(rate), .. s];
             return (s, rate);
         });
-        lane.Queue.Writer.TryWrite(new Line(audio, due, onStart, _generation));
+        lane.Queue.Writer.TryWrite(new Line(audio, due, onStart, _generation, onDone));
     }
 
     /// <summary>Stops what is playing and drops everything queued.</summary>
@@ -147,11 +173,13 @@ public sealed class RadioVoice : IDisposable
                 if (line.Generation != _generation) continue;
                 line.OnStart?.Invoke();
                 await PlayAsync(lane, samples, rate, _cts.Token);
+                line.OnDone?.Invoke();
             }
             catch (OperationCanceledException) { break; }
             catch (Exception ex) when (ex is InvalidOperationException or System.Runtime.InteropServices.COMException or IOException)
             {
                 line.OnStart?.Invoke();
+                line.OnDone?.Invoke();
             }
             finally
             {

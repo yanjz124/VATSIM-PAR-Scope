@@ -31,6 +31,8 @@ public sealed class AppSettings
     public string? PilotVoice { get; set; }
     public string? TowerVoice { get; set; }
     public string? ApproachVoice { get; set; }
+    /// <summary>Voice of the AI final controller.</summary>
+    public string? FinalVoice { get; set; }
     /// <summary>Speech engine for pilot/tower/approach voices (see VoiceEngineOption.All).</summary>
     public string VoiceEngine { get; set; } = "windows";
     /// <summary>Each pilot speaks with their own voice.</summary>
@@ -57,6 +59,8 @@ public sealed class AppSettings
     public bool TrainingReturnForAnother { get; set; } = true;
     /// <summary>Where approach hands arrivals over: FinalOnly, Mixed or BaseAndDogleg (HandoffMix).</summary>
     public string TrainingHandoffs { get; set; } = "FinalOnly";
+    /// <summary>An AI final controller works the training arrivals while you watch. Opt-in.</summary>
+    public bool AiFinalController { get; set; }
     /// <summary>Record received traffic to CSV for update-rate diagnostics.</summary>
     public bool RecordTraffic { get; set; } = true;
     public string? AirportId { get; set; }

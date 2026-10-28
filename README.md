@@ -51,6 +51,8 @@ Public information on these radars is scarce, so much of it is a best guess (see
   the landline: an override tone, then a telephone-line voice, which your push-to-talk does not block.
 * Every call and coordination has a hotkey and a button, so you can run a session without talking or
   typing. Keys can be changed.
+* Or watch: an **AI final controller** can work the arrivals in its own voice, from the handoff to
+  the landing or missed approach, coordination included. Turn it off at any point to take over.
 * Every session is logged so you can review the talk-down afterwards.
 
 With **Training** off it is a plain scope: no suggested calls and nothing simulated.
@@ -179,8 +181,8 @@ Arrivals fly in the live METAR wind (**Settings › Training** for a random one)
 realistic (Navy, Marine, Reach, squadron callsigns from the
 [Military Callsign List](https://henney.com/chm/callsign.htm)); approach speeds come from the FAA
 Aircraft Characteristics Database. Generated callsigns are always military, at most 5 characters on the
-radar (6 in **Settings › Training**; long callwords are shortened, BANSHEE21 → BNS21, but still spoken in
-full), and never a civil operator's designator. You can set your own callsign and ICAO type; a typed
+radar (6 in **Settings › Training**; long callwords are shortened to a form that still reads as the word,
+BANSHEE21 → BNSH21, but are still spoken in full), and never a civil operator's designator. You can set your own callsign and ICAO type; a typed
 callsign with an ICAO three-letter designator is spoken with its telephony from FAA JO 7340.2 and the
 flight number in group form ("RPA4567": "Brickyard forty-five sixty-seven").
 
@@ -240,6 +242,24 @@ instead of the pilot. Wording can be loose; the aircraft is found by its callsig
   pattern (upwind, crosswind, downwind about 2½ NM abeam, base) and handed off to you again 11–13 NM out
   for another approach a few minutes later. They stay on the ASR the whole way. Full-stop
   landings end there. Turn this off in the Training traffic panel.
+
+### Watching the AI work final
+
+Turn on **AI works final** in the Training traffic panel and spawn arrivals. An AI final controller, in
+its own voice (**Settings › Audio › AI final voice**), runs the position the way you would:
+
+* accepts approach's handoff on the landline ("radar contact"), and after the pilot checks in gives the
+  approach brief (missed approach and lost communications instructions);
+* vectors arrivals handed over on a base leg or dogleg onto final, then gives the course and glidepath
+  calls the scope shows, with its own headings, about every five seconds: "approaching glidepath, wheels
+  should be down", "begin descent", "do not acknowledge further transmissions", a range call each mile,
+  decision altitude, approach lights and threshold;
+* asks local for the clearance about 6 miles out and relays it, then "contact tower after landing";
+* after a missed approach, hands the aircraft back to approach and switches the pilot.
+
+The pilots are talked down (not self-flying), so the AI's calls really fly the aircraft. Like a real
+talk-down, the odd approach ends in a go-around. Its calls go through the same log, pilot model and
+grade as yours. Turn it off at any point to take over the position.
 
 ### Keys
 

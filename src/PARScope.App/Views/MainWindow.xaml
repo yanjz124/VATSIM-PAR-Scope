@@ -310,7 +310,9 @@
                                              ToolTip="After a missed approach, touch and go or low approach, approach vectors the aircraft round (about 2 minutes) and hands it off to you again." />
                             <TextBlock Text="{Binding PatternText}" Style="{StaticResource MetricLabel}" Margin="0,0,0,8"
                                        TextTrimming="CharacterEllipsis" ToolTip="Aircraft being vectored round and the time until approach hands them off again." />
-                            <ui:ToggleSwitch IsChecked="{Binding SpawnSelfFlying}" OnContent="Pilot flies the approach by themselves" OffContent="Pilot flies the approach by themselves" ToolTip="Off: the pilot holds heading and altitude until you talk them down (a true PAR talk-down). On: the pilot flies the approach on their own, like a VATSIM pilot on the ILS." Margin="0,0,0,8" />
+                            <ui:ToggleSwitch IsChecked="{Binding SpawnSelfFlying}" IsEnabled="{Binding SelfFlyingChoiceEnabled}" OnContent="Pilot flies the approach by themselves" OffContent="Pilot flies the approach by themselves" ToolTip="Off: the pilot holds heading and altitude until you talk them down (a true PAR talk-down). On: the pilot flies the approach on their own, like a VATSIM pilot on the ILS." Margin="0,0,0,4" />
+                            <ui:ToggleSwitch IsChecked="{Binding AiFinal}" OnContent="AI works final (watch it)" OffContent="AI works final (watch it)" Margin="0,0,0,8"
+                                             ToolTip="An AI final controller works the arrivals in its own voice: accepts approach's handoff, briefs, talks the pilot down with headings and glidepath calls, gets tower's clearance, and coordinates a missed approach. The pilots are talked down (not self-flying). Turn it off at any point to take over." />
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
