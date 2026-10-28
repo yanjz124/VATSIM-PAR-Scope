@@ -449,7 +449,7 @@ public sealed class ParDisplayRenderer : IDisposable
 
         float w = new[] { line1, line2, line3 }.Max(s => _ink.Font.MeasureText(s)) + 2;
         float lineH = _ink.LineHeight, h = lineH * 3, top = _ink.Font.Size * 0.8f;
-        var box = _labels.Place(x, y, w, h);
+        var box = _labels.Place($"{scope}/{tr.Callsign}", x, y, w, h);
 
         float lx = box.MidX < x ? box.Right : box.Left;
         float ly = box.MidY < y ? box.Bottom - 3 : box.Top + 3;

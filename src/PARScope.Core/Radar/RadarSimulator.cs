@@ -136,6 +136,9 @@ public sealed class RadarSimulator
         {
             double since = now - tr.LastUpdate;
             if (since <= CoastAfterSec) { tr.Coast = CoastReason.None; continue; }
+            // One or two returns give no rate: such a track would coast frozen while the aircraft moves on,
+            // then jump when it is painted again. A tracker does not coast a track it never established.
+            if (tr.AzPaints + tr.ElPaints < 3) { _tracks.Remove(key); continue; }
             tr.Coast = DataLost ? CoastReason.DataLost
                 : !byCallsign.TryGetValue(key, out var t) || !t.IsReporting(now) ? CoastReason.SignalLost
                 : t.CoarseAltitude ? CoastReason.CoarseData

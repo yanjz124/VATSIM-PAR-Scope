@@ -114,6 +114,33 @@ public class CoastingTests
     }
 
     [Fact]
+    public void A_target_along_the_sector_edge_stays_near_its_true_position()
+    {
+        // Inbound along the azimuth sector edge (in, out, in again), with measurement errors on: the track is
+        // lost and rebuilt; it must never be drawn far from where the aircraft is.
+        var rig = new Rig();
+        rig.Radar.SimulateErrors = true;
+        double worst = 0;
+        double edgeDeg = RadarPreset.Fpn68.AzRightDeg;
+        for (; rig.T <= 90; rig.T += 0.05)
+        {
+            double range = 5 * Nm - 140 * Nm / 3600 * rig.T;
+            // Weave across the sector edge by about ±0.6°.
+            double az = edgeDeg + 0.6 * Math.Sin(rig.T / 6);
+            var pAz = rig.Geo.FromPolar(new RadarPolar(range, az, 2.5));
+            if (Math.Abs(rig.T - Math.Round(rig.T)) < 0.025)
+                rig.Store.Apply(new PositionReport("RCH481", rig.T, ReportSource.Crc, Wgs84.FromEcef(rig.Geo.ToEcef(pAz)), GroundSpeedKt: 140));
+            rig.Radar.Advance(rig.T, rig.Store.Snapshot(rig.T));
+            if (rig.Track is { } tr && tr.HasAzimuth)
+            {
+                var (r, cross) = tr.DisplayAt(ScopeKind.Azimuth, rig.T, RadarPreset.Fpn68.AzScanSec);
+                worst = Math.Max(worst, Math.Abs(r - pAz.RangeFt));
+            }
+        }
+        Assert.True(worst < 0.25 * Nm, $"drawn up to {worst / Nm:0.00} NM from the aircraft");
+    }
+
+    [Fact]
     public void A_dropped_aircraft_disappears_without_coasting()
     {
         var rig = new Rig();

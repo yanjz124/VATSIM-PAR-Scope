@@ -22,4 +22,27 @@ public class ItuDigitTests
         Assert.True(Phraseology.Parse("NINER MILES FROM TOUCHDOWN").RangeInfo);
         Assert.Equal(3000, Phraseology.Parse("CLIMB AND MAINTAIN TREE THOUSAND").ClimbToFt);
     }
+
+    [Theory]
+    // From a real session.
+    [InlineData("CONVOY FOUR SEVEN TURN RIGHT HEADING ZERO NINE OR ZERO.", 90)]
+    [InlineData("HEADING ZERO MINOR ZERO.", 90)]
+    public void Niner_as_whisper_writes_it(string said, double heading) =>
+        Assert.Equal(heading, Phraseology.Parse(said).HeadingDeg);
+
+    [Theory]
+    [InlineData("SEVEN MILES FROM TUXDOWNE.")]
+    [InlineData("SIX MILES FROM TUCHAHOU.")]
+    [InlineData("SEVEN MILES FROM A TOUCHDOWN.")]
+    public void Range_calls_with_a_mangled_touchdown(string said) => Assert.True(Phraseology.Parse(said).RangeInfo, said);
+
+    [Theory]
+    [InlineData("WILD LEFT THE COURSE IN CORRECTING.", "WELL LEFT OF COURSE")]
+    [InlineData("WHILE RED COURSE AND CORRECTING SLOWLY.", "WELL RIGHT OF COURSE")]
+    [InlineData("WELL LEFT THE COURSE IN CORRECTING.", "WELL LEFT OF COURSE")]
+    public void Well_left_and_right_as_whisper_writes_them(string said, string course) =>
+        Assert.Equal(course, Phraseology.Parse(said).CourseCall);
+
+    [Fact]
+    public void Degrees_as_doers() => Assert.Equal(-2, Phraseology.Parse("TURN TWO DOERS LEFT.").TurnByDeg);
 }

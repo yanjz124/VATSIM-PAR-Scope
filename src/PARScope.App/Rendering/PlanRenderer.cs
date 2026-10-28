@@ -164,7 +164,7 @@ public sealed class PlanRenderer : IDisposable
             string alt = s.Coast ? "CST" : $"{Math.Max(0, modeC) / 100:000}";
             string line2 = typePhase && track?.TypeCode is { Length: > 0 } type ? $"{alt} {type}" : $"{alt} {gs / 10:00}";
             float bw = Math.Max(_ink.Font.MeasureText(s.Callsign), _ink.Font.MeasureText(line2)) + 2;
-            var box = _labels.Place(s.Pt.X, s.Pt.Y, bw, lineH * 2 + 2);
+            var box = _labels.Place(s.Callsign, s.Pt.X, s.Pt.Y, bw, lineH * 2 + 2);
             float lx = box.MidX < s.Pt.X ? box.Right : box.Left, ly = box.MidY < s.Pt.Y ? box.Bottom - 4 : box.Top + 4;
             c.DrawLine(s.Pt.X, s.Pt.Y, lx, ly, _ink.Line(col, 1f));
             c.DrawText(s.Callsign, box.Left + 1, box.Top + top, SKTextAlign.Left, _ink.Font, _ink.TextPaint(col));

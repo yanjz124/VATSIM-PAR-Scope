@@ -249,7 +249,8 @@ public static partial class Phraseology
     public static string Normalize(string text)
     {
         // "2,000" from speech engines is one number, not "2 000".
-        var words = PunctRx().Replace(ThousandsCommaRx().Replace(text.ToLowerInvariant(), ""), " ").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        string lower = MisheardNinerRx().Replace(text.ToLowerInvariant(), "niner");
+        var words = PunctRx().Replace(ThousandsCommaRx().Replace(lower, ""), " ").Split(' ', StringSplitOptions.RemoveEmptyEntries);
         var outWords = new List<string>();
         var run = new System.Text.StringBuilder();
         foreach (var w in words)
@@ -278,7 +279,13 @@ public static partial class Phraseology
         (" decline ", " the glide "), (" arm glide", " on glide"), (" unglide ", " on glide "), (" unglyde ", " on glide "),
         (" i m glide ", " on glide "), (" im glide ", " on glide "), (" a public ", " above the "), (" above the light ", " above the glide "),
         (" slowly left ", " slightly left "), (" slowly right ", " slightly right "),
+        (" wild left ", " well left "), (" wild right ", " well right "), (" while left ", " well left "), (" while right ", " well right "),
+        (" while red ", " well right "), (" red course ", " right course "), (" red of course ", " right of course "),
+        (" doers ", " degrees "),
     ];
+
+    /// <summary>"Niner" as Whisper sometimes writes it, between digits: "zero nine or zero", "zero minor zero".</summary>
+    [GeneratedRegex(@"(?<=\b(?:zero|one|two|three|tree|four|five|fife|six|seven|eight|nine|niner|\d) )(?:nine or|minor|nina)(?= (?:zero|one|two|three|tree|four|five|fife|six|seven|eight|nine|niner|\d)\b)")] private static partial Regex MisheardNinerRx();
 
     [GeneratedRegex(@"[^a-z0-9 ]")] private static partial Regex PunctRx();
     [GeneratedRegex(@"\bdisregard(?: (?:that|the last|my last|last)(?: transmission| instruction| heading)?)?\b")] private static partial Regex DisregardRx();
@@ -326,7 +333,7 @@ public static partial class Phraseology
     [GeneratedRegex(@"\bthis will be a (?:p a r|par|precision|copter p a r)\b")] private static partial Regex BriefRx();
     // Range calls end in "touchdown", which survives even when the number and "miles" do not ("fire mode from
     // touchdown", "three muslim touch step", "one moven touch out").
-    [GeneratedRegex(@"\b(?:\d+ (?:and (?:one )?half )?miles? from touchdown|(?:from )?touch ?(?:down|out|step|town)\b(?! zone)|\bfrom (?:the )?touch\b(?! and go)|over (?:the )?approach lights|over (?:the )?landing threshold|(?:at )?decision (?:altitude|height))\b")] private static partial Regex RangeInfoRx();
+    [GeneratedRegex(@"\b(?:\d+ (?:and (?:one )?half )?miles? from touchdown|(?:from )?touch ?(?:down|out|step|town)\b(?! zone)|\b\d+ miles? from (?:a |the )?t[aou][a-z]*\b|\bfrom (?:the )?touch\b(?! and go)|over (?:the )?approach lights|over (?:the )?landing threshold|(?:at )?decision (?:altitude|height))\b")] private static partial Regex RangeInfoRx();
     // "climb and maintain 2 thousand 5 hundred" after digit merging, or "climb and maintain 2500".
     // "climb and maintain", and "climb maintain" as recognizers often hear it.
     [GeneratedRegex(@"\bclimb (?:(?:and )?maintain |to )?(?<a>\d+)(?: (?<k>thousand))?(?: (?<h>\d) hundred)?\b")] private static partial Regex ClimbRx();

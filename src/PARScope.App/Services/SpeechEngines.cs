@@ -253,6 +253,27 @@ public static class TelephoneEffect
         return x;
     }
 
+    /// <summary>
+    /// The alert before an override call on the voice switch: two short 1,400 Hz beeps, then a short gap before the
+    /// caller speaks. A stand-in in the RDVS style; the exact RDVS/vCCS tone is not published.
+    /// </summary>
+    public static float[] OverrideTone(int rate)
+    {
+        const double freq = 1400, beep = 0.08, gap = 0.06, after = 0.15, level = 0.35, ramp = 0.005;
+        int n = (int)(rate * (2 * beep + gap + after));
+        var x = new float[n];
+        foreach (double start in new[] { 0.0, beep + gap })
+        {
+            int a = (int)(start * rate), len = (int)(beep * rate), r = Math.Max(1, (int)(ramp * rate));
+            for (int i = 0; i < len && a + i < n; i++)
+            {
+                double env = Math.Min(1, Math.Min(i, len - 1 - i) / (double)r); // short ramps: no clicks
+                x[a + i] = (float)(level * env * Math.Sin(2 * Math.PI * freq * i / rate));
+            }
+        }
+        return x;
+    }
+
     /// <summary>Round trip through 8-bit μ-law (G.711), the telephone network's coding.</summary>
     private static float MuLaw(float s)
     {

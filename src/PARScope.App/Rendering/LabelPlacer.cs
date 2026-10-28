@@ -5,12 +5,14 @@ namespace PARScope.App.Rendering;
 /// <summary>
 /// Greedy data-block placement: each label tries positions around its target (NE, SE, NW, SW, then
 /// progressively farther out) and takes the first that collides with nothing already placed and
-/// stays on the scope. If every candidate collides, the least-overlapping one wins.
+/// stays on the scope. If every candidate collides, the least-overlapping one wins. A label keyed to a target
+/// keeps last frame's position while it still fits, so it does not hop between spots as targets move.
 /// </summary>
 internal sealed class LabelPlacer
 {
     private const float Gap = 10, Step = 14;
     private readonly List<SKRect> _taken = [];
+    private readonly Dictionary<string, SKPoint> _lastOffset = [];
     private SKRect _bounds;
 
     public void Reset(SKRect bounds)
@@ -20,6 +22,23 @@ internal sealed class LabelPlacer
     }
 
     public void Reserve(SKRect r) => _taken.Add(r);
+
+    /// <summary>Places a label for <paramref name="key"/>, keeping its previous spot (relative to the target) if that still fits.</summary>
+    public SKRect Place(string key, float x, float y, float w, float h)
+    {
+        if (_lastOffset.TryGetValue(key, out var o))
+        {
+            var keep = SKRect.Create(x + o.X, y + o.Y, w, h);
+            if (_bounds.Contains(keep) && !_taken.Any(t => !SKRect.Intersect(keep, t).IsEmpty))
+            {
+                _taken.Add(keep);
+                return keep;
+            }
+        }
+        var r = Place(x, y, w, h);
+        _lastOffset[key] = new SKPoint(r.Left - x, r.Top - y);
+        return r;
+    }
 
     public SKRect Place(float x, float y, float w, float h)
     {

@@ -101,6 +101,8 @@ public sealed class RadioVoice : IDisposable
             var (s, rate) = engine.Synthesize(text, voice ?? engine.DefaultPilot);
             // The landline sounds like a telephone line, not a radio.
             if (effect) s = phone ? TelephoneEffect.Apply(s, rate) : RadioEffect.Apply(s, rate, text.GetHashCode());
+            // A landline call opens with the voice switch's override tone.
+            if (phone) s = [.. TelephoneEffect.OverrideTone(rate), .. s];
             return (s, rate);
         });
         lane.Queue.Writer.TryWrite(new Line(audio, due, onStart, _generation));
