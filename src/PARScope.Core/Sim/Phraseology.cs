@@ -282,6 +282,9 @@ public static partial class Phraseology
         (" wild left ", " well left "), (" wild right ", " well right "), (" while left ", " well left "), (" while right ", " well right "),
         (" while red ", " well right "), (" red course ", " right course "), (" red of course ", " right of course "),
         (" doers ", " degrees "),
+        (" study above ", " slightly above "), (" study below ", " slightly below "), (" study left ", " slightly left "), (" study right ", " slightly right "),
+        (" slowly above ", " slightly above "), (" slowly below ", " slightly below "),
+        (" climbing tank ", " climb and maintain "), (" climb in maintain ", " climb and maintain "), (" climbing maintain ", " climb and maintain "),
     ];
 
     /// <summary>"Niner" as Whisper sometimes writes it, between digits: "zero nine or zero", "zero minor zero".</summary>
@@ -337,7 +340,7 @@ public static partial class Phraseology
     // "climb and maintain 2 thousand 5 hundred" after digit merging, or "climb and maintain 2500".
     // "climb and maintain", and "climb maintain" as recognizers often hear it.
     [GeneratedRegex(@"\bclimb (?:(?:and )?maintain |to )?(?<a>\d+)(?: (?<k>thousand))?(?: (?<h>\d) hundred)?\b")] private static partial Regex ClimbRx();
-    [GeneratedRegex(@"\b(?:wheels|gear) should be down\b|\bcheck (?:wheels|gear) down\b")] private static partial Regex WheelsRx();
+    [GeneratedRegex(@"\b(?:wheels|gears?) should be down\b|\bcheck (?:wheels|gears?) down\b")] private static partial Regex WheelsRx();
     [GeneratedRegex(@"\b(?:contact|switch to|monitor) (?:approach|departure|arrival|radar)\b")] private static partial Regex ContactRx();
     // "clear to land" as recognizers often drop the "-ed".
     [GeneratedRegex(@"\bclear(?:ed)? (?:to land|for (?:the )?option|touch and go|low approach)\b")] private static partial Regex ClearedRx();

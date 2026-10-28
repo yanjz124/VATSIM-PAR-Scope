@@ -45,4 +45,17 @@ public class ItuDigitTests
 
     [Fact]
     public void Degrees_as_doers() => Assert.Equal(-2, Phraseology.Parse("TURN TWO DOERS LEFT.").TurnByDeg);
+
+    [Fact]
+    public void Session_four_lines()
+    {
+        // "Approaching glidepath" heard as "approach in glide path" is a call to the pilot, not to approach.
+        Assert.Null(Interphone.Parse("Approach in glide path, gears should be down."));
+        Assert.NotNull(Interphone.Parse("Approach, final, Hall four two, missed approach."));
+        Assert.True(Phraseology.Parse("Approach in glide path, gears should be down.").WheelsDown);
+        Assert.Equal(2000, Phraseology.Parse("MISS APPROACH INSTRUCTIONS CLIMBING TANK TWO THOUSAND. TURN LEFT HEADING THREE FOUR ZERO.").ClimbToFt);
+        Assert.Equal(GlidepathCall.SlightlyAbove, Phraseology.Parse("STUDY ABOVE THE GLIDE SLOPE AND HOLDING.").Glidepath);
+        Assert.Equal(GlidepathCall.SlightlyAbove, Phraseology.Parse("SLOWLY ABOVE THE GLIDE PATH AND COMING DOWN.").Glidepath);
+        Assert.Equal("SLIGHTLY RIGHT OF COURSE", Phraseology.Parse("STUDY RIGHT OF COURSE AND CORRECTING.").CourseCall);
+    }
 }

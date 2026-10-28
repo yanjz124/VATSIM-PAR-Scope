@@ -254,22 +254,19 @@ public static class TelephoneEffect
     }
 
     /// <summary>
-    /// The alert before an override call on the voice switch: two short 1,400 Hz beeps, then a short gap before the
-    /// caller speaks. A stand-in in the RDVS style; the exact RDVS/vCCS tone is not published.
+    /// The tone a landline call opens with: 350 Hz and 440 Hz together for 0.55 s (the North American precise tone
+    /// plan pair), matched to a reference recording of a voice-switch landline call.
     /// </summary>
     public static float[] OverrideTone(int rate)
     {
-        const double freq = 1400, beep = 0.08, gap = 0.06, after = 0.15, level = 0.35, ramp = 0.005;
-        int n = (int)(rate * (2 * beep + gap + after));
+        const double low = 350, high = 440, length = 0.55, after = 0.15, level = 0.3, ramp = 0.01;
+        int len = (int)(rate * length), n = len + (int)(rate * after), r = Math.Max(1, (int)(ramp * rate));
         var x = new float[n];
-        foreach (double start in new[] { 0.0, beep + gap })
+        for (int i = 0; i < len; i++)
         {
-            int a = (int)(start * rate), len = (int)(beep * rate), r = Math.Max(1, (int)(ramp * rate));
-            for (int i = 0; i < len && a + i < n; i++)
-            {
-                double env = Math.Min(1, Math.Min(i, len - 1 - i) / (double)r); // short ramps: no clicks
-                x[a + i] = (float)(level * env * Math.Sin(2 * Math.PI * freq * i / rate));
-            }
+            double t = (double)i / rate;
+            double env = Math.Min(1, Math.Min(i, len - 1 - i) / (double)r); // short ramps: no clicks
+            x[i] = (float)(level * env * (Math.Sin(2 * Math.PI * low * t) + Math.Sin(2 * Math.PI * high * t)) / 2);
         }
         return x;
     }

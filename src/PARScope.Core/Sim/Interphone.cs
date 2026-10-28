@@ -49,7 +49,7 @@ public static partial class Interphone
     private static string Number(string callsign) => new(callsign.SkipWhile(char.IsLetter).ToArray());
 
     // The addressee opens the call, optionally after a filler; "tower clearance not received" is a pilot call.
-    [GeneratedRegex(@"^ (?:(?:hey|uh|um|ok|okay) )?(?<to>tower|local|approach|arrival|departure|radar)\b(?! clearance)")] private static partial Regex AddresseeRx();
+    [GeneratedRegex(@"^ (?:(?:hey|uh|um|ok|okay) )?(?<to>tower|local|approach|arrival|departure|radar)\b(?! clearance)(?! (?:in |on |and )?(?:the )?glidepath)")] private static partial Regex AddresseeRx();
     [GeneratedRegex(@"\btouch (?:and|n) go\b|\btouch and goes\b")] private static partial Regex TouchAndGoRx();
     [GeneratedRegex(@"\blow approach\b|\blow pass\b")] private static partial Regex LowApproachRx();
     [GeneratedRegex(@"\boption\b")] private static partial Regex OptionRx();
