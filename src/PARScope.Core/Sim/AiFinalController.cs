@@ -36,6 +36,8 @@ public sealed partial class AiFinalController
         /// <summary>Drift (track minus assigned heading), learned from the radar while the heading is steady.</summary>
         public double DriftDeg;
         public double HeadingSetAt = double.NegativeInfinity, LastHeadingRel = double.NaN, DriftAt;
+        /// <summary>The heading (relative to the course) in the call being built, and the last one given and when.</summary>
+        public double ProposedRel, GivenRel, GivenAt = double.NegativeInfinity;
     }
 
     private readonly Dictionary<string, Progress> _progress = new(StringComparer.OrdinalIgnoreCase);
@@ -180,10 +182,11 @@ public sealed partial class AiFinalController
             extra = "tower clearance not received, if runway or approach lights not in sight, execute missed approach";
             commit = () => p.NotReceivedSaid = true;
         }
-        else if (!p.NoAckSaid && !ac.NoAcknowledge)
+        else if (!p.NoAckSaid && !ac.NoAcknowledge && Math.Abs(ac.CommandedHeadingRelDeg) <= 15
+                 && Math.Abs(adv.Deviation.RightOfCourseFt) < Units.FeetPerNm && turn == null)
         {
-            // As soon as the arrival is on the PAR after the brief: from here headings, the wheels check and
-            // "begin descent" are flown without readbacks (§5-10-10).
+            // Once roughly lined up on final (heading within 15° of the course, under a mile off the centerline):
+            // from here headings, the wheels check and "begin descent" are flown without readbacks (§5-10-10).
             extra = "do not acknowledge further transmissions";
             commit = () => p.NoAckSaid = true;
         }
@@ -198,19 +201,19 @@ public sealed partial class AiFinalController
         guidance = guidance.TrimEnd('.');
         string main = turn != null ? turn + (guidance.Length > 0 ? ", " + guidance : "") : guidance;
 
+        // The range call is short and owed once a mile: it goes in, and the course and glidepath words only if
+        // there is room (with a turn or safety call they always go).
+        string? position = ac.Descending ? PositionCall(adv, geo, p, commit: true) : null;
         var parts = new List<string>();
         if (extra != null) parts.Add(extra);
-        if (main.Length > 0 && (extra == null || Words(extra) + Words(main) <= 14)) parts.Add(main);
-        if (ac.Descending && PositionCall(adv, geo, p, commit: false) is { } position && Words(string.Join(" ", parts)) + Words(position) <= 14)
-        {
-            PositionCall(adv, geo, p, commit: true);
-            parts.Add(position);
-        }
+        int used = Words(string.Join(" ", parts)) + (position != null ? Words(position) : 0);
+        if (main.Length > 0 && (turn != null || adv.Level == AdvisoryLevel.Warning || used + Words(main) <= 16)) parts.Add(main);
+        if (position != null) parts.Add(position);
         if (parts.Count == 0) return null;
         commit?.Invoke();
         if (parts.Contains(main))
         {
-            if (turn != null) p.HeadingSetAt = now;
+            if (turn != null) { p.HeadingSetAt = p.GivenAt = now; p.GivenRel = p.ProposedRel; }
             if (approaching) p.ApproachingSaid = true;
             if (main.Contains("WHEELS")) p.WheelsSaid = true;
         }
@@ -227,28 +230,30 @@ public sealed partial class AiFinalController
     /// </summary>
     private string? Heading(SimAircraft ac, Advisory adv, RadarTrack? track, Progress p, double now)
     {
-        double assigned = ac.CommandedHeadingRelDeg;
+        // The heading it last gave, until the pilot has had time to take it (they react a few seconds later).
+        double assigned = now - p.GivenAt < 10 ? p.GivenRel : ac.CommandedHeadingRelDeg;
         if (double.IsNaN(p.LastHeadingRel) || Math.Abs(Units.Norm180(assigned - p.LastHeadingRel)) > 0.5)
         {
             p.LastHeadingRel = assigned;
             p.HeadingSetAt = Math.Max(p.HeadingSetAt, now);
-            p.DriftAt = now;
         }
         double closure = track != null ? -track.RangeRateFps : 0;
-        if (track != null && closure > 100 && now - p.HeadingSetAt > 6)
+        // The drift is read once the turn has finished and the radar track has settled on the new heading.
+        if (track != null && closure > 100 && now - p.HeadingSetAt > 8)
         {
             double sample = Units.Norm180(Units.RadToDeg(Math.Atan2(track.CrossRateFps, closure)) - assigned);
-            p.DriftDeg = Math.Clamp(p.DriftDeg + (sample - p.DriftDeg) * Math.Min(1, (now - p.DriftAt) / 6), -20, 20);
+            p.DriftDeg = Math.Clamp(p.DriftDeg + (sample - p.DriftDeg) * Math.Min(1, (now - p.DriftAt) / 4), -20, 20);
         }
         p.DriftAt = now;
 
         double rangeNm = adv.Deviation.RangeNm;
         double limit = rangeNm < 2 ? 5 : rangeNm < 4 ? 10 : 30;
-        double wantTrack = Math.Clamp(Units.RadToDeg(Math.Atan2(-adv.Deviation.RightOfCourseFt / 40.0, Math.Max(closure, 150))), -limit, limit);
+        double wantTrack = Math.Clamp(Units.RadToDeg(Math.Atan2(-adv.Deviation.RightOfCourseFt / 30.0, Math.Max(closure, 150))), -limit, limit);
         double want = Math.Round(wantTrack - p.DriftDeg);
         double change = Units.Norm180(want - assigned);
-        if (Math.Abs(change) < (rangeNm < 3 ? 2 : 3)) return null;
+        if (Math.Abs(change) < 2) return null;
         if (now - p.HeadingSetAt < 8 && Math.Abs(change) < 10) return null;
+        p.ProposedRel = want;
         double hdg = Units.Norm360(CourseMagDeg + want);
         return $"TURN {(change > 0 ? "RIGHT" : "LEFT")} HEADING {(hdg < 0.5 ? 360 : hdg):000}";
     }

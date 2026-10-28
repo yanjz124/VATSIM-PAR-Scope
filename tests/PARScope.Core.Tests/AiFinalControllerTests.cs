@@ -14,11 +14,11 @@ public class AiFinalControllerTests
     /// call is fed back the way the app does: landline calls to tower or approach, radio calls to the pilot,
     /// each taking about as long to say as speech does. Returns the calls and results in order.
     /// </summary>
-    private static (List<string> Log, SimAircraft Ac) Fly(HandoffMix handoffs, int seed, double skill = 0.8, double maxSec = 900)
+    private static (List<string> Log, SimAircraft Ac) Fly(HandoffMix handoffs, int seed, double? skill = 0.8, TrainingDifficulty difficulty = TrainingDifficulty.Normal, double maxSec = 900)
     {
         var geo = new ParGeometry(GeometryTests.Runway, GeometryTests.Site);
         double course = GeometryTests.Runway.MagneticCourseDeg, elev = GeometryTests.Runway.ThresholdElevFt;
-        var sim = new TrainingTraffic(seed) { Geometry = geo, Handoffs = handoffs, ReturnForAnotherApproach = false };
+        var sim = new TrainingTraffic(seed) { Geometry = geo, Handoffs = handoffs, ReturnForAnotherApproach = false, Difficulty = difficulty };
         var store = new TrackStore();
         var radar = new RadarSimulator(RadarPreset.Fpn68, geo, seed: 5) { ClutterEnabled = false };
         var approach = new ApproachSim(new Random(seed));

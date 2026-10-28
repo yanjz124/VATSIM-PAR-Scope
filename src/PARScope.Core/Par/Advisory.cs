@@ -147,6 +147,9 @@ public static class AdvisoryEngine
             Trend.Worsening when mag == "SLIGHTLY " => $"GOING {side} GLIDEPATH",
             Trend.Worsening when Math.Abs(rateFps) > RapidlyFps => $"{mag}{side} GLIDEPATH AND GOING {side} RAPIDLY",
             Trend.Worsening => $"{mag}{side} GLIDEPATH",
+            // Closing so fast it will be through the glidepath before the next call (§5-12-4 allows "rapidly").
+            Trend.Correcting when Math.Abs(rateFps) > RapidlyFps || Math.Abs(aboveFt) < Math.Abs(rateFps) * 6
+                => $"{mag}{side} GLIDEPATH AND COMING {(aboveFt > 0 ? "DOWN" : "UP")} RAPIDLY",
             Trend.Correcting => $"{mag}{side} GLIDEPATH AND COMING {(aboveFt > 0 ? "DOWN" : "UP")}",
             _ => $"{mag}{side} GLIDEPATH AND HOLDING",
         };
