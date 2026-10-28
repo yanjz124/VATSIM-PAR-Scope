@@ -281,7 +281,7 @@ public static partial class Phraseology
         (" slowly left ", " slightly left "), (" slowly right ", " slightly right "),
         (" wild left ", " well left "), (" wild right ", " well right "), (" while left ", " well left "), (" while right ", " well right "),
         (" while red ", " well right "), (" red course ", " right course "), (" red of course ", " right of course "),
-        (" doers ", " degrees "),
+        (" doers ", " degrees "), (" write ", " right "), (" calling up", " coming up"), (" calling down", " coming down"),
         (" study above ", " slightly above "), (" study below ", " slightly below "), (" study left ", " slightly left "), (" study right ", " slightly right "),
         (" slowly above ", " slightly above "), (" slowly below ", " slightly below "),
         (" climbing tank ", " climb and maintain "), (" climb in maintain ", " climb and maintain "), (" climbing maintain ", " climb and maintain "),

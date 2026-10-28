@@ -927,7 +927,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (t.LostCommsInstructions) parts.Add("lost communications instructions");
         if (t.MissedApproachInstructions) parts.Add("missed approach instructions");
         if (t.ContactApproach) parts.Add("contact approach");
-        if (t.ContactTower) parts.Add("contact tower after landing");
+        if (t.ContactTower) parts.Add($"contact {(t.Text.Contains("ground", StringComparison.OrdinalIgnoreCase) ? "ground" : "tower")} after landing");
         if (t.ConditionalMissedApproach) parts.Add("(conditional: if runway not in sight)");
         if (t.ApproachBrief) parts.Add("approach brief");
         if (t.NoGyroTurn != 0) parts.Add($"no-gyro turn {(t.NoGyroTurn < 0 ? "left" : "right")}");

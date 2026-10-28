@@ -58,4 +58,11 @@ public class ItuDigitTests
         Assert.Equal(GlidepathCall.SlightlyAbove, Phraseology.Parse("SLOWLY ABOVE THE GLIDE PATH AND COMING DOWN.").Glidepath);
         Assert.Equal("SLIGHTLY RIGHT OF COURSE", Phraseology.Parse("STUDY RIGHT OF COURSE AND CORRECTING.").CourseCall);
     }
+
+    [Fact]
+    public void Session_five_lines()
+    {
+        Assert.Equal("RIGHT OF COURSE", Phraseology.Parse("GO AHEAD AND WRITE A COURSE AND CORRECTING SLOWLY.").CourseCall);
+        Assert.Equal(CallTrend.Correcting, Phraseology.Parse("SLIGHTLY ABOVE THE GLIDE AND CALLING UP.").GlidepathTrend);
+    }
 }

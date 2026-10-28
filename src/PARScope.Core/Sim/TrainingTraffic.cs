@@ -625,7 +625,7 @@ public sealed class SimAircraft
         }
         if (t.ContactTower)
         {
-            LastReadback = "will contact tower after landing";
+            LastReadback = $"will contact {(t.Text.Contains("ground", StringComparison.OrdinalIgnoreCase) ? "ground" : "tower")} after landing";
             return new PilotResponse(LastReadback, NoAcknowledge ? null : $"Wilco, {cs}.");
         }
         if (t.MissedApproach)
