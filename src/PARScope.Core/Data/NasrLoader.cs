@@ -26,6 +26,31 @@ public static class NasrLoader
         }
     }
 
+    /// <summary>The ATC facility subscription file for the same cycle (tower and approach radio calls).</summary>
+    public static string AtcUrl(DateTime cycle) => $"{BaseUrl}{cycle.ToString("dd_MMM_yyyy", CultureInfo.InvariantCulture)}_ATC_CSV.zip";
+
+    /// <summary>Tower and primary approach radio calls by airport identifier, from ATC_BASE.csv.</summary>
+    public static Dictionary<string, (string? Tower, string? Approach)> ParseAtcZip(Stream zipStream)
+    {
+        using var zip = new ZipArchive(zipStream, ZipArchiveMode.Read);
+        var entry = zip.Entries.FirstOrDefault(e => e.Name.Equals("ATC_BASE.csv", StringComparison.OrdinalIgnoreCase))
+                    ?? throw new InvalidDataException("ATC_BASE.csv not found in NASR archive");
+        var calls = new Dictionary<string, (string?, string?)>(StringComparer.OrdinalIgnoreCase);
+        using var r = new StreamReader(entry.Open());
+        var csv = new CsvReader(r);
+        while (csv.Read())
+        {
+            string id = csv.Get("FACILITY_ID"), twr = csv.Get("TWR_CALL"), apch = csv.Get("PRIMARY_APCH_RADIO_CALL");
+            if (id.Length > 0 && (twr.Length > 0 || apch.Length > 0))
+                calls[id] = (twr.Length > 0 ? twr : null, apch.Length > 0 ? apch : null);
+        }
+        return calls;
+    }
+
+    /// <summary>Adds the radio calls to NASR airports.</summary>
+    public static List<AirportRecord> WithAtc(List<AirportRecord> airports, Dictionary<string, (string? Tower, string? Approach)> calls) =>
+        airports.Select(a => calls.TryGetValue(a.Id, out var c) ? a with { TowerCall = c.Tower, ApproachCall = c.Approach } : a).ToList();
+
     public static List<AirportRecord> ParseZip(Stream zipStream)
     {
         using var zip = new ZipArchive(zipStream, ZipArchiveMode.Read);

@@ -884,25 +884,18 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public IReadOnlyList<LandingIntent> TowerIntents { get; } = Enum.GetValues<LandingIntent>();
 
-    /// <summary>Most recent transmissions, newest last (fixed length so the panel does not resize).</summary>
-    public ObservableCollection<string> RadioLog { get; } = ["", "", "", "", "", ""];
+    /// <summary>Most recent transmissions, newest last; the view scrolls to the newest.</summary>
+    public ObservableCollection<string> RadioLog { get; } = [];
+    private const int RadioLogLength = 40;
 
     partial void OnPilotVoicesChanged(bool value) => _voice.Enabled = value;
 
-    /// <summary>"Miramar" from "MIRAMAR MCAS (JOE FOSS FLD)"; used in "(facility) final".</summary>
-    private string FacilityName
-    {
-        get
-        {
-            var words = (SelectedAirport?.Name ?? "Approach").Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            string w = words.FirstOrDefault(x => x.Length > 3 && x.All(char.IsLetter)) ?? words.FirstOrDefault() ?? "Approach";
-            return char.ToUpperInvariant(w[0]) + w[1..].ToLowerInvariant();
-        }
-    }
+    /// <summary>"Potomac" at DCA (the approach control that serves the field); used in "(facility) final".</summary>
+    private string FacilityName => SelectedAirport?.FacilityCall ?? "Approach";
 
     private void Log(string who, string text)
     {
-        RadioLog.RemoveAt(0);
+        if (RadioLog.Count >= RadioLogLength) RadioLog.RemoveAt(0);
         RadioLog.Add($"{DateTime.UtcNow:HH:mm:ss}  {who}: {text}");
         _session.Write($"{who,-8} {text}");
     }

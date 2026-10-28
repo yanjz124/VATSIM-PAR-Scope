@@ -30,6 +30,8 @@ public partial class MainWindow : FluentWindow
         DataContext = vm;
         Title = vm.WindowTitle;
         RestorePlacement();
+        // Keep the newest radio call in view once the wrapped log is taller than its box.
+        vm.RadioLog.CollectionChanged += (_, _) => Dispatcher.BeginInvoke(RadioLogScroll.ScrollToEnd, DispatcherPriority.Background);
 
         // Above render priority: the scope repaints every frame, and on a large or slow display that can keep
         // the dispatcher busy enough to starve a background timer (side panel, pilot calls, handoffs stall).

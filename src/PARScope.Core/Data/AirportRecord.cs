@@ -11,10 +11,32 @@ public sealed record AirportRecord(
     double LonDeg,
     double ElevationFt,
     IReadOnlyList<RunwayEnd> Runways,
-    string Source)
+    string Source,
+    string? ApproachCall = null,
+    string? TowerCall = null)
 {
     /// <summary>ICAO when known, else the local identifier.</summary>
     public string MetarId => string.IsNullOrEmpty(Icao) ? Id : Icao;
+
+    /// <summary>
+    /// Radio name of the radar facility for "(facility) final": the approach control that serves the field
+    /// (FAA NASR, e.g. "Potomac" for DCA, "Dover" for the Dover RAPCON), else the tower's call, else the first
+    /// full word of the airport name ("Miramar" from "MIRAMAR MCAS (JOE FOSS FLD)").
+    /// </summary>
+    public string FacilityCall
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(ApproachCall)) return TitleCase(ApproachCall);
+            if (!string.IsNullOrWhiteSpace(TowerCall)) return TitleCase(TowerCall);
+            var words = Name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            string w = words.FirstOrDefault(x => x.Length > 3 && x.All(char.IsLetter)) ?? words.FirstOrDefault() ?? "Approach";
+            return TitleCase(w);
+        }
+    }
+
+    private static string TitleCase(string s) =>
+        string.Join(' ', s.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(w => char.ToUpperInvariant(w[0]) + w[1..].ToLowerInvariant()));
 
     public override string ToString() => string.IsNullOrEmpty(Icao) || Icao == Id ? $"{Id}  {Name}" : $"{Id} / {Icao}  {Name}";
 }

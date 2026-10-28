@@ -20,7 +20,7 @@ public sealed class AirportDatabase
     }
 
     /// <summary>Bump when AirportRecord/RunwayEnd gain fields, so old caches are rebuilt.</summary>
-    private const int SchemaVersion = 2;
+    private const int SchemaVersion = 3; // 3: tower and approach radio calls
 
     public int Count => _byId.Count;
 
@@ -81,6 +81,17 @@ public sealed class AirportDatabase
                 progress?.Report("Parsing FAA NASR…");
                 nasr = await Task.Run(() => NasrLoader.ParseZip(new MemoryStream(bytes)), ct);
                 notes.Add($"NASR {cycle:dd MMM yyyy} {nasr.Count:N0}");
+                try
+                {
+                    // Radio calls for "(facility) final"; airports keep their name-based call if this fails.
+                    var atc = await http.GetByteArrayAsync(NasrLoader.AtcUrl(cycle), ct);
+                    nasr = NasrLoader.WithAtc(nasr, NasrLoader.ParseAtcZip(new MemoryStream(atc)));
+                }
+                catch (Exception ex) when (ex is HttpRequestException or InvalidDataException or IOException
+                                           or TaskCanceledException && !ct.IsCancellationRequested)
+                {
+                    notes.Add("NASR ATC calls failed: " + ex.Message);
+                }
                 break;
             }
             catch (Exception ex) when (ex is HttpRequestException or InvalidDataException or IOException or FormatException

@@ -246,17 +246,19 @@
                             <ui:TextBox x:Name="TypedBox" PlaceholderText="…or type: turn left heading 240, slightly above glidepath"
                                         Text="{Binding TypedTransmission, UpdateSourceTrigger=PropertyChanged}" KeyDown="TypedBox_KeyDown" />
 
-                            <!-- Fixed-height log so the panel never resizes. -->
-                            <Border Margin="0,8,0,0" Padding="8,6" CornerRadius="6" Height="112"
+                            <!-- Fixed-height log so the panel never resizes; lines wrap and it follows the newest. -->
+                            <Border Margin="0,8,0,0" Padding="8,6,2,6" CornerRadius="6" Height="140"
                                     Background="{DynamicResource ControlFillColorSecondaryBrush}">
-                                <ItemsControl ItemsSource="{Binding RadioLog}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}" FontSize="12" TextTrimming="CharacterEllipsis" Height="18" ToolTip="{Binding}"
-                                                       Style="{StaticResource RadioLogLine}" />
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                <ScrollViewer x:Name="RadioLogScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                    <ItemsControl ItemsSource="{Binding RadioLog}" VerticalAlignment="Bottom">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" FontSize="12" TextWrapping="Wrap" Margin="0,0,6,3"
+                                                           Style="{StaticResource RadioLogLine}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
                             </Border>
 
                             <StackPanel Orientation="Horizontal" Margin="0,6,0,0" Height="18">
