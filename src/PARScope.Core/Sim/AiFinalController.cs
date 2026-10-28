@@ -181,13 +181,6 @@ public sealed partial class AiFinalController
         // At least every five seconds on final; before the descent, course information about every ten.
         if (since < (ac.Descending ? 4 : urgent ? 3 : 10)) return null;
 
-        // "Contact tower after landing" on its own, once the clearance is relayed (the pilot handles it apart).
-        if (ac.ClearedToLand && !p.ContactTowerSaid && adv.Deviation.RangeNm < 2 && !warning)
-        {
-            p.ContactTowerSaid = true;
-            return new AiCall(ac.Callsign, $"{cs}, contact tower after landing.", false);
-        }
-
         // One extra item a call at most, so no transmission runs long enough to leave a gap over five seconds:
         // a safety call, the clearance or "do not acknowledge" first, then the heading and position, then range.
         string? extra = null;
@@ -200,13 +193,10 @@ public sealed partial class AiFinalController
             extra = "tower clearance not received, if runway or approach lights not in sight, execute missed approach";
             commit = () => p.NotReceivedSaid = true;
         }
-        else if (!p.NoAckSaid && !ac.NoAcknowledge
-                 && (ac.Descending || Math.Abs(turn != null ? p.ProposedRel : ac.CommandedHeadingRelDeg) <= 15
-                     && Math.Abs(adv.Deviation.RightOfCourseFt) < Units.FeetPerNm))
+        else if (!p.NoAckSaid && !ac.NoAcknowledge)
         {
-            // Once roughly lined up on final (heading within 15° of the course, under a mile off the centerline),
-            // and in any case by the descent: from here headings, the wheels check and "begin descent" are flown
-            // without readbacks (§5-10-10).
+            // Straight after the brief has been read back, as a US Army GCA controller does: from here headings,
+            // the wheels check and "begin descent" are flown without readbacks (§5-10-10).
             extra = "do not acknowledge further transmissions";
             commit = () => p.NoAckSaid = true;
         }
@@ -219,11 +209,20 @@ public sealed partial class AiFinalController
         if (!ac.GearReportedDown && !p.WheelsSaid && (ac.Descending || approaching) && !guidance.Contains("WHEELS"))
             guidance = (guidance.TrimEnd('.') + ", WHEELS SHOULD BE DOWN").TrimStart(',', ' ');
         guidance = guidance.TrimEnd('.');
+
+        // Glidepath and course together every call: the pilot only corrects the descent when told about the
+        // glidepath, so alternating them one at a time (as some controllers do) leaves drifts uncorrected.
         string main = turn != null ? turn + (guidance.Length > 0 ? ", " + guidance : "") : guidance;
 
         // The range call is short and owed once a mile: it goes in, and the course and glidepath words only if
-        // there is room (with a turn or safety call they always go).
+        // there is room (with a turn or safety call they always go). Over the threshold the pilot is told to
+        // contact tower after landing in the same call.
         string? position = ac.Descending ? PositionCall(adv, geo, p, commit: true) : null;
+        if (position != null && position.StartsWith("over landing threshold") && ac.ClearedToLand && !p.ContactTowerSaid)
+        {
+            position += ", contact tower after landing";
+            p.ContactTowerSaid = true;
+        }
         var parts = new List<string>();
         if (extra != null) parts.Add(extra);
         int used = Words(string.Join(" ", parts)) + (position != null ? Words(position) : 0);

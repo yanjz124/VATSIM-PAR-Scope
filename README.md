@@ -249,12 +249,13 @@ Turn on **AI works final** in the Training traffic panel and spawn arrivals. An 
 its own voice (**Settings › Audio › AI final voice**), runs the position the way you would:
 
 * accepts approach's handoff on the landline ("radar contact"), and after the pilot checks in gives the
-  approach brief (missed approach and lost communications instructions);
+  approach brief (missed approach and lost communications instructions), then "do not acknowledge further
+  transmissions";
 * vectors arrivals handed over on a base leg or dogleg onto final, then gives the course and glidepath
   calls the scope shows, with its own headings, about every five seconds: "approaching glidepath, wheels
-  should be down", "begin descent", "do not acknowledge further transmissions", a range call each mile,
-  decision altitude, approach lights and threshold;
-* asks local for the clearance about 6 miles out and relays it, then "contact tower after landing";
+  should be down", "begin descent", a range call each mile, decision altitude, approach lights and
+  "over landing threshold, contact tower after landing";
+* asks local for the clearance about 6 miles out and relays it;
 * after a missed approach, hands the aircraft back to approach and switches the pilot.
 
 The pilots are talked down (not self-flying), so the AI's calls really fly the aircraft. Like a real
