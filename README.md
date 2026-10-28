@@ -180,9 +180,9 @@ Turn on **Training**, pick a **difficulty** and press **Spawn arrival**.
 Arrivals fly in the live METAR wind (**Settings › Training** for a random one). Callsigns and types are
 realistic (Navy, Marine, Reach, squadron callsigns from the
 [Military Callsign List](https://henney.com/chm/callsign.htm)); approach speeds come from the FAA
-Aircraft Characteristics Database. Generated callsigns are always military, at most 5 characters on the
-radar (6 in **Settings › Training**; long callwords are shortened to a form that still reads as the word,
-BANSHEE21 → BNSH21, but are still spoken in full), and never a civil operator's designator. You can set your own callsign and ICAO type; a typed
+Aircraft Characteristics Database. Generated callsigns are always military, at most 7 characters on the
+radar like a flight plan's (5 or 6 in **Settings › Training**; long callwords are shortened to a form that still
+reads as the word, HUNGRY21 → HNGRY21, BANSHEE21 → BNSHE21, but are still spoken in full), and never a civil operator's designator. You can set your own callsign and ICAO type; a typed
 callsign with an ICAO three-letter designator is spoken with its telephony from FAA JO 7340.2 and the
 flight number in group form ("RPA4567": "Brickyard forty-five sixty-seven").
 

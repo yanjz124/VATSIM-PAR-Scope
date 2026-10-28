@@ -62,7 +62,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         Engine.Training.Handoffs = Enum.TryParse<HandoffMix>(settings.TrainingHandoffs, out var mix) ? mix : HandoffMix.FinalOnly;
         if (!settings.CallsignLengthMigrated && settings.MaxCallsignLength == 5) settings.MaxCallsignLength = 6; // 5 was the old default
         settings.CallsignLengthMigrated = true;
-        settings.MaxCallsignLength = Math.Clamp(settings.MaxCallsignLength, 5, 6);
+        if (!settings.CallsignLength7Migrated && settings.MaxCallsignLength == 6) settings.MaxCallsignLength = 7; // 6 was the old default
+        settings.CallsignLength7Migrated = true;
+        settings.MaxCallsignLength = Math.Clamp(settings.MaxCallsignLength, 5, 7);
         Engine.Training.MaxCallsignLength = settings.MaxCallsignLength;
         ShowScan = settings.ShowScan;
         ShowCompassRose = settings.ShowCompassRose ?? SelectedPreset.AsrCompassRose;
@@ -212,7 +214,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>Longest training callsign on the radar (Settings › Training).</summary>
-    public IReadOnlyList<int> CallsignLengths { get; } = [5, 6];
+    public IReadOnlyList<int> CallsignLengths { get; } = [5, 6, 7];
     public int MaxCallsignLength
     {
         get => _settings.MaxCallsignLength;

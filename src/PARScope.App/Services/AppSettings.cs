@@ -51,10 +51,12 @@ public sealed class AppSettings
     public bool CheckForUpdates { get; set; } = true;
     /// <summary>Training arrivals use the live METAR surface wind instead of a random one.</summary>
     public bool TrainingLiveWind { get; set; } = true;
-    /// <summary>Longest generated training callsign on the radar (5 or 6); longer callwords are abbreviated.</summary>
-    public int MaxCallsignLength { get; set; } = 6;
+    /// <summary>Longest generated training callsign on the radar (5 to 7, a flight plan's limit); longer callwords are abbreviated.</summary>
+    public int MaxCallsignLength { get; set; } = 7;
     /// <summary>The old default of 5 has been moved to 6 once (a 5 chosen afterwards is kept).</summary>
     public bool CallsignLengthMigrated { get; set; }
+    /// <summary>The old default of 6 has been moved to 7 once (a 6 chosen afterwards is kept).</summary>
+    public bool CallsignLength7Migrated { get; set; }
     /// <summary>Missed approaches, touch and goes and low approaches come round again for another approach.</summary>
     public bool TrainingReturnForAnother { get; set; } = true;
     /// <summary>Where approach hands arrivals over: FinalOnly, Mixed or BaseAndDogleg (HandoffMix).</summary>
