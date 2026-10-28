@@ -254,19 +254,19 @@ public static class TelephoneEffect
     }
 
     /// <summary>
-    /// The tone a landline call opens with: 350 Hz and 440 Hz together for 0.55 s (the North American precise tone
-    /// plan pair), matched to a reference recording of a voice-switch landline call.
+    /// The tone a landline call opens with: 720 Hz and 880 Hz together, at equal level, for a quarter second, then
+    /// a short pause before the caller speaks. Measured from the voice-switch tone vCCS plays before a landline call.
     /// </summary>
     public static float[] OverrideTone(int rate)
     {
-        const double low = 350, high = 440, length = 0.55, after = 0.15, level = 0.3, ramp = 0.01;
+        const double low = 720, high = 880, length = 0.254, after = 0.15, level = 0.17, ramp = 0.002;
         int len = (int)(rate * length), n = len + (int)(rate * after), r = Math.Max(1, (int)(ramp * rate));
         var x = new float[n];
         for (int i = 0; i < len; i++)
         {
             double t = (double)i / rate;
-            double env = Math.Min(1, Math.Min(i, len - 1 - i) / (double)r); // short ramps: no clicks
-            x[i] = (float)(level * env * (Math.Sin(2 * Math.PI * low * t) + Math.Sin(2 * Math.PI * high * t)) / 2);
+            double env = Math.Min(1, Math.Min(i, len - 1 - i) / (double)r); // 2 ms edges: no clicks
+            x[i] = (float)(level * env * (Math.Sin(2 * Math.PI * low * t) + Math.Sin(2 * Math.PI * high * t)));
         }
         return x;
     }
