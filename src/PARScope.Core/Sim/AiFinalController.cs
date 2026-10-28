@@ -54,11 +54,13 @@ public sealed partial class AiFinalController
     public string WindPhrase { get; set; } = "";
     public LandingIntent Intent { get; set; } = LandingIntent.FullStop;
     public ParGeometry? Geometry { get; set; }
+    /// <summary>The AI's operating initials, said when it accepts a handoff (§2-1-14).</summary>
+    public string Initials { get; set; } = "AF";
 
     /// <summary>Seconds a handoff is offered before final answers it.</summary>
     public const double AcceptDelaySec = 4;
     /// <summary>Range at which final asks tower for the clearance.</summary>
-    public const double TowerRequestNm = 6;
+    public const double TowerRequestNm = 5.5;
 
     /// <summary>
     /// The next transmission, or null if nothing is due. Landline calls (handoffs, tower, missed approach) go
@@ -111,7 +113,7 @@ public sealed partial class AiFinalController
             if (now - p.PendingSince < AcceptDelaySec) return null;
             p.AcceptedAt = now;
             p.PendingSince = double.NaN;
-            return new AiCall(ac.Callsign, $"{cs}, radar contact.", true);
+            return new AiCall(ac.Callsign, $"{cs}, radar contact, {RadioSpeech.Spell(Initials)}.", true);
         }
         if (ac.GoingAround && !ac.HandedOff && !ac.InPattern)
         {
@@ -186,7 +188,7 @@ public sealed partial class AiFinalController
         string? extra = null;
         Action? commit = null;
         if (t.Tower == TowerAnswer.Cleared && !ac.ClearedToLand && !warning)
-            extra = $"{(WindPhrase.Length > 0 ? WindPhrase + ", " : "")}runway {RadioSpeech.Runway(RunwayId)}, {TowerSim.ClearanceWords(t.TowerIntent)}";
+            extra = $"{cs}, {(WindPhrase.Length > 0 ? WindPhrase + ", " : "")}runway {RadioSpeech.Runway(RunwayId)}, {TowerSim.ClearanceWords(t.TowerIntent)}";
         else if (t.Tower != TowerAnswer.Cleared && adv.Deviation.RangeNm < 2 && !adv.BelowDecisionHeight && !p.NotReceivedSaid && !warning)
         {
             // No clearance by 2 miles (MCAS Cherry Point P3722.1S §6-316b).

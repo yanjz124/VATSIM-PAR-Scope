@@ -524,7 +524,11 @@ public class RadioTests
     public void Tower_clears_or_says_continue()
     {
         var tower = new TowerSim();
-        Assert.Equal("Navy one two three four, runway two four right, cleared to land.", tower.Request("VV1234", LandingIntent.FullStop, "24R", false));
+        Assert.Equal($"Navy one two three four, runway two four right, cleared to land, {tower.SpokenInitials}.", tower.Request("VV1234", LandingIntent.FullStop, "24R", false));
+        Assert.Equal("Local, final, request landing clearance, Navy one two three four, five and a half miles.", TowerSim.RequestText("VV1234", 5.4, LandingIntent.FullStop));
+        Assert.Equal("Local, final, request touch and go, Navy one two three four, three miles.", TowerSim.RequestText("VV1234", 3.1, LandingIntent.TouchAndGo));
+        Assert.Equal(LandingIntent.FullStop, Interphone.Parse(TowerSim.RequestText("VV1234", 5.4, LandingIntent.FullStop))!.Intent);
+        Assert.Equal(LandingIntent.Option, Interphone.Parse(TowerSim.RequestText("VV1234", 5.4, LandingIntent.Option))!.Intent);
         Assert.Equal(TowerAnswer.Cleared, tower.AnswerFor("VV1234"));
         Assert.Contains("continue", tower.Request("VM4685", LandingIntent.TouchAndGo, "24R", true));
         Assert.True(Phraseology.Parse("wind 300 at 9, runway 24 right, cleared to land").ClearedToLand);

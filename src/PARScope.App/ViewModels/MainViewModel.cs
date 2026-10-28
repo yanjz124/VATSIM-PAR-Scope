@@ -852,7 +852,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     // ---- AI final controller -------------------------------------------------------------------
 
-    private readonly AiFinalController _ai = new();
+    private readonly AiFinalController _ai = new() { Initials = $"{(char)('A' + Random.Shared.Next(26))}{(char)('A' + Random.Shared.Next(26))}" };
     /// <summary>AI calls queued or being said (it has one voice: one at a time across the frequency and the landline).</summary>
     private int _aiSpeaking;
     private double _aiSpeakingSince;
