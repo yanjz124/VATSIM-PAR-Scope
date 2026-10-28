@@ -391,6 +391,8 @@ public sealed class SimAircraft
     private double _headingBias, _vsBias, _gust, _spawnHeightFt = double.NaN;
     private readonly int _driftSign, _vsDriftSign;
     private readonly Queue<(double At, Action Do)> _pending = new();
+    /// <summary>The assigned heading before the last transmission changed it, for "disregard".</summary>
+    private double? _headingBeforeLast;
 
     internal SimAircraft(string callsign, string typeCode, SpawnOptions opt, Random rng)
     {
@@ -521,8 +523,13 @@ public sealed class SimAircraft
     public double WindFromDeg => _opt.WindFromDeg;
     public double WindKt => _opt.WindKt;
     public double SkillLevel => _opt.Skill;
-    public double HeadingDriftDeg => _headingBias;
-    public double VsDriftFpm => _vsBias;
+    /// <summary>How far off the assigned heading and rate the pilot is flying right now (drift plus wobble).</summary>
+    public double HeadingDriftDeg => _headingBias + _headingWander;
+    public double VsDriftFpm => _vsBias + _vsWander;
+
+    /// <summary>Mean-reverting noise: standard deviation <paramref name="sd"/>, correlation time <paramref name="tauSec"/>.</summary>
+    private double Wobble(double x, double sd, double tauSec, double dt, double limit) =>
+        Math.Clamp(x - x / tauSec * dt + sd * Math.Sqrt(2 * dt / tauSec) * Gauss(), -limit, limit);
 
     private double ReactionDelay => 1.0 + (1 - _opt.Skill) * 2.0 + _rng.NextDouble();
 
@@ -570,6 +577,17 @@ public sealed class SimAircraft
         var readback = new List<string>();
         string cs = RadioSpeech.Callsign(Callsign);
         bool wasNoAcknowledge = NoAcknowledge;
+        if (t.Cancelled) return new PilotResponse("nothing (the controller disregarded that transmission)", null);
+        if (t.Disregard)
+        {
+            // "Disregard": drop what the last transmission asked for; a heading already taken goes back.
+            _pending.Clear();
+            if (_headingBeforeLast is double back) CommandedHeadingRelDeg = back;
+            _headingBeforeLast = null;
+            LastReadback = "disregarded the last instruction";
+            return new PilotResponse(LastReadback, null);
+        }
+        _headingBeforeLast = t.HeadingDeg is not null || t.TurnByDeg is not null ? CommandedHeadingRelDeg : null;
         double? hdgRel = t.HeadingDeg is double hd ? Units.Norm180(hd - courseMagDeg) : null;
         double? climbAgl = t.ClimbToFt is double c ? c - thresholdElevFt : null;
         string Climb(double agl) => $"climb and maintain {RadioSpeech.Altitude(agl + thresholdElevFt)}";
@@ -671,7 +689,7 @@ public sealed class SimAircraft
         if (t.HeadingDeg is double hdg)
         {
             double rel = Units.Norm180(hdg - courseMagDeg);
-            _pending.Enqueue((now + delay, () => { CommandedHeadingRelDeg = rel; _headingBias = 0; _noGyroTurn = 0; }));
+            _pending.Enqueue((now + delay, () => { CommandedHeadingRelDeg = rel; _headingBias = 0; _headingWander = 0; _noGyroTurn = 0; }));
             actions.Add($"heading {hdg:000}");
             readback.Add($"heading {RadioSpeech.Heading(hdg)}");
         }
@@ -855,10 +873,11 @@ public sealed class SimAircraft
         }
         while (_pending.Count > 0 && _pending.Peek().At <= now) _pending.Dequeue().Do();
 
-        // Imperfect pilots: slow random walks on heading and rate.
+        // Imperfect pilots wobble around what they were told (about ±2° and ±150 fpm for a sloppy one) and keep
+        // coming back to it, averaging out over about 20 s; a steady creep off heading is the drift below.
         double sloppiness = 1 - _opt.Skill;
-        _headingWander = Math.Clamp(_headingWander + Gauss() * 0.6 * sloppiness * Math.Sqrt(dt), -4, 4);
-        _vsWander = Math.Clamp(_vsWander + Gauss() * 60 * sloppiness * Math.Sqrt(dt), -250, 250);
+        _headingWander = Wobble(_headingWander, 2.0 * sloppiness, 20, dt, 4);
+        _vsWander = Wobble(_vsWander, 150 * sloppiness, 15, dt, 250);
         // Harder scenarios: steady creep away from the assigned heading and rate until the controller corrects it.
         _headingBias = Math.Clamp(_headingBias + _driftSign * _opt.HeadingDriftDegPerMin / 60 * dt, -15, 15);
         if (Descending) _vsBias = Math.Clamp(_vsBias + _vsDriftSign * _opt.VsDriftFpmPerMin / 60 * dt, -400, 400);

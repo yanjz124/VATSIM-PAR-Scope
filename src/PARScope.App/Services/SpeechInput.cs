@@ -72,6 +72,7 @@ public sealed class SpeechInput : IDisposable
             _recognizer = rec;
             _gate = new SemaphoreSlim(rec is WhisperRecognizer w ? w.MaxParallel : 1);
             Ready = status.EndsWith("ready");
+            if (Ready) _recorder.Open(); // keep the microphone open so the first word is not clipped
             SetState(Ready ? ReadyText + (rec is WhisperRecognizer { Backend: { } b } ? $" · Whisper on {b}" : "") : status);
         }
         catch (Exception ex) when (ex is IOException or HttpRequestException or InvalidOperationException or OperationCanceledException)
@@ -139,6 +140,8 @@ public sealed class SpeechInput : IDisposable
     {
         if (!_recording) return;
         _recording = false;
+        // A quarter second more: people let go of the key as the last word ends ("from touch…").
+        await Task.Delay(250);
         _liveCts?.Cancel();
         if (_live != null) await _live;
         _live = null;

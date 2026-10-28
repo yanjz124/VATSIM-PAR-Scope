@@ -60,6 +60,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         Engine.Training.Difficulty = Difficulty;
         Engine.Training.ReturnForAnotherApproach = settings.TrainingReturnForAnother;
         Engine.Training.Handoffs = Enum.TryParse<HandoffMix>(settings.TrainingHandoffs, out var mix) ? mix : HandoffMix.FinalOnly;
+        if (!settings.CallsignLengthMigrated && settings.MaxCallsignLength == 5) settings.MaxCallsignLength = 6; // 5 was the old default
+        settings.CallsignLengthMigrated = true;
         settings.MaxCallsignLength = Math.Clamp(settings.MaxCallsignLength, 5, 6);
         Engine.Training.MaxCallsignLength = settings.MaxCallsignLength;
         ShowScan = settings.ShowScan;
@@ -908,6 +910,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private static string Understood(Transmission t)
     {
         var parts = new List<string>();
+        if (t.Disregard) parts.Add("disregard (cancel the last instruction)");
+        if (t.Cancelled) parts.Add("disregarded within the transmission (nothing to do)");
         if (t.HeadingDeg is double h) parts.Add($"heading {h:000}");
         if (t.Glidepath != GlidepathCall.None) parts.Add($"glidepath {t.Glidepath}{(t.GlidepathTrend != CallTrend.None ? "/" + t.GlidepathTrend : "")}");
         if (t.CourseCall is { } c) parts.Add($"course \"{c.ToLowerInvariant()}\" (information only)");
@@ -1106,8 +1110,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         TestingVoices = true;
         _voice.Pilot("Miramar final, Navy one two three four, radio check.", "VV1234");
         _voice.Pilot("Approach, Banshee two one, with you at three thousand.", "BANSHEE21");
-        _voice.Tower("Navy one two three four, runway two four right, cleared to land.");
-        _voice.Approach("Final, approach, handoff, one two mile final, Reach four eight one, three thousand.");
+        // One after another for the test, rather than tower and approach on the landline over the pilots.
+        _voice.Tower("Navy one two three four, runway two four right, cleared to land.", landline: false);
+        _voice.Approach("Final, approach, handoff, one two mile final, Reach four eight one, three thousand.", landline: false);
     }
 
     // ---- Keyboard calls (training) -------------------------------------------------------------
@@ -1267,9 +1272,32 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     // The approach key steps through all three (handoff, coordinate, contact approach).
-    public string RadarContactButtonText => $"Radar contact ({KeyOf("approach_step")})";
-    public string ContactApproachButtonText => $"Contact approach ({KeyOf("approach_step")})";
-    public string CoordinateMissedButtonText => $"Coordinate missed approach ({KeyOf("approach_step")})";
+    // The approach key does one of these at a time, so only the button it would press now shows the key.
+    public string RadarContactButtonText => "Radar contact" + ApproachKeyHint(ApproachNext.RadarContact);
+    public string ContactApproachButtonText => "Contact approach" + ApproachKeyHint(ApproachNext.ContactApproach);
+    public string CoordinateMissedButtonText => "Coordinate missed approach" + ApproachKeyHint(ApproachNext.Coordinate);
+
+    private enum ApproachNext { None, RadarContact, Coordinate, ContactApproach }
+    private ApproachNext _approachNext;
+    private string ApproachKeyHint(ApproachNext step) => _approachNext == step ? $" ({KeyOf("approach_step")})" : "";
+
+    /// <summary>What the approach key would do now (the same order as <see cref="ApproachStep"/>).</summary>
+    private ApproachNext NextApproachStep()
+    {
+        var missed = CallTarget is { GoingAround: true } m ? m : Engine.Training.Aircraft.FirstOrDefault(a => a.GoingAround && !a.HandedOff);
+        if (missed != null && !missed.HandedOff) return _approach.IsCoordinated(missed.Callsign) ? ApproachNext.ContactApproach : ApproachNext.Coordinate;
+        return Engine.Training.Aircraft.Any(a => _approach.IsPending(a.Callsign)) ? ApproachNext.RadarContact : ApproachNext.None;
+    }
+
+    private void RefreshApproachButtons()
+    {
+        var next = NextApproachStep();
+        if (next == _approachNext) return;
+        _approachNext = next;
+        OnPropertyChanged(nameof(RadarContactButtonText));
+        OnPropertyChanged(nameof(ContactApproachButtonText));
+        OnPropertyChanged(nameof(CoordinateMissedButtonText));
+    }
 
     public string KeysHint =>
         $"{PttKeyText} talk (start with 'Local…' or 'Approach…' to coordinate) · {KeyOf("send_suggested")} send the suggested call\n"
@@ -1562,6 +1590,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         RefreshCrcStatus();
         RefreshXPilotStatus();
+        RefreshApproachButtons();
         ScopeWarning = BuildScopeWarning(now);
         int real = Engine.Targets.Count(t => !t.IsSimulated);
         int sim = Engine.Targets.Count - real;

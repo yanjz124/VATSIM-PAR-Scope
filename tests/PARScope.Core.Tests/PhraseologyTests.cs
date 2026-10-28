@@ -92,4 +92,32 @@ public class FacilityProcedureTests
         Assert.Equal(GlidepathCall.On, Phraseology.Parse("ARM GLIDE.").Glidepath);
         Assert.True(Phraseology.Parse("of course").IsEmpty); // "slightly up, of course" stays not understood
     }
+
+    [Theory]
+    // More lines from a real session (the second approach), with what was said.
+    [InlineData("LEFT ON COURSE AND GOING FURTHER TO LEFT.", "LEFT OF COURSE")]      // was read as "on course"
+    [InlineData("SLIGHTLY LEFT ON COURSE AND CORRECTING SLOWLY.", "SLIGHTLY LEFT OF COURSE")]
+    [InlineData("LEFT FIELD COURSE AND CORRECTING.", "LEFT OF COURSE")]
+    [InlineData("LEFT OF A COURSE AND CORRECTING SLOWLY.", "LEFT OF COURSE")]
+    [InlineData("LEFT HORSE AND CORRECTING.", "LEFT OF COURSE")]
+    [InlineData("SLOWLY LEFT COURSE AND GOING FURTHER LEFT.", "SLIGHTLY LEFT OF COURSE")]
+    [InlineData("ON COURSE.", "ON COURSE")]
+    public void More_course_calls_from_a_session(string heard, string course) =>
+        Assert.Equal(course, Phraseology.Parse(heard).CourseCall);
+
+    [Theory]
+    [InlineData("UNGLIDE.", GlidepathCall.On)]
+    [InlineData("UNGLYDE.", GlidepathCall.On)]
+    [InlineData("I'M GLIDE.", GlidepathCall.On)]
+    [InlineData("A PUBLIC GLIDE PATH AND GOING DOWN.", GlidepathCall.Above)]
+    [InlineData("A PUBLIC LIGHT AND GOING UP.", GlidepathCall.Above)]
+    public void More_glide_calls_from_a_session(string heard, GlidepathCall call) =>
+        Assert.Equal(call, Phraseology.Parse(heard).Glidepath);
+
+    [Theory]
+    [InlineData("ALMOST SIX MILES FROM TOUCH.")]
+    [InlineData("SIX MILES FROM THE TOUCHDOWN.")]
+    [InlineData("FOUR MUSCLE IN TOUCHDOWN. FOUR MUSCLE")]
+    [InlineData("ON-EN-RAULS FROM TOUCHDOWN.")]
+    public void More_range_calls_from_a_session(string heard) => Assert.True(Phraseology.Parse(heard).RangeInfo, heard);
 }

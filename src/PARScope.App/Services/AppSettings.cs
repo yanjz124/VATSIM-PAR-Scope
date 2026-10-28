@@ -51,6 +51,8 @@ public sealed class AppSettings
     public bool TrainingLiveWind { get; set; } = true;
     /// <summary>Longest generated training callsign on the radar (5 or 6); longer callwords are abbreviated.</summary>
     public int MaxCallsignLength { get; set; } = 6;
+    /// <summary>The old default of 5 has been moved to 6 once (a 5 chosen afterwards is kept).</summary>
+    public bool CallsignLengthMigrated { get; set; }
     /// <summary>Missed approaches, touch and goes and low approaches come round again for another approach.</summary>
     public bool TrainingReturnForAnother { get; set; } = true;
     /// <summary>Where approach hands arrivals over: FinalOnly, Mixed or BaseAndDogleg (HandoffMix).</summary>

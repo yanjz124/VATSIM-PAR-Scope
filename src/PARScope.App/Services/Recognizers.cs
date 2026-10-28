@@ -47,10 +47,14 @@ public sealed record RecognizerOption(string Id, string Name)
 /// </summary>
 public sealed class WhisperRecognizer(GgmlType model) : IPhraseRecognizer
 {
+    // Whisper's prompt steers it toward these words: the calls a PAR final controller repeats every few seconds,
+    // as they are actually said ("the glide", "miles from touchdown", "correcting slowly").
     private const string BasePrompt =
-        "PAR final controller. Turn left heading two four zero. Slightly above glidepath and coming down. On course. " +
-        "Begin descent. Wheels should be down. Do not acknowledge further transmissions. Radar contact. " +
-        "Execute missed approach. Cleared to land.";
+        "PAR final controller. Turn left heading two four zero. Approaching glidepath, wheels should be down. Begin descent. " +
+        "On glide. Slightly above the glide and coming down. Below the glide and holding. Well above glidepath. " +
+        "On course. Slightly left of course and correcting slowly. Right of course and going further right. " +
+        "Four miles from touchdown. Two miles from touchdown. One mile from touchdown. Decision height. " +
+        "Do not acknowledge further transmissions. Radar contact. Execute missed approach. Cleared to land.";
 
     private WhisperFactory? _factory;
 
