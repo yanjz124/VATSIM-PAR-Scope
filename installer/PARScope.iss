@@ -50,7 +50,7 @@ Compression=lzma2/max
 SolidCompression=yes
 
 [Tasks]
-Name: "plugin"; Description: "Install the vPilot plugin (live VATSIM traffic, including 5 Hz Velocity positions)"
+Name: "plugin"; Description: "Install the vPilot plugin (live traffic from vPilot at up to 5 Hz; not needed for CRC or xPilot)"
 Name: "npcap"; Description: "Download and install Npcap from npcap.com (lets the CRC feed run without administrator rights)"; Flags: unchecked; Check: NpcapWanted
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 

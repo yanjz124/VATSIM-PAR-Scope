@@ -31,9 +31,12 @@ Public information on these radars is scarce, so much of it is a best guess (see
 **Live VATSIM traffic**
 * **CRC feed:** the 1 Hz target data vNAS already sends your CRC, read from your own PC. Tower Cab gives
   exact altitude, STARS gives Mode C. No second connection.
-* **vPilot plugin**, for fields without CRC: every aircraft vPilot sees, including Velocity fast
+* **vPilot plugin** (MSFS), for fields without CRC: every aircraft vPilot sees, including Velocity fast
   positions at up to 5 Hz, over a tower-view connection.
+* **xPilot** (X-Plane), likewise for fields without CRC: vibe PAR listens as an xPilot "visual machine",
+  so an xPilot tower view feeds it at up to 5 Hz with no plugin. See [docs/XPILOT.md](docs/XPILOT.md).
 * The public data feed is a 15-second fallback.
+* Run any of them together: vibe PAR uses whichever is delivering each aircraft, in the order you choose.
 * Tracks coast with a CST indicator when an aircraft stops reporting, leaves the radar's coverage, or the
   whole feed drops, and the scope says which.
 
@@ -44,7 +47,8 @@ Public information on these radars is scarce, so much of it is a best guess (see
   live METAR wind, and at decision height land or go around (and tell you why) like real pilots.
 * Speech recognition runs locally (Whisper on your graphics card or CPU, or Windows Speech). Pilot,
   tower and approach talk back in natural neural voices (Kokoro or Piper, run on your PC) or the
-  Windows voices, each pilot with their own voice, through a radio effect.
+  Windows voices, each pilot with their own voice, through a radio effect. Tower and approach call on
+  the landline: an override tone, then a telephone-line voice, which your push-to-talk does not block.
 * Every call and coordination has a hotkey and a button, so you can run a session without talking or
   typing. Keys can be changed.
 * Every session is logged so you can review the talk-down afterwards.
@@ -54,9 +58,13 @@ With **Training** off it is a plain scope: no suggested calls and nothing simula
 ## Install
 
 1. Download `PARScope-Setup-<version>.exe` from the [releases](https://github.com/yanjz124/VATSIM-PAR-Scope/releases)
-   page and run it. It installs for your user only (no admin), lets you choose the folder, and finds
-   vPilot's `Plugins` folder to install the plugin (you can change the folder or skip the plugin).
-   Close vPilot first.
+   page and run it. It installs for your user only (no admin) and lets you choose the folder. Options:
+   * **vPilot plugin:** finds vPilot's `Plugins` folder and installs it there (close vPilot first). Only
+     needed if you take traffic from vPilot; CRC and xPilot users can leave it unticked.
+   * **Npcap:** downloads Npcap from npcap.com and runs its installer, so the CRC feed works without
+     administrator rights.
+
+   **xPilot users** need nothing extra: after installing, follow [docs/XPILOT.md](docs/XPILOT.md).
 2. Start vibe PAR. The first start downloads the airport database (FAA NASR and OurAirports). Type an
    airport (`KNKX`, `NKX`, `EGQS`…) and pick the runway.
 
@@ -344,7 +352,9 @@ dotnet test tests\PARScope.Core.Tests
 | `tools/TrafficProbe` | Update-rate diagnostic. |
 | `installer/` | Inno Setup script. |
 
-The plugin and scope talk NDJSON over UDP port 49090 (protocol v2, documented in `Plugin.cs`).
+The plugin and scope talk NDJSON over UDP port 49090 (protocol v2, documented in `Plugin.cs`). xPilot
+connects as to a visual machine: nng pair1 over TCP port 53100, MessagePack messages
+(`XPilotVisualSource.cs`). The CRC feed is described in [docs/CRC-VNAS-UDP.md](docs/CRC-VNAS-UDP.md).
 
 ## License
 

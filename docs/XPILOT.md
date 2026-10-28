@@ -10,7 +10,8 @@ Where your facility is on CRC, the CRC feed is simpler and needs no simulator (s
 ## What you need
 
 * X-Plane 11 or 12 with xPilot installed and your VATSIM details saved in xPilot's settings.
-* vibe PAR on the **same PC as the xPilot app**.
+* vibe PAR on the **same PC as the xPilot app**. In its installer you can leave **Install the vPilot
+  plugin** unticked; xPilot needs no plugin.
 * X-Plane running with a flight loaded while you control. xPilot will not connect without it. Any
   aircraft at any airport will do; it just sits there.
 
