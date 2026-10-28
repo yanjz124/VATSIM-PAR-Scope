@@ -95,11 +95,13 @@ public sealed class RadioVoice : IDisposable
             return;
         }
         var engine = _engine;
-        bool effect = RadioEffectEnabled;
+        bool effect = RadioEffectEnabled, phone = lane == _landline;
         var audio = Task.Run(() =>
         {
             var (s, rate) = engine.Synthesize(text, voice ?? engine.DefaultPilot);
-            return effect ? (RadioEffect.Apply(s, rate, text.GetHashCode()), rate) : (s, rate);
+            // The landline sounds like a telephone line, not a radio.
+            if (effect) s = phone ? TelephoneEffect.Apply(s, rate) : RadioEffect.Apply(s, rate, text.GetHashCode());
+            return (s, rate);
         });
         lane.Queue.Writer.TryWrite(new Line(audio, due, onStart, _generation));
     }

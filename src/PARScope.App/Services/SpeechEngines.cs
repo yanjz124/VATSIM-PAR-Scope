@@ -201,7 +201,7 @@ public static class RadioEffect
         return x;
     }
 
-    private sealed class Biquad(double b0, double b1, double b2, double a1, double a2)
+    internal sealed class Biquad(double b0, double b1, double b2, double a1, double a2)
     {
         private double _x1, _x2, _y1, _y2;
 
@@ -224,5 +224,41 @@ public static class RadioEffect
             double w = 2 * Math.PI * f / rate, c = Math.Cos(w), al = Math.Sin(w) / Math.Sqrt(2), a0 = 1 + al;
             return new((1 + c) / 2 / a0, -(1 + c) / a0, (1 + c) / 2 / a0, -2 * c / a0, (1 - al) / a0);
         }
+    }
+}
+
+/// <summary>
+/// Makes speech sound like a voice-switch landline (interphone): the 300–3,400 Hz telephone band and G.711 μ-law
+/// coding, with no squelch noise and only light compression; cleaner than the radio.
+/// </summary>
+public static class TelephoneEffect
+{
+    public static float[] Apply(float[] input, int rate)
+    {
+        var hp = RadioEffect.Biquad.HighPass(rate, 300);
+        var lp = RadioEffect.Biquad.LowPass(rate, 3400);
+        var hp2 = RadioEffect.Biquad.HighPass(rate, 300);
+        var lp2 = RadioEffect.Biquad.LowPass(rate, 3400);
+        float peak = 1e-6f;
+        foreach (var v in input) peak = Math.Max(peak, Math.Abs(v));
+        const float drive = 1.3f;
+        float norm = (float)Math.Tanh(drive);
+        var x = new float[input.Length];
+        for (int i = 0; i < x.Length; i++)
+        {
+            float s = lp2.Process(hp2.Process(lp.Process(hp.Process(input[i] / peak))));
+            s = (float)Math.Tanh(drive * s) / norm;
+            x[i] = MuLaw(s) * 0.7f;
+        }
+        return x;
+    }
+
+    /// <summary>Round trip through 8-bit μ-law (G.711), the telephone network's coding.</summary>
+    private static float MuLaw(float s)
+    {
+        const double mu = 255;
+        double c = Math.Sign(s) * Math.Log(1 + mu * Math.Min(1, Math.Abs(s))) / Math.Log(1 + mu);
+        c = Math.Round(c * 127) / 127;
+        return (float)(Math.Sign(c) * (Math.Pow(1 + mu, Math.Abs(c)) - 1) / mu);
     }
 }
