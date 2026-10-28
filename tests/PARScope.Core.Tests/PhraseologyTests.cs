@@ -41,6 +41,9 @@ public class PhraseologyTests
         Assert.True(safety.MissedApproach);
         Assert.False(Phraseology.Parse("your missed approach procedure is climb to 2000").MissedApproach);
         Assert.True(Phraseology.Parse("four miles from touchdown").RangeInfo); // information only: understood, no action
+        // Misheard range calls from a real session: the number goes, "touchdown" survives.
+        foreach (var heard in new[] { "fire mode from touchdown", "aim up from touchdown", "three muslim touch step", "one-moven touch-out" })
+            Assert.True(Phraseology.Parse(heard).RangeInfo, heard);
         Assert.Equal("SLIGHTLY LEFT OF COURSE", Phraseology.Parse("slightly left of course and correcting").CourseCall);
     }
 }
@@ -72,5 +75,21 @@ public class FacilityProcedureTests
         Assert.Equal("AT DECISION ALTITUDE", PARScope.Core.Par.AdvisoryEngine.PositionCall(geo.DecisionHeightRangeFt, geo));
         Assert.Equal("3 MILES FROM TOUCHDOWN", PARScope.Core.Par.AdvisoryEngine.PositionCall(3.05 * PARScope.Core.Geo.Units.FeetPerNm, geo));
         Assert.Null(PARScope.Core.Par.AdvisoryEngine.PositionCall(3.5 * PARScope.Core.Geo.Units.FeetPerNm, geo));
+    }
+
+    [Theory]
+    // Lines Whisper produced in a real session, with what the controller said.
+    [InlineData("SLIGHTLY LEFT COURSE AND CORRECTING SLOWLY.", "SLIGHTLY LEFT OF COURSE")]
+    [InlineData("LEFT THE COURSE AND CORRECT IT.", "LEFT OF COURSE")]
+    [InlineData("RIGHT UP COURSE AND GOING FURTHER RIGHT.", "RIGHT OF COURSE")]
+    public void Course_calls_survive_a_lost_of(string heard, string course) =>
+        Assert.Equal(course, Phraseology.Parse(heard).CourseCall);
+
+    [Fact]
+    public void Misheard_glide_calls()
+    {
+        Assert.Equal(GlidepathCall.SlightlyAbove, Phraseology.Parse("SLIGHTLY ABOVE DECLINE HOLDING.").Glidepath);
+        Assert.Equal(GlidepathCall.On, Phraseology.Parse("ARM GLIDE.").Glidepath);
+        Assert.True(Phraseology.Parse("of course").IsEmpty); // "slightly up, of course" stays not understood
     }
 }

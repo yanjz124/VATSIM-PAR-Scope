@@ -35,6 +35,9 @@ public sealed class AsrSimulator
     public double SweepDeg { get; private set; }
     public IReadOnlyList<AsrPlot> Plots => _plots;
 
+    /// <summary>Removes an aircraft's returns at once, so it is not shown coasting (a deleted training aircraft).</summary>
+    public void Drop(string callsign) => _plots.RemoveAll(p => string.Equals(p.Callsign, callsign, StringComparison.OrdinalIgnoreCase));
+
     public void Advance(double now, IReadOnlyList<TargetTrack> targets)
     {
         SweepDeg = 360.0 * Frac(now / SweepSec);

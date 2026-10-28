@@ -8,7 +8,8 @@ namespace PARScope.Core.Sim;
 /// <list type="bullet">
 /// <item>Precision (40): share of the final spent on glidepath and on course (the scope's deviation bands).</item>
 /// <item>Transmissions (30): the longest silence on final against the five-second rule behind the lost
-/// communications instruction (7110.65 §5-10-4), and range information at least once each mile (§5-12-7).</item>
+/// communications instruction (7110.65 §5-10-4), and range information at least once each mile the aircraft
+/// reached (§5-12-7). A transmission the recognizer could not make out still counts as the controller talking.</item>
 /// <item>Procedures (20): missed approach and lost communications instructions before descent (§5-10-2,
 /// §5-10-4), the wheels check (§2-1-25) unless the pilot reported the gear down, and tower's clearance relayed
 /// by 2 miles (MCAS Cherry Point P3722.1S §6-316b).</item>
@@ -21,6 +22,8 @@ public sealed class ApproachGrader
     private const double Nm = Units.FeetPerNm;
 
     private double? _descentStart, _startRangeNm;
+    private double _minRangeNm = double.PositiveInfinity;
+    private int _unclear;
     private double _lastTx = double.NaN, _longestGap, _lastSample = double.NegativeInfinity;
     private int _samples;
     private double _gpScore, _courseScore;
@@ -44,6 +47,14 @@ public sealed class ApproachGrader
         if (t.RangeInfo) _rangeCallMiles.Add((int)Math.Round(nm));
     }
 
+    /// <summary>A transmission to this aircraft that was not understood: the pilot heard the controller, so it
+    /// breaks a silence, but it earns nothing else.</summary>
+    public void Keyed(double now)
+    {
+        _lastTx = now;
+        if (OnFinal) _unclear++;
+    }
+
     /// <summary>Once a second on final, from the start of descent to decision height.</summary>
     public void Sample(double now, ParGeometry geo, double rangeFt, double crossFt, double heightFt)
     {
@@ -54,6 +65,7 @@ public sealed class ApproachGrader
             if (double.IsNaN(_lastTx)) _lastTx = now;
         }
         _longestGap = Math.Max(_longestGap, now - _lastTx);
+        _minRangeNm = Math.Min(_minRangeNm, rangeFt / Nm);
         if (now - _lastSample < 1) return;
         _lastSample = now;
         _samples++;
@@ -78,8 +90,11 @@ public sealed class ApproachGrader
 
         int silence = (int)Math.Clamp(15 - 3 * Math.Max(0, Math.Ceiling(_longestGap) - 5), 0, 15);
         if (_longestGap > 5.5) notes.Add($"longest silence on final {_longestGap:0} s (5 s or less)");
-        int milesNeeded = Math.Max(0, (int)Math.Floor(_startRangeNm ?? 0));
-        int milesCalled = Enumerable.Range(1, milesNeeded).Count(_rangeCallMiles.Contains);
+        // Each whole mile from where descent began down to the closest the aircraft got (a go-around at 1.5 NM
+        // owes no 1-mile call).
+        var miles = Enumerable.Range(1, Math.Max(0, (int)Math.Floor(_startRangeNm ?? 0))).Where(m => _minRangeNm <= m - 0.1).ToList();
+        int milesNeeded = miles.Count;
+        int milesCalled = miles.Count(_rangeCallMiles.Contains);
         int range = milesNeeded == 0 ? 15 : (int)Math.Round(15.0 * milesCalled / milesNeeded);
         if (milesCalled < milesNeeded) notes.Add($"range given at {milesCalled} of {milesNeeded} miles");
 
@@ -93,6 +108,7 @@ public sealed class ApproachGrader
         if (_clearanceAtNm is not double c2) notes.Add("no landing clearance relayed");
         else if (c2 < 1.9) notes.Add($"clearance relayed at {c2:0.0} NM (by 2 NM)");
 
+        if (_unclear > 0) notes.Add($"{_unclear} transmission{(_unclear == 1 ? "" : "s")} on final not understood (counted as talking, nothing else)");
         int score = precision + silence + range + procedures + Math.Clamp(outcomePoints, 0, 10);
         string letter = fail ? "F" : score >= 90 ? "A" : score >= 80 ? "B" : score >= 70 ? "C" : score >= 60 ? "D" : "F";
         string detail = $"precision {precision}/40 (glidepath {gpShare:P0}, course {crsShare:P0}), transmissions {silence + range}/30, "

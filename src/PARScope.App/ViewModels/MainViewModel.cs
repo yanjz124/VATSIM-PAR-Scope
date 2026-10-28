@@ -755,6 +755,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         Engine.Training.Paused = value;
         StatusMessage = value ? "Training paused (P to resume)" : "Training resumed";
+        _session.Write(value ? "PAUSED" : "RESUMED");
     }
 
     /// <summary>P key / toolbar: freezes training aircraft, their pilots and the transmission timer.</summary>
@@ -1330,6 +1331,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (t.IsEmpty) StatusMessage = $"Not understood: \"{text.Trim()}\" (say it again, or use the keys)";
         _session.Write($"          ({via}) to {target?.Callsign ?? "no aircraft selected"}; understood as: {Understood(t)}");
         _lastTxTime = Engine.Training.SimTime;
+        if (t.IsEmpty && target != null) target.HeardUnclear(Engine.Training.SimTime);
         if (t.IsEmpty || target == null || Engine.Runway is not { } rw)
         {
             if (target == null && !t.IsEmpty) StatusMessage = "Select a training aircraft first";

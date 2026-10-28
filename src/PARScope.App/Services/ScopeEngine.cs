@@ -127,7 +127,12 @@ public sealed class ScopeEngine : IDisposable
     public void Tick()
     {
         Now = Clock.Now;
-        foreach (var m in Training.Step(Now)) Store.Apply(m);
+        foreach (var m in Training.Step(Now))
+        {
+            Store.Apply(m);
+            // A training aircraft that finished is gone, not lost: no coasting.
+            if (m is TargetRemoved gone) DropFromRadar(gone.Callsign);
+        }
         Targets = Store.Snapshot(Now);
         DataLost = !AnySourceFresh && Targets.Any(t => !t.IsSimulated);
         if (Radar != null)
@@ -147,8 +152,18 @@ public sealed class ScopeEngine : IDisposable
 
     public void ClearTraining()
     {
-        foreach (var a in Training.Aircraft) Store.Apply(new TargetRemoved(a.Callsign));
+        foreach (var a in Training.Aircraft)
+        {
+            Store.Apply(new TargetRemoved(a.Callsign));
+            DropFromRadar(a.Callsign);
+        }
         Training.Clear();
+    }
+
+    private void DropFromRadar(string callsign)
+    {
+        Radar?.Drop(callsign);
+        Asr?.Drop(callsign);
     }
 
     private void OnMessage(TrafficMessage msg)

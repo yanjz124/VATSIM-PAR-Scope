@@ -55,4 +55,41 @@ public class GradingTests
         Assert.Contains("no landing clearance", grade);
         Assert.Contains("no missed approach instructions", grade);
     }
+
+    /// <summary>Feeds a grader a straight final from <paramref name="fromNm"/> to <paramref name="toNm"/> at 130 kt.</summary>
+    private static string Grade(double fromNm, double toNm, Action<ApproachGrader, double, double> each)
+    {
+        var geo = new ParGeometry(GeometryTests.Runway, GeometryTests.Site);
+        var g = new ApproachGrader();
+        double speed = 130 * Units.FeetPerNm / 3600;
+        for (double t = 0; ; t += 0.5)
+        {
+            double r = fromNm * Units.FeetPerNm - speed * t;
+            if (r < toNm * Units.FeetPerNm) break;
+            each(g, t, r);
+            g.Sample(t, geo, r, 0, geo.GlidepathHeightFt(r));
+        }
+        return g.Finish(0, "went around", gearReportedDown: true)!;
+    }
+
+    [Fact]
+    public void A_transmission_not_understood_still_breaks_the_silence()
+    {
+        var grade = Grade(3.2, 1.0, (g, t, r) => { if (t % 4 == 0) g.Keyed(t); });
+        Assert.DoesNotContain("longest silence", grade);
+        Assert.Contains("not understood", grade);
+    }
+
+    [Fact]
+    public void Range_calls_are_owed_only_for_miles_the_aircraft_reached()
+    {
+        var said = new HashSet<int>();
+        var grade = Grade(3.2, 1.5, (g, t, r) =>
+        {
+            int mile = (int)Math.Round(r / Units.FeetPerNm);
+            if (Math.Abs(r / Units.FeetPerNm - mile) < 0.05 && said.Add(mile)) g.Heard(Phraseology.Parse($"{mile} MILES FROM TOUCHDOWN"), t, r);
+            else if (t % 4 == 0) g.Keyed(t);
+        });
+        Assert.DoesNotContain("range given", grade); // 3 and 2 called; the go-around came before the 1-mile call
+    }
 }

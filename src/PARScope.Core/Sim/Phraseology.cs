@@ -91,7 +91,8 @@ public static partial class Phraseology
 
         string? course = null;
         var c = CourseRx().Match(s);
-        if (c.Success) course = c.Value.ToUpperInvariant().Replace("READ OF", "RIGHT OF");
+        // Said as "(slightly) left of course", whatever the recognizer did to the "of".
+        if (c.Success) course = CourseOfRx().Replace(c.Value, "${s} of course").ToUpperInvariant().Replace("READ OF", "RIGHT OF");
 
         bool instructions = MissedInstructionsRx().IsMatch(s);
         // Lost communications instructions end "...and execute missed approach": what to do later, not now.
@@ -195,8 +196,10 @@ public static partial class Phraseology
             outWords.Add(w);
         }
         if (run.Length > 0) outWords.Add(run.ToString());
-        // Shortened and misheard forms controllers and recognizers produce: "well above glide", "glide slope".
+        // Shortened and misheard forms controllers and recognizers produce: "well above glide", "glide slope",
+        // "slightly above decline" (the glide), "arm glide" (on glide).
         string joined = " " + string.Join(' ', outWords) + " ";
+        joined = joined.Replace(" decline ", " the glide ").Replace(" arm glide", " on glide");
         return GlideRx().Replace(joined, "glidepath");
     }
 
@@ -218,8 +221,10 @@ public static partial class Phraseology
     [GeneratedRegex(@"\bhalf (?:a )?standard rate\b")] private static partial Regex HalfRateRx();
     [GeneratedRegex(@"(?<!half (?:a )?)\bstandard rate\b")] private static partial Regex StandardRateRx();
     [GeneratedRegex(@"\b(?:(?<going>going) |(?<mag>slightly|well) )?(?<side>above|below) (?:the )?glidepath\b")] private static partial Regex GlidepathRx();
-    // "read of course" is a common mishearing of "right of course".
-    [GeneratedRegex(@"\b(?:on (?:the )?(?:on ?)?course|(?:going |drifting |slightly |well )?(?:left|right|read) of (?:the )?(?:on ?)?course)\b")] private static partial Regex CourseRx();
+    // "read of course" is a common mishearing of "right of course"; the "of" is often lost or heard as "the"/"up"/"a"
+    // ("left course", "left the course", "right up course").
+    [GeneratedRegex(@"\b(?:on (?:the )?(?:on ?)?course|(?:going |drifting |slightly |well )?(?:left|right|read) (?:of |up |a )?(?:the )?(?:on ?)?course)\b")] private static partial Regex CourseRx();
+    [GeneratedRegex(@"\b(?<s>left|right|read) (?:of |up |a )?(?:the )?(?:on ?)?course\b")] private static partial Regex CourseOfRx();
     [GeneratedRegex(@"\b(?:begin|start|initiate|commence) (?:your )?descent\b")] private static partial Regex DescentRx();
     [GeneratedRegex(@"\bglide(?: ?path| ?slope)?\b")] private static partial Regex GlideRx();
     [GeneratedRegex(@"\bexecute missed approach\b|\bgo around\b|\bwave ?off\b|\btower clearance (?:not received|cancell?ed)\b")] private static partial Regex MissedRx();
@@ -238,7 +243,9 @@ public static partial class Phraseology
     [GeneratedRegex(@"\btower clearance (?:not received|cancell?ed)\b")] private static partial Regex TowerClearanceRx();
     [GeneratedRegex(@"\b(?:contact|switch to|monitor) (?:tower|ground)\b")] private static partial Regex ContactTowerRx();
     [GeneratedRegex(@"\bthis will be a (?:p a r|par|precision|copter p a r)\b")] private static partial Regex BriefRx();
-    [GeneratedRegex(@"\b(?:\d+ (?:and (?:one )?half )?miles? from touchdown|over (?:the )?approach lights|over (?:the )?landing threshold|(?:at )?decision (?:altitude|height))\b")] private static partial Regex RangeInfoRx();
+    // Range calls end in "touchdown", which survives even when the number and "miles" do not ("fire mode from
+    // touchdown", "three muslim touch step", "one moven touch out").
+    [GeneratedRegex(@"\b(?:\d+ (?:and (?:one )?half )?miles? from touchdown|(?:from )?touch ?(?:down|out|step|town)\b(?! zone)|over (?:the )?approach lights|over (?:the )?landing threshold|(?:at )?decision (?:altitude|height))\b")] private static partial Regex RangeInfoRx();
     // "climb and maintain 2 thousand 5 hundred" after digit merging, or "climb and maintain 2500".
     // "climb and maintain", and "climb maintain" as recognizers often hear it.
     [GeneratedRegex(@"\bclimb (?:(?:and )?maintain |to )?(?<a>\d+)(?: (?<k>thousand))?(?: (?<h>\d) hundred)?\b")] private static partial Regex ClimbRx();

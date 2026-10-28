@@ -556,6 +556,12 @@ public sealed class SimAircraft
     /// adjusting rate of descent in proportion to glidepath calls. A missed approach is always acknowledged
     /// (NAVEDTRA 14342A ch. 10). Actions happen after a human reaction delay.
     /// </summary>
+    /// <summary>The controller transmitted but nothing could be made of it: no action, but not silence either.</summary>
+    public void HeardUnclear(double now)
+    {
+        if (Mode == PilotMode.ControllerDirected) _grade.Keyed(now);
+    }
+
     public PilotResponse Receive(Transmission t, double now, double courseMagDeg, double recommendedFpm, double thresholdElevFt = 0)
     {
         double delay = ReactionDelay;

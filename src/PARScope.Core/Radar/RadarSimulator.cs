@@ -76,6 +76,13 @@ public sealed class RadarSimulator
     public IReadOnlyList<Plot> Plots => _plots;
     public IReadOnlyDictionary<string, RadarTrack> Tracks => _tracks;
 
+    /// <summary>Removes an aircraft at once, track and returns, without coasting (a deleted training aircraft).</summary>
+    public void Drop(string callsign)
+    {
+        _tracks.Remove(callsign);
+        _plots.RemoveAll(p => string.Equals(p.Callsign, callsign, StringComparison.OrdinalIgnoreCase));
+    }
+
     public void Advance(double now, IReadOnlyList<TargetTrack> targets)
     {
         if (double.IsNaN(_lastTime)) { _lastTime = now; UpdateBeams(now); return; }

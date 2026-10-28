@@ -114,6 +114,19 @@ public class CoastingTests
     }
 
     [Fact]
+    public void A_dropped_aircraft_disappears_without_coasting()
+    {
+        var rig = new Rig();
+        rig.Run(10, OnFinal);
+        Assert.NotNull(rig.Track);
+        rig.Store.Apply(new TargetRemoved("RCH481"));
+        rig.Radar.Drop("RCH481");
+        rig.Run(1, _ => null);
+        Assert.Null(rig.Track);
+        Assert.DoesNotContain(rig.Radar.Plots, p => p.Callsign == "RCH481");
+    }
+
+    [Fact]
     public void Expected_interval_and_reporting_follow_the_source()
     {
         var t = new TargetTrack("X");
