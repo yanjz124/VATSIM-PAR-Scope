@@ -13,7 +13,8 @@ public sealed record AirportRecord(
     IReadOnlyList<RunwayEnd> Runways,
     string Source,
     string? ApproachCall = null,
-    string? TowerCall = null)
+    string? TowerCall = null,
+    IReadOnlyList<Frequency>? Frequencies = null)
 {
     /// <summary>ICAO when known, else the local identifier.</summary>
     public string MetarId => string.IsNullOrEmpty(Icao) ? Id : Icao;

@@ -20,7 +20,7 @@ public sealed class AirportDatabase
     }
 
     /// <summary>Bump when AirportRecord/RunwayEnd gain fields, so old caches are rebuilt.</summary>
-    private const int SchemaVersion = 3; // 3: tower and approach radio calls
+    private const int SchemaVersion = 4; // 3: tower and approach radio calls; 4: frequencies
 
     public int Count => _byId.Count;
 
@@ -91,6 +91,17 @@ public sealed class AirportDatabase
                                            or TaskCanceledException && !ct.IsCancellationRequested)
                 {
                     notes.Add("NASR ATC calls failed: " + ex.Message);
+                }
+                try
+                {
+                    // Tower, ground and approach frequencies for "contact tower on …"; optional like the calls.
+                    var frq = await http.GetByteArrayAsync(NasrLoader.FrqUrl(cycle), ct);
+                    nasr = NasrLoader.WithFrequencies(nasr, await Task.Run(() => NasrLoader.ParseFrqZip(new MemoryStream(frq)), ct));
+                }
+                catch (Exception ex) when (ex is HttpRequestException or InvalidDataException or IOException
+                                           or TaskCanceledException && !ct.IsCancellationRequested)
+                {
+                    notes.Add("NASR frequencies failed: " + ex.Message);
                 }
                 break;
             }

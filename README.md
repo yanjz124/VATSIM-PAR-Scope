@@ -255,7 +255,10 @@ its own voice (**Settings › Audio › AI final voice**), runs the position the
   calls the scope shows, with its own headings, about every five seconds: "approaching glidepath, wheels
   should be down", "begin descent", a range call each mile, decision altitude, approach lights and
   "over landing threshold, contact tower after landing";
-* asks local for the clearance about 6 miles out and relays it;
+* asks local for the clearance about 5½ miles out and relays it;
+* gives the field's frequencies from FAA NASR ("contact tower on three four zero point two after landing",
+  approach in the missed approach instructions): UHF for military aircraft where the field has one, VHF
+  for civil, and the one for the runway or side of the field where NASR splits them;
 * after a missed approach, hands the aircraft back to approach and switches the pilot.
 
 The pilots are talked down (not self-flying), so the AI's calls really fly the aircraft. Like a real

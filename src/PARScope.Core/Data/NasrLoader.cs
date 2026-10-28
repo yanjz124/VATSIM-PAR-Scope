@@ -47,6 +47,41 @@ public static class NasrLoader
         return calls;
     }
 
+    /// <summary>The frequency subscription file for the same cycle.</summary>
+    public static string FrqUrl(DateTime cycle) => $"{BaseUrl}{cycle.ToString("dd_MMM_yyyy", CultureInfo.InvariantCulture)}_FRQ_CSV.zip";
+
+    /// <summary>
+    /// Tower (LCL), ground, approach and departure frequencies by served airport, from FRQ.csv. A row can serve
+    /// several uses ("APCH/P DEP/P IC"); approach control's rows are listed under each airport it serves.
+    /// </summary>
+    public static Dictionary<string, List<Frequency>> ParseFrqZip(Stream zipStream)
+    {
+        using var zip = new ZipArchive(zipStream, ZipArchiveMode.Read);
+        var entry = zip.Entries.FirstOrDefault(e => e.Name.Equals("FRQ.csv", StringComparison.OrdinalIgnoreCase))
+                    ?? throw new InvalidDataException("FRQ.csv not found in NASR archive");
+        var byAirport = new Dictionary<string, List<Frequency>>(StringComparer.OrdinalIgnoreCase);
+        using var r = new StreamReader(entry.Open());
+        var csv = new CsvReader(r);
+        while (csv.Read())
+        {
+            string id = csv.Get("SERVICED_FACILITY");
+            if (id.Length == 0 || !double.TryParse(csv.Get("FREQ"), NumberStyles.Float, CultureInfo.InvariantCulture, out double mhz)) continue;
+            if (mhz is not (>= 118 and < 137 or >= 225 and < 400)) continue;
+            string sector = csv.Get("SECTORIZATION").Trim();
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(csv.Get("FREQ_USE"), @"\b(LCL|GND|APCH|DEP)/(P|S)\b"))
+            {
+                if (!byAirport.TryGetValue(id, out var list)) byAirport[id] = list = [];
+                var f = new Frequency(mhz, m.Groups[1].Value, m.Groups[2].Value == "P", sector.Length > 0 ? sector : null);
+                if (!list.Contains(f)) list.Add(f);
+            }
+        }
+        return byAirport;
+    }
+
+    /// <summary>Adds the frequencies to NASR airports.</summary>
+    public static List<AirportRecord> WithFrequencies(List<AirportRecord> airports, Dictionary<string, List<Frequency>> freqs) =>
+        airports.Select(a => freqs.TryGetValue(a.Id, out var f) ? a with { Frequencies = f } : a).ToList();
+
     /// <summary>Adds the radio calls to NASR airports.</summary>
     public static List<AirportRecord> WithAtc(List<AirportRecord> airports, Dictionary<string, (string? Tower, string? Approach)> calls) =>
         airports.Select(a => calls.TryGetValue(a.Id, out var c) ? a with { TowerCall = c.Tower, ApproachCall = c.Approach } : a).ToList();

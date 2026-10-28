@@ -10,7 +10,7 @@ namespace PARScope.Core.Sim;
 /// correlated, painted track (the controller says nothing it cannot see).</param>
 /// <param name="Track">The PAR track the advisory came from, for the closure and drift across the course.</param>
 public sealed record AiTraffic(SimAircraft Aircraft, Advisory? Advisory, bool HandoffPending, TowerAnswer Tower,
-    LandingIntent TowerIntent, bool MissedCoordinated, RadarTrack? Track = null);
+    LandingIntent TowerIntent, bool MissedCoordinated, RadarTrack? Track = null, string? TowerFreq = null, string? ApproachFreq = null);
 
 /// <summary>A transmission by the AI final controller: on the final frequency, or on the landline to tower or approach.</summary>
 public sealed record AiCall(string Callsign, string Text, bool Landline);
@@ -147,7 +147,7 @@ public sealed partial class AiFinalController
             // Once approach's "radar contact" has been heard on the landline.
             if (!t.MissedCoordinated || p.ContactApproachSaid || _landlineBusy) return null;
             p.ContactApproachSaid = true;
-            return new AiCall(ac.Callsign, $"{cs}, contact approach.", false);
+            return new AiCall(ac.Callsign, $"{cs}, contact approach{On(t.ApproachFreq)}.", false);
         }
 
         // Taken over part way: an arrival already accepted and talking to final.
@@ -161,7 +161,7 @@ public sealed partial class AiFinalController
             else
             {
                 p.Briefed = true;
-                return new AiCall(ac.Callsign, Brief(cs), false);
+                return new AiCall(ac.Callsign, Brief(cs, t.ApproachFreq), false);
             }
         }
 
@@ -224,7 +224,7 @@ public sealed partial class AiFinalController
         string? position = ac.Descending ? PositionCall(adv, geo, p, commit: true) : null;
         if (position != null && position.StartsWith("over landing threshold") && ac.ClearedToLand && !p.ContactTowerSaid)
         {
-            position += ", contact tower after landing";
+            position += $", contact tower{On(t.TowerFreq)} after landing";
             p.ContactTowerSaid = true;
         }
         var parts = new List<string>();
@@ -335,11 +335,14 @@ public sealed partial class AiFinalController
         return null;
     }
 
-    private string Brief(string cs)
+    /// <summary>" on two six niner point zero two five" when the frequency is known.</summary>
+    private static string On(string? freq) => freq is { Length: > 0 } ? " on " + freq : "";
+
+    private string Brief(string cs, string? approachFreq)
     {
         string alt = RadioSpeech.Altitude(MissedClimbMslFt);
         return $"{cs}, {Facility} final, this will be a P A R approach to runway {RadioSpeech.Runway(RunwayId)}. "
-            + $"In the event of missed approach, climb and maintain {alt}, fly runway heading. "
+            + $"In the event of missed approach, climb and maintain {alt}, fly runway heading{(approachFreq is { Length: > 0 } ? ", contact approach on " + approachFreq : "")}. "
             + "If no transmissions are received for one minute in the pattern or five seconds on final approach, "
             + $"attempt contact with tower and proceed V F R. If unable, climb and maintain {alt} and execute missed approach.";
     }

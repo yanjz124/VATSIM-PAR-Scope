@@ -896,8 +896,16 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             RadarTrack? tr = Engine.Radar is { } radar && radar.Tracks.TryGetValue(a.Callsign, out var t) && t.IsCorrelated && !t.IsCoasting ? t : null;
             var adv = tr == null || Engine.Radar is null ? null
                 : AdvisoryEngine.Evaluate(tr, geo, Engine.Radar.Preset, _settings.Bands, rw.MagneticCourseDeg, KnownHeadingMag(a.Callsign, rw), a.GearReportedDown);
+            // Frequencies from NASR: UHF for military aircraft where the field has it, else VHF; the arrival side's sector.
+            bool military = Frequencies.IsMilitary(a.Callsign);
+            double side = Units.Norm360(rw.TrueHeadingDeg + 180);
+            var freqs = SelectedAirport?.Frequencies;
+            string? Spoken(double? mhz) => mhz is double m ? Frequencies.Spoken(m) : null;
+            string? towerFreq = Spoken(Frequencies.Pick(freqs, "LCL", military, rw.RunwayId, side));
+            string? approachFreq = Spoken(Frequencies.Pick(freqs, "APCH", military, rw.RunwayId, side)
+                                          ?? Frequencies.Pick(freqs, "DEP", military, rw.RunwayId, side));
             traffic.Add(new AiTraffic(a, adv, _approach.IsPending(a.Callsign), _tower.AnswerFor(a.Callsign), _tower.IntentFor(a.Callsign),
-                _approach.IsCoordinated(a.Callsign), tr));
+                _approach.IsCoordinated(a.Callsign), tr, towerFreq, approachFreq));
         }
         if (_ai.Next(traffic, Engine.Training.SimTime, _voice.RadioBusy, _voice.LandlineBusy,
                 // (a line dropped by a voice stop never reports done: give up waiting after half a minute)
@@ -1451,7 +1459,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
         double rod = CurrentAdvisory?.RecommendedDescentFpm ?? 700;
         var response = target.Receive(t, Engine.Training.SimTime, rw.MagneticCourseDeg, rod, rw.ThresholdElevFt, startedAt);
-        if (t.ContactApproach && !_approach.IsCoordinated(target.Callsign))
+        if (t.ContactApproach && !t.MissedApproachInstructions && !_approach.IsCoordinated(target.Callsign))
             _session.Write($"NOTE     {target.Callsign} switched to approach without coordinating the missed approach");
         _session.Write($"          {target.Callsign} action: {response.Action}{(target.NoAcknowledge && response.Reply == null ? " (silent: do not acknowledge)" : "")}");
         if (response.Reply is { } reply)
