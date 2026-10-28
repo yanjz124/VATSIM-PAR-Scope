@@ -121,8 +121,8 @@ public class AiFinalControllerTests
         string all = string.Join("\n", log);
         int Index(string s) { int i = log.FindIndex(l => l.Contains(s, StringComparison.OrdinalIgnoreCase)); Assert.True(i >= 0, $"no \"{s}\" in:\n{all}"); return i; }
         Assert.True(Index("radar contact") < Index("this will be a P A R approach"), all);
-        Assert.True(Index("this will be a P A R approach") < Index("begin descent"), all);
-        Assert.True(Index("begin descent") < Index("do not acknowledge further transmissions"), all);
+        Assert.True(Index("this will be a P A R approach") < Index("do not acknowledge further transmissions"), all);
+        Assert.True(Index("do not acknowledge further transmissions") < Index("begin descent"), all);
         Assert.True(Index("LANDLINE Local, final") < Index("cleared to land"), all);
         Index("miles from touchdown");
         Index("at decision altitude");

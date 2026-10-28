@@ -180,8 +180,10 @@ public sealed partial class AiFinalController
             extra = "tower clearance not received, if runway or approach lights not in sight, execute missed approach";
             commit = () => p.NotReceivedSaid = true;
         }
-        else if (ac.Descending && !p.NoAckSaid && !ac.NoAcknowledge)
+        else if (!p.NoAckSaid && !ac.NoAcknowledge)
         {
+            // As soon as the arrival is on the PAR after the brief: from here headings, the wheels check and
+            // "begin descent" are flown without readbacks (§5-10-10).
             extra = "do not acknowledge further transmissions";
             commit = () => p.NoAckSaid = true;
         }
