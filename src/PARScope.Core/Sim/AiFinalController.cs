@@ -31,7 +31,7 @@ public sealed partial class AiFinalController
     {
         public double PendingSince = double.NaN, AcceptedAt = double.NaN, TowerRequestedAt = double.NaN, MissedSeenAt = double.NaN;
         public bool Briefed, NoAckSaid, ApproachingSaid, NotReceivedSaid, ContactTowerSaid, MissedRequested, ContactApproachSaid;
-        public bool DecisionSaid, LightsSaid, ThresholdSaid, WheelsSaid;
+        public bool DecisionSaid, LightsSaid, ThresholdSaid, WheelsSaid, SafetySaid;
         public int LastMile = int.MaxValue;
         /// <summary>Drift (track minus assigned heading), learned from the radar while the heading is steady.</summary>
         public double DriftDeg;
@@ -85,6 +85,7 @@ public sealed partial class AiFinalController
                 }
         return null;
     }
+
 
     private Progress For(SimAircraft ac)
     {
@@ -157,14 +158,23 @@ public sealed partial class AiFinalController
         if (t.Advisory is not { } adv || Geometry is not { } geo) return null;
         // The scope's glidepath and course words; the heading is the controller's own (below).
         string guidance = SpacesRx().Replace(TurnRx().Replace(adv.Transmission.Replace("(ADVISORY) ", ""), ""), " ").Trim(' ', ',');
-        string? turn = adv.Level == AdvisoryLevel.Warning || adv.Deviation.RangeFt < geo.ThresholdRangeFt ? null : Heading(ac, adv, t.Track, p, now);
-        bool urgent = adv.Level == AdvisoryLevel.Warning || guidance.Contains("BEGIN DESCENT") || turn != null && !ac.Descending
+        // A "…execute missed approach if not in sight" safety call is made once: the pilot either goes or has the
+        // runway, and then the talk-down carries on with plain glidepath and course calls.
+        bool warning = adv.Level == AdvisoryLevel.Warning;
+        bool safety = warning && guidance.Contains("NOT IN SIGHT");
+        if (safety && p.SafetySaid)
+        {
+            guidance = $"{adv.GlidepathPhrase}, {adv.CoursePhrase}";
+            warning = safety = false;
+        }
+        string? turn = warning || adv.Deviation.RangeFt < geo.ThresholdRangeFt ? null : Heading(ac, adv, t.Track, p, now);
+        bool urgent = warning || guidance.Contains("BEGIN DESCENT") || turn != null && !ac.Descending
                       || guidance.Contains("APPROACHING GLIDEPATH") && !p.ApproachingSaid;
         // At least every five seconds on final; before the descent, course information about every ten.
         if (since < (ac.Descending ? 4 : urgent ? 3 : 10)) return null;
 
         // "Contact tower after landing" on its own, once the clearance is relayed (the pilot handles it apart).
-        if (ac.ClearedToLand && !p.ContactTowerSaid && adv.Deviation.RangeNm < 2 && adv.Level != AdvisoryLevel.Warning)
+        if (ac.ClearedToLand && !p.ContactTowerSaid && adv.Deviation.RangeNm < 2 && !warning)
         {
             p.ContactTowerSaid = true;
             return new AiCall(ac.Callsign, $"{cs}, contact tower after landing.", false);
@@ -174,19 +184,21 @@ public sealed partial class AiFinalController
         // a safety call, the clearance or "do not acknowledge" first, then the heading and position, then range.
         string? extra = null;
         Action? commit = null;
-        if (t.Tower == TowerAnswer.Cleared && !ac.ClearedToLand && adv.Level != AdvisoryLevel.Warning)
+        if (t.Tower == TowerAnswer.Cleared && !ac.ClearedToLand && !warning)
             extra = $"{(WindPhrase.Length > 0 ? WindPhrase + ", " : "")}runway {RadioSpeech.Runway(RunwayId)}, {TowerSim.ClearanceWords(t.TowerIntent)}";
-        else if (t.Tower != TowerAnswer.Cleared && adv.Deviation.RangeNm < 2 && !adv.BelowDecisionHeight && !p.NotReceivedSaid && adv.Level != AdvisoryLevel.Warning)
+        else if (t.Tower != TowerAnswer.Cleared && adv.Deviation.RangeNm < 2 && !adv.BelowDecisionHeight && !p.NotReceivedSaid && !warning)
         {
             // No clearance by 2 miles (MCAS Cherry Point P3722.1S §6-316b).
             extra = "tower clearance not received, if runway or approach lights not in sight, execute missed approach";
             commit = () => p.NotReceivedSaid = true;
         }
-        else if (!p.NoAckSaid && !ac.NoAcknowledge && Math.Abs(ac.CommandedHeadingRelDeg) <= 15
-                 && Math.Abs(adv.Deviation.RightOfCourseFt) < Units.FeetPerNm && turn == null)
+        else if (!p.NoAckSaid && !ac.NoAcknowledge
+                 && (ac.Descending || Math.Abs(turn != null ? p.ProposedRel : ac.CommandedHeadingRelDeg) <= 15
+                     && Math.Abs(adv.Deviation.RightOfCourseFt) < Units.FeetPerNm))
         {
-            // Once roughly lined up on final (heading within 15° of the course, under a mile off the centerline):
-            // from here headings, the wheels check and "begin descent" are flown without readbacks (§5-10-10).
+            // Once roughly lined up on final (heading within 15° of the course, under a mile off the centerline),
+            // and in any case by the descent: from here headings, the wheels check and "begin descent" are flown
+            // without readbacks (§5-10-10).
             extra = "do not acknowledge further transmissions";
             commit = () => p.NoAckSaid = true;
         }
@@ -207,7 +219,9 @@ public sealed partial class AiFinalController
         var parts = new List<string>();
         if (extra != null) parts.Add(extra);
         int used = Words(string.Join(" ", parts)) + (position != null ? Words(position) : 0);
-        if (main.Length > 0 && (turn != null || adv.Level == AdvisoryLevel.Warning || used + Words(main) <= 16)) parts.Add(main);
+        // A long call loses the course trend first ("…left of course and holding" → "…left of course").
+        if (used + Words(main) > 13) main = CourseTrendRx().Replace(main, "OF COURSE");
+        if (main.Length > 0 && (turn != null || warning || used + Words(main) <= 16)) parts.Add(main);
         if (position != null) parts.Add(position);
         if (parts.Count == 0) return null;
         commit?.Invoke();
@@ -216,6 +230,7 @@ public sealed partial class AiFinalController
             if (turn != null) { p.HeadingSetAt = p.GivenAt = now; p.GivenRel = p.ProposedRel; }
             if (approaching) p.ApproachingSaid = true;
             if (main.Contains("WHEELS")) p.WheelsSaid = true;
+            if (safety) p.SafetySaid = true;
         }
         return new AiCall(ac.Callsign, Speakable(string.Join(". ", parts)) + ".", false);
     }
@@ -286,18 +301,19 @@ public sealed partial class AiFinalController
             if (commit) p.ThresholdSaid = p.LightsSaid = p.DecisionSaid = true;
             return $"over landing threshold, {adv.CoursePhrase}";
         }
-        if (nm <= 0.55)
+        // Said a moment early, so it is heard at the decision altitude rather than missed between calls.
+        if (rangeFt <= geo.DecisionHeightRangeFt + 600 && !p.DecisionSaid)
         {
-            if (p.LightsSaid) return null;
-            if (commit) p.LightsSaid = p.DecisionSaid = true;
-            return "over approach lights";
-        }
-        if (rangeFt <= geo.DecisionHeightRangeFt + 150)
-        {
-            if (p.DecisionSaid) return null;
             if (commit) p.DecisionSaid = true;
             return "at decision altitude";
         }
+        if (nm <= 0.55)
+        {
+            if (p.LightsSaid) return null;
+            if (commit) p.LightsSaid = true;
+            return "over approach lights";
+        }
+        if (rangeFt <= geo.DecisionHeightRangeFt + 600) return null;
         // Said a little before the mile, so it is still about that mile when the pilot hears it.
         int mile = (int)Math.Round(nm);
         if (mile >= 1 && mile < p.LastMile && nm >= mile - 0.1 && nm <= mile + 0.3)
@@ -327,5 +343,6 @@ public sealed partial class AiFinalController
     [GeneratedRegex(@"\d+")] private static partial Regex NumberRx();
     [GeneratedRegex(@"\s{2,}")] private static partial Regex SpacesRx();
     [GeneratedRegex(@"TURN (?:LEFT|RIGHT) HEADING \d{3},?")] private static partial Regex TurnRx();
+    [GeneratedRegex(@"OF COURSE AND (?:HOLDING|CORRECTING)")] private static partial Regex CourseTrendRx();
     [GeneratedRegex(@"APPROACHING GLIDEPATH\.?(?: WHEELS SHOULD BE DOWN\.?)?,?")] private static partial Regex ApproachingRx();
 }

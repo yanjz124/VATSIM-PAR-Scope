@@ -217,7 +217,7 @@ or ground contact short of the runway. A talk-down you directed is then graded o
 | | |
 |---|---|
 | Precision (40) | Share of the final on glidepath and on course, with the scope's deviation bands |
-| Transmissions (30) | Longest silence on final (5 seconds or less), range information each mile |
+| Transmissions (30) | Longest silence on final, from the end of one transmission to the start of the next (5 seconds or less), range information each mile |
 | Procedures (20) | Missed approach and lost communications instructions before descent, wheels check, landing clearance relayed by 2 miles |
 | Outcome (10) | Landed in the touchdown zone; a go-around the controller should have prevented scores 0 (weather does not count against you) |
 

@@ -36,8 +36,11 @@ public sealed class ApproachGrader
     public bool OnFinal => _descentStart != null;
 
     /// <summary>A controller transmission to this aircraft.</summary>
-    public void Heard(Transmission t, double now, double rangeFt)
+    /// <param name="startedAt">When the transmission began (push-to-talk pressed); the time spent talking is not
+    /// silence. Null = it took no time (a key).</param>
+    public void Heard(Transmission t, double now, double rangeFt, double? startedAt = null)
     {
+        CloseGap(startedAt ?? now);
         _lastTx = now;
         double nm = rangeFt / Nm;
         if (t.MissedApproachInstructions) { if (OnFinal) _missedInstrLate = true; else _missedInstr = true; }
@@ -49,11 +52,24 @@ public sealed class ApproachGrader
 
     /// <summary>A transmission to this aircraft that was not understood: the pilot heard the controller, so it
     /// breaks a silence, but it earns nothing else.</summary>
-    public void Keyed(double now)
+    public void Keyed(double now, double? startedAt = null)
     {
+        CloseGap(startedAt ?? now);
         _lastTx = now;
         if (OnFinal) _unclear++;
     }
+
+    /// <summary>A transmission began at <paramref name="start"/>: the silence before it on final is over.</summary>
+    private void CloseGap(double start)
+    {
+        // Only the part of the silence on final, between the start of descent and decision height.
+        if (OnFinal && !double.IsNaN(_lastTx))
+            _longestGap = Math.Max(_longestGap, Math.Min(start, _sampledUntil) - Math.Max(_lastTx, _descentStart!.Value));
+        _openGap = 0;
+    }
+
+    /// <summary>Silence since the last transmission that nothing has ended yet (counts if it is never broken).</summary>
+    private double _openGap, _sampledUntil = double.PositiveInfinity;
 
     /// <summary>Once a second on final, from the start of descent to decision height.</summary>
     public void Sample(double now, ParGeometry geo, double rangeFt, double crossFt, double heightFt)
@@ -64,7 +80,9 @@ public sealed class ApproachGrader
             _startRangeNm = rangeFt / Nm;
             if (double.IsNaN(_lastTx)) _lastTx = now;
         }
-        _longestGap = Math.Max(_longestGap, now - _lastTx);
+        // Provisional until the next transmission says when it began.
+        _openGap = now - Math.Max(_lastTx, _descentStart.Value);
+        _sampledUntil = now;
         _minRangeNm = Math.Min(_minRangeNm, rangeFt / Nm);
         if (now - _lastSample < 1) return;
         _lastSample = now;
@@ -88,6 +106,7 @@ public sealed class ApproachGrader
         double gpShare = _samples == 0 ? 1 : _gpScore / _samples, crsShare = _samples == 0 ? 1 : _courseScore / _samples;
         int precision = (int)Math.Round(20 * gpShare + 20 * crsShare);
 
+        _longestGap = Math.Max(_longestGap, _openGap); // a silence nothing broke
         int silence = (int)Math.Clamp(15 - 3 * Math.Max(0, Math.Ceiling(_longestGap) - 5), 0, 15);
         if (_longestGap > 5.5) notes.Add($"longest silence on final {_longestGap:0} s (5 s or less)");
         // Each whole mile from where descent began down to the closest the aircraft got (a go-around at 1.5 NM

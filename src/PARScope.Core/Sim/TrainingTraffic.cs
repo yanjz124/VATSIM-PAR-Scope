@@ -561,15 +561,16 @@ public sealed class SimAircraft
     /// (NAVEDTRA 14342A ch. 10). Actions happen after a human reaction delay.
     /// </summary>
     /// <summary>The controller transmitted but nothing could be made of it: no action, but not silence either.</summary>
-    public void HeardUnclear(double now)
+    public void HeardUnclear(double now, double? startedAt = null)
     {
-        if (Mode == PilotMode.ControllerDirected) _grade.Keyed(now);
+        if (Mode == PilotMode.ControllerDirected) _grade.Keyed(now, startedAt);
     }
 
-    public PilotResponse Receive(Transmission t, double now, double courseMagDeg, double recommendedFpm, double thresholdElevFt = 0)
+    /// <param name="startedAt">When the controller began this transmission (sim time), for the grade's silence.</param>
+    public PilotResponse Receive(Transmission t, double now, double courseMagDeg, double recommendedFpm, double thresholdElevFt = 0, double? startedAt = null)
     {
         double delay = ReactionDelay;
-        if (Mode == PilotMode.ControllerDirected) _grade.Heard(t, now, RangeFt);
+        if (Mode == PilotMode.ControllerDirected) _grade.Heard(t, now, RangeFt, startedAt);
         var actions = new List<string>();
         var readback = new List<string>();
         string cs = RadioSpeech.Callsign(Callsign);

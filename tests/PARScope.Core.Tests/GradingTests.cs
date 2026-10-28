@@ -92,4 +92,24 @@ public class GradingTests
         });
         Assert.DoesNotContain("range given", grade); // 3 and 2 called; the go-around came before the 1-mile call
     }
-}
+
+    [Fact]
+    public void Time_spent_talking_is_not_silence()
+    {
+        // Two transmissions on final, each 4 s long, the second starting 2 s after the first ended.
+        var geo = new ParGeometry(GeometryTests.Runway, GeometryTests.Site);
+        var g = new ApproachGrader();
+        var on = Phraseology.Parse("ON GLIDEPATH, ON COURSE");
+        for (double t = 0; t <= 20; t += 0.5)
+        {
+            double r = (5 - t * 0.04) * Units.FeetPerNm;
+            g.Sample(t, geo, r, 0, geo.GlidepathHeightFt(r));
+            if (t == 4) g.Heard(on, 4, r, startedAt: 0);
+            if (t == 10) g.Heard(on, 10, r, startedAt: 6);
+            if (t == 14) g.Heard(on, 14, r, startedAt: 10);
+            if (t == 18) g.Heard(on, 18, r, startedAt: 14);
+        }
+        var line = g.Finish(10, "landed", gearReportedDown: true);
+        Assert.NotNull(line);
+        Assert.DoesNotContain("longest silence", line);
+    }}

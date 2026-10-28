@@ -900,10 +900,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         var ac = Engine.Training.Find(call.Callsign);
         if (call.Landline) _approach.Postpone(Engine.Training.SimTime + RepeatGapSec);
         bool opens = call.Landline && !call.Text.Contains("radar contact", StringComparison.OrdinalIgnoreCase);
-        _voice.Final(call.Text, call.Landline, opens, onDone: OnUi(() =>
+        double started = Engine.Training.SimTime;
+        _voice.Final(call.Text, call.Landline, opens, onStart: OnUi(() => started = Engine.Training.SimTime), onDone: OnUi(() =>
         {
             // Once said it was heard, even if the AI was turned off while it spoke.
-            if (ac != null && Engine.Training.Find(ac.Callsign) == ac) ProcessTransmission(call.Text, "AI final", call.Landline ? null : ac);
+            if (ac != null && Engine.Training.Find(ac.Callsign) == ac) ProcessTransmission(call.Text, "AI final", call.Landline ? null : ac, started);
         }));
     }
 
@@ -1048,7 +1049,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (!TrainingMode || _voiceStarted) return;
         _voiceStarted = true;
         _speech.StateChanged += s => App.Current.Dispatcher.BeginInvoke(() => VoiceState = s);
-        _speech.Heard += text => App.Current.Dispatcher.BeginInvoke(() => ProcessTransmission(text, "voice, " + (SelectedRecognizer?.Name ?? "speech")));
+        _speech.Heard += text => App.Current.Dispatcher.BeginInvoke(() => ProcessTransmission(text, "voice, " + (SelectedRecognizer?.Name ?? "speech"), startedAt: _pttStartedAt));
         _speech.HeardAfter += (_, sec) => App.Current.Dispatcher.BeginInvoke(() =>
         {
             _session.Write($"          recognized {sec:0.0} s after release");
@@ -1376,6 +1377,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         + $"{KeyOf("approach_step")}–{KeyOf("contact_tower_after")}: radar contact, brief, begin descent, do not acknowledge, tower, contact tower\n"
         + $"{KeyOf("show_keys")} shows every key.";
 
+    /// <summary>When push-to-talk was last pressed (sim time): talking is not silence in the grade.</summary>
+    private double _pttStartedAt;
+
     /// <summary>Push-to-talk is held (drives the TX indicator).</summary>
     [ObservableProperty] public partial bool IsTransmitting { get; set; }
 
@@ -1383,6 +1387,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         if (!TrainingMode || IsTransmitting) return;
         IsTransmitting = true;
+        _pttStartedAt = Engine.Training.SimTime;
         _voice.PauseForTransmit();
         _speech.PressToTalk();
     }
@@ -1409,7 +1414,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// Sends a transmission: to tower or approach if it opens by addressing them (interphone), otherwise to
     /// the selected training aircraft (or the only one) on the final frequency.
     /// </summary>
-    public void ProcessTransmission(string text, string via, SimAircraft? to = null)
+    public void ProcessTransmission(string text, string via, SimAircraft? to = null, double? startedAt = null)
     {
         if (TryAcceptHandoff(text, via)) return;
         if (Interphone.Parse(text) is { } call) { ProcessInterphone(call, via); return; }
@@ -1429,14 +1434,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (t.IsEmpty) StatusMessage = $"Not understood: \"{text.Trim()}\" (say it again, or use the keys)";
         _session.Write($"          ({via}) to {target?.Callsign ?? "no aircraft selected"}; understood as: {Understood(t)}");
         _lastTxTime = Engine.Training.SimTime;
-        if (t.IsEmpty && target != null) target.HeardUnclear(Engine.Training.SimTime);
+        if (t.IsEmpty && target != null) target.HeardUnclear(Engine.Training.SimTime, startedAt);
         if (t.IsEmpty || target == null || Engine.Runway is not { } rw)
         {
             if (target == null && !t.IsEmpty) StatusMessage = "Select a training aircraft first";
             return;
         }
         double rod = CurrentAdvisory?.RecommendedDescentFpm ?? 700;
-        var response = target.Receive(t, Engine.Training.SimTime, rw.MagneticCourseDeg, rod, rw.ThresholdElevFt);
+        var response = target.Receive(t, Engine.Training.SimTime, rw.MagneticCourseDeg, rod, rw.ThresholdElevFt, startedAt);
         if (t.ContactApproach && !_approach.IsCoordinated(target.Callsign))
             _session.Write($"NOTE     {target.Callsign} switched to approach without coordinating the missed approach");
         _session.Write($"          {target.Callsign} action: {response.Action}{(target.NoAcknowledge && response.Reply == null ? " (silent: do not acknowledge)" : "")}");

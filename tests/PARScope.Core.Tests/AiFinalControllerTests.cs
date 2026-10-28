@@ -53,7 +53,7 @@ public class AiFinalControllerTests
             if (ai.Next(traffic, t, radioFree > t, landlineFree > t) is not { } call) continue;
 
             log.Add($"{t,5:0} " + (call.Landline ? "LANDLINE " : "FINAL ") + call.Text);
-            double end = Math.Max(t, call.Landline ? landlineFree : radioFree) + Secs(call.Text);
+            double start = Math.Max(t, call.Landline ? landlineFree : radioFree), end = start + Secs(call.Text);
             if (call.Landline) landlineFree = end; else radioFree = end;
             due.Add((end, () =>
             {
@@ -86,7 +86,7 @@ public class AiFinalControllerTests
                 }
                 var heard = Phraseology.Parse(call.Text);
                 Assert.False(heard.IsEmpty, $"not understood: {call.Text}");
-                var response = ac.Receive(heard, now, course, adv?.RecommendedDescentFpm ?? 700, elev);
+                var response = ac.Receive(heard, now, course, adv?.RecommendedDescentFpm ?? 700, elev, start);
                 if (response.Reply is { } r)
                 {
                     log.Add($"{now,5:0} PILOT " + r);
