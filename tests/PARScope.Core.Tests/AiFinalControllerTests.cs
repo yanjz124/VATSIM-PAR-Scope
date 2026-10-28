@@ -171,4 +171,13 @@ public class AiFinalControllerTests
         Assert.Equal(a.Glidepath, b.Glidepath);
         Assert.Equal(a.RangeInfo, b.RangeInfo);
     }
-}
+
+    [Fact]
+    public void Approach_waits_for_a_gap_before_calling_a_handoff_again()
+    {
+        var approach = new ApproachSim(new Random(1));
+        approach.OfferHandoff("VV123", 12, 302, 2500, now: 0);
+        approach.Postpone(25); // final answering when the repeat fell due at 20 s
+        Assert.Null(approach.DueRepeat(21));
+        Assert.NotNull(approach.DueRepeat(25));
+    }}

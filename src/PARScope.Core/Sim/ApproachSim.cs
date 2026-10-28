@@ -64,6 +64,16 @@ public sealed class ApproachSim
         return _pending[due.Callsign] = due with { NextRepeat = now + RepeatSec, Calls = due.Calls + 1 };
     }
 
+    /// <summary>
+    /// Final is talking (or about to answer): approach does not call again over them. Pushes every repeat to at
+    /// least <paramref name="until"/>.
+    /// </summary>
+    public void Postpone(double until)
+    {
+        foreach (var p in _pending.Values.ToList())
+            if (p.NextRepeat < until) _pending[p.Callsign] = p with { NextRepeat = until };
+    }
+
     /// <summary>Final accepted ("radar contact"): approach acknowledges with initials and switches the pilot.</summary>
     public string? Accept(string callsign)
     {

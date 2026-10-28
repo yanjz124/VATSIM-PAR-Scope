@@ -877,7 +877,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// </summary>
     private void RunAiFinal()
     {
-        if (!AiFinal || !TrainingMode || Engine.Training.Paused || Engine.Runway is not { } rw || Engine.Geometry is not { } geo) return;
+        // Not while you are transmitting: you have the position for that moment.
+        if (!AiFinal || !TrainingMode || IsTransmitting || Engine.Training.Paused || Engine.Runway is not { } rw || Engine.Geometry is not { } geo) return;
         _ai.Facility = FacilityName;
         _ai.RunwayId = rw.RunwayId;
         _ai.CourseMagDeg = rw.MagneticCourseDeg;
@@ -897,6 +898,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
         if (_ai.Next(traffic, Engine.Training.SimTime, _voice.RadioBusy, _voice.LandlineBusy) is not { } call) return;
         var ac = Engine.Training.Find(call.Callsign);
+        if (call.Landline) _approach.Postpone(Engine.Training.SimTime + RepeatGapSec);
         bool opens = call.Landline && !call.Text.Contains("radar contact", StringComparison.OrdinalIgnoreCase);
         _voice.Final(call.Text, call.Landline, opens, onDone: OnUi(() =>
         {
@@ -905,10 +907,16 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }));
     }
 
+    /// <summary>Seconds of quiet after a transmission before approach calls a handoff again (time for recognition, or the AI's answer to be heard).</summary>
+    private const double RepeatGapSec = 6;
+
     /// <summary>Approach repeats a handoff final has not answered.</summary>
     private void RepeatUnansweredHandoffs()
     {
-        if (Engine.Training.Paused || _approach.DueRepeat(Engine.Training.SimTime) is not { } p) return;
+        // Not over a call already on the line, or while you (or the AI) are answering: wait for a gap.
+        if (Engine.Training.Paused) return;
+        if (IsTransmitting || _voice.LandlineBusy) { _approach.Postpone(Engine.Training.SimTime + RepeatGapSec); return; }
+        if (_approach.DueRepeat(Engine.Training.SimTime) is not { } p) return;
         if (Engine.Training.Find(p.Callsign) == null) { _approach.Forget(p.Callsign); return; }
         _session.Write($"NOTE     handoff of {p.Callsign} not accepted; approach calls again (call {p.Calls})");
         Log("APPROACH", p.Text);
@@ -1383,6 +1391,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         if (!IsTransmitting) return;
         IsTransmitting = false;
+        // Recognition takes a moment: approach waits for your answer before calling a handoff again.
+        _approach.Postpone(Engine.Training.SimTime + RepeatGapSec);
         _speech.ReleaseToTalk();
         _voice.ResumeAfterTransmit();
     }
