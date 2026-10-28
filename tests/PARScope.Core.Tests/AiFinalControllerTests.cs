@@ -180,4 +180,23 @@ public class AiFinalControllerTests
         approach.Postpone(25); // final answering when the repeat fell due at 20 s
         Assert.Null(approach.DueRepeat(21));
         Assert.NotNull(approach.DueRepeat(25));
+    }
+    [Fact]
+    public void Briefs_only_after_the_pilot_has_checked_in()
+    {
+        var geo = new ParGeometry(GeometryTests.Runway, GeometryTests.Site);
+        var sim = new TrainingTraffic(1) { Geometry = geo };
+        var ac = sim.Spawn(new SpawnOptions { RangeNm = 12, Mode = PilotMode.ControllerDirected });
+        var ai = new AiFinalController { CourseMagDeg = 302, Geometry = geo };
+        AiTraffic T(bool pending) => new(ac, null, pending, TowerAnswer.None, LandingIntent.FullStop, false);
+
+        AiCall? accept = null;
+        for (double t = 0; accept == null && t < 10; t += 0.5) accept = ai.Next([T(true)], t, false, false);
+        Assert.Contains("radar contact", accept!.Text);
+        // Accepted, but the check-in is slow to come (a voice still generating): no brief over it.
+        for (double t = 10; t < 25; t += 0.5) Assert.Null(ai.Next([T(false)], t, false, false));
+        ac.CheckInCall("Miramar", 302, 0);
+        AiCall? brief = null;
+        for (double t = 25; brief == null && t < 30; t += 0.5) brief = ai.Next([T(false)], t, false, false);
+        Assert.Contains("this will be a P A R approach", brief!.Text);
     }}

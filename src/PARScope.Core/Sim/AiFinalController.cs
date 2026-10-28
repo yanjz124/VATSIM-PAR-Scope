@@ -69,6 +69,7 @@ public sealed partial class AiFinalController
     {
         _radioIdleSince = radioBusy ? double.NaN : double.IsNaN(_radioIdleSince) ? now : _radioIdleSince;
         _landlineIdleSince = landlineBusy ? double.NaN : double.IsNaN(_landlineIdleSince) ? now : _landlineIdleSince;
+        _landlineBusy = landlineBusy;
         foreach (var gone in _progress.Keys.Where(k => traffic.All(t => !t.Aircraft.Callsign.Equals(k, StringComparison.OrdinalIgnoreCase))).ToList())
             _progress.Remove(gone);
 
@@ -86,6 +87,8 @@ public sealed partial class AiFinalController
         return null;
     }
 
+
+    private bool _landlineBusy;
 
     private Progress For(SimAircraft ac)
     {
@@ -134,7 +137,8 @@ public sealed partial class AiFinalController
 
         if (ac.GoingAround)
         {
-            if (!t.MissedCoordinated || p.ContactApproachSaid) return null;
+            // Once approach's "radar contact" has been heard on the landline.
+            if (!t.MissedCoordinated || p.ContactApproachSaid || _landlineBusy) return null;
             p.ContactApproachSaid = true;
             return new AiCall(ac.Callsign, $"{cs}, contact approach.", false);
         }
@@ -143,9 +147,10 @@ public sealed partial class AiFinalController
         if (double.IsNaN(p.AcceptedAt)) p.AcceptedAt = double.NegativeInfinity;
         if (!p.Briefed)
         {
-            // After the pilot's check-in, which comes a few seconds after "radar contact".
+            // Only once the pilot has checked in (their call, not a timer: voices can take a moment to
+            // generate), or after half a minute if the check-in never comes.
             if (ac.Descending) p.Briefed = true;
-            else if (now - p.AcceptedAt < 9) return null;
+            else if (!ac.CheckedIn && now - p.AcceptedAt < 30) return null;
             else
             {
                 p.Briefed = true;

@@ -487,6 +487,9 @@ public sealed class SimAircraft
     private int _patternSide = 1;
     private double _patternEntryFt, _patternSpeedKt, _approachSpeedKt, _patternSec;
 
+    /// <summary>Has made the initial call to final on this approach.</summary>
+    public bool CheckedIn { get; private set; }
+
     /// <summary>Gear reported down to the final controller (check-in or wheels check), so the reminder can be dropped (§2-1-25).</summary>
     public bool GearReportedDown { get; private set; }
 
@@ -537,6 +540,7 @@ public sealed class SimAircraft
     public string CheckInCall(string facility, double courseMagDeg, double thresholdElevFt)
     {
         GearReportedDown |= GearDown;
+        CheckedIn = true;
         double hdg = Units.Norm360(courseMagDeg + CommandedHeadingRelDeg);
         return $"{facility} final, {RadioSpeech.Callsign(Callsign)}, heading {RadioSpeech.Heading(hdg)}, "
                + $"{RadioSpeech.Altitude(AltitudeAboveThresholdFt + thresholdElevFt)}, gear {(GearDown ? "down" : "up")}"
@@ -1082,7 +1086,7 @@ public sealed class SimAircraft
     {
         InPattern = PatternDone = GoingAround = HandedOff = Landed = Visual = _decided = _leveled = false;
         _grade = new ApproachGrader();
-        NoAcknowledge = GearReportedDown = false;
+        NoAcknowledge = GearReportedDown = CheckedIn = false;
         AnotherApproach = true;
         HandoffLeg = HandoffLeg.Final;
         Clearance = Mode == PilotMode.SelfFlying ? LandingIntent.FullStop : null;
