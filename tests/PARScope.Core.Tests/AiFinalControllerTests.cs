@@ -22,8 +22,8 @@ public class AiFinalControllerTests
         var store = new TrackStore();
         var radar = new RadarSimulator(RadarPreset.Fpn68, geo, seed: 5) { ClutterEnabled = false };
         var approach = new ApproachSim(new Random(seed));
-        var tower = new TowerSim();
-        var ai = new AiFinalController
+        var tower = new TowerSim(new Random(seed));
+        var ai = new AiFinalController(new Random(seed))
         {
             Facility = "Miramar", RunwayId = GeometryTests.Runway.RunwayId, CourseMagDeg = course, ThresholdElevFt = elev,
             MissedClimbMslFt = Math.Round((elev + 2000) / 100) * 100, Geometry = geo,
@@ -113,6 +113,38 @@ public class AiFinalControllerTests
             else failures.Add(string.Join("\n", log));
         }
         Assert.True(landed >= 8, $"{landed}/10 landed. First failure:\n{failures.FirstOrDefault()}");
+    }
+
+    [Fact]
+    public void Says_begin_descent_once()
+    {
+        for (int seed = 1; seed <= 10; seed++)
+        {
+            var (log, ac) = Fly(HandoffMix.FinalOnly, seed);
+            var calls = log.Where(l => l.Contains("FINAL") && l.Contains("begin descent", StringComparison.OrdinalIgnoreCase)).ToList();
+            Assert.True(calls.Count == 1, $"seed {seed}:\n{string.Join("\n", log)}");
+        }
+    }
+
+    [Fact]
+    public void Waits_for_the_landline_to_close_before_talking_on_frequency()
+    {
+        static double Secs(string s) => s.Split(' ').Length / 2.8;
+        static (double T, string Text) Parse(string l) => (double.Parse(l[..5]), l[6..]);
+        for (int seed = 1; seed <= 10; seed++)
+        {
+            var (log, _) = Fly(HandoffMix.FinalOnly, seed);
+            var timed = log.Where(l => l.Length > 6 && char.IsDigit(l[4])).Select(Parse).ToList();
+            for (int i = 0; i < timed.Count; i++)
+            {
+                if (!timed[i].Text.StartsWith("LANDLINE")) continue;
+                // From the call until the other end's answer has been said.
+                var answer = timed.Skip(i + 1).FirstOrDefault(x => x.Text.StartsWith("LINE "));
+                if (answer.Text == null) continue;
+                double closed = answer.T + 2 + Secs(answer.Text[5..]);
+                Assert.DoesNotContain(timed, x => x.Text.StartsWith("FINAL") && x.T > timed[i].T && x.T < closed);
+            }
+        }
     }
 
     [Fact]

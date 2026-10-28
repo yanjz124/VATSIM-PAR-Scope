@@ -29,7 +29,7 @@ public sealed partial class AiFinalController
 {
     private sealed class Progress
     {
-        public double PendingSince = double.NaN, AcceptedAt = double.NaN, TowerRequestedAt = double.NaN, MissedSeenAt = double.NaN;
+        public double PendingSince = double.NaN, AcceptedAt = double.NaN, TowerRequestedAt = double.NaN, MissedSeenAt = double.NaN, DescentSaidAt = double.NegativeInfinity;
         public bool Briefed, NoAckSaid, ApproachingSaid, NotReceivedSaid, ContactTowerSaid, MissedRequested, ContactApproachSaid;
         public bool DecisionSaid, LightsSaid, ThresholdSaid, WheelsSaid, SafetySaid;
         public int LastMile = int.MaxValue;
@@ -82,7 +82,8 @@ public sealed partial class AiFinalController
             foreach (var t in traffic)
                 if (Landline(t, now) is { } call) return call;
 
-        if (!radioBusy && now - _radioIdleSince >= 0.6)
+        // One person on both: nothing on the frequency until tower's answer has been heard and the line is closed.
+        if (!radioBusy && now - _radioIdleSince >= 0.6 && !landlineBusy && now - _landlineIdleSince >= 1.0)
             foreach (var t in traffic.OrderBy(t => t.Aircraft.RangeFt))
                 if (Radio(t, now) is { } call)
                 {
@@ -95,7 +96,10 @@ public sealed partial class AiFinalController
 
     private bool _landlineBusy;
     /// <summary>Picks between wordings that controllers use interchangeably.</summary>
-    private readonly Random _rng = new();
+    private readonly Random _rng;
+
+    /// <param name="rng">Wording choices (seeded for repeatable tests).</param>
+    public AiFinalController(Random? rng = null) => _rng = rng ?? new Random();
 
     private Progress For(SimAircraft ac)
     {
@@ -127,7 +131,9 @@ public sealed partial class AiFinalController
         }
         if (t.Advisory is { } adv && ac.Descending && !ac.Landed && !ac.ClearedToLand && t.Tower != TowerAnswer.Cleared
             && adv.Deviation.RangeNm <= TowerRequestNm
-            && (double.IsNaN(p.TowerRequestedAt) || t.Tower == TowerAnswer.Continue && now - p.TowerRequestedAt >= 15))
+            && (double.IsNaN(p.TowerRequestedAt) || t.Tower == TowerAnswer.Continue && now - p.TowerRequestedAt >= 15)
+            // Straight after a call on frequency, so the pilot goes as little time as possible without one.
+            && now - _radioIdleSince is <= 1.5 or >= 6)
         {
             p.TowerRequestedAt = now;
             return new AiCall(ac.Callsign, TowerSim.RequestText(ac.Callsign, adv.Deviation.RangeNm, Intent, asRequest: _rng.Next(2) == 0), true);
@@ -180,7 +186,10 @@ public sealed partial class AiFinalController
             warning = safety = false;
         }
         string? turn = warning || adv.Deviation.RangeFt < geo.ThresholdRangeFt ? null : Heading(ac, adv, t.Track, p, now);
-        bool urgent = warning || guidance.Contains("BEGIN DESCENT") || turn != null && !ac.Descending
+        // "Begin descent" is said once: the pilot starts down after a reaction delay, so the next call would
+        // otherwise still see level flight and repeat it. Again only if they have not started 15 s later.
+        bool descentOwed = !ac.Descending && now - p.DescentSaidAt >= 15;
+        bool urgent = warning || guidance.Contains("BEGIN DESCENT") && descentOwed || turn != null && !ac.Descending
                       || guidance.Contains("APPROACHING GLIDEPATH") && !p.ApproachingSaid;
         // At least every five seconds on final; before the descent, course information about every ten.
         if (since < (ac.Descending ? 4 : urgent ? 3 : 10)) return null;
@@ -204,8 +213,8 @@ public sealed partial class AiFinalController
             extra = "do not acknowledge further transmissions";
             commit = () => p.NoAckSaid = true;
         }
-        // Already descending (the radar has not shown it yet): no second "begin descent".
-        if (ac.Descending) guidance = SpacesRx().Replace(guidance.Replace("BEGIN DESCENT,", "").Replace("BEGIN DESCENT", ""), " ").Trim(' ', ',');
+        // Already descending (the radar has not shown it yet) or just told: no second "begin descent".
+        if (!descentOwed) guidance = SpacesRx().Replace(guidance.Replace("BEGIN DESCENT,", "").Replace("BEGIN DESCENT", ""), " ").Trim(' ', ',');
         bool approaching = guidance.Contains("APPROACHING GLIDEPATH");
         // Said once; until the descent starts the course call carries on alone.
         if (approaching && p.ApproachingSaid) guidance = SpacesRx().Replace(ApproachingRx().Replace(guidance, ""), " ").Trim(' ', ',', '.');
@@ -240,6 +249,7 @@ public sealed partial class AiFinalController
         {
             if (turn != null) { p.HeadingSetAt = p.GivenAt = now; p.GivenRel = p.ProposedRel; }
             if (approaching) p.ApproachingSaid = true;
+            if (main.Contains("BEGIN DESCENT")) p.DescentSaidAt = now;
             if (main.Contains("WHEELS")) p.WheelsSaid = true;
             if (safety) p.SafetySaid = true;
         }

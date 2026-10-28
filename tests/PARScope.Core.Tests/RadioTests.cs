@@ -573,7 +573,7 @@ public class AircraftPerformanceTests
         Assert.Empty(MilitaryCallsigns.BasedAt("NAVAL AIR STATION"));
 
         // Most tactical arrivals at a field with based squadrons are theirs.
-        var sim = new TrainingTraffic { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site), HomeAirportName = "OCEANA NAS (APOLLO SOUCEK FLD)" };
+        var sim = new TrainingTraffic(seed: 1) { Geometry = new ParGeometry(GeometryTests.Runway, GeometryTests.Site), HomeAirportName = "OCEANA NAS (APOLLO SOUCEK FLD)" };
         // Squadron callwords only (a service callsign such as "VV" or "PAT" is not a tactical arrival).
         var words = MilitaryCallsigns.All.Select(m => m.Callword).Where(w => w is not ("VV" or "VM" or "R" or "AF" or "PAT")).ToHashSet();
         int home = 0, tactical = 0;
