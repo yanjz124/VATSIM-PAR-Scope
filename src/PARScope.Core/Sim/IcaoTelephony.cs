@@ -27,6 +27,10 @@ public static class IcaoTelephony
 
     public static int Count => Table.Value.Count;
 
+    /// <summary>The US military designator for a telephony, if there is one: REACH → RCH, CONVOY → CNV, QUID → QID.</summary>
+    public static string? MilitaryDesignator(string telephony) =>
+        Table.Value.Values.FirstOrDefault(o => o.Military && o.Telephony.Equals(telephony, StringComparison.OrdinalIgnoreCase))?.Code;
+
     private static Dictionary<string, IcaoOperator> Load()
     {
         var map = new Dictionary<string, IcaoOperator>(StringComparer.OrdinalIgnoreCase);

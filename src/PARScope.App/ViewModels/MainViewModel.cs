@@ -786,7 +786,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         string handoff = _approach.OfferHandoff(ac.Callsign, ac.RangeFt / Units.FeetPerNm,
             Units.Norm360(rw.MagneticCourseDeg + ac.CommandedHeadingRelDeg), ac.AltitudeAboveThresholdFt + rw.ThresholdElevFt, Engine.Training.SimTime, ac.HandoffLeg);
-        _voice.Approach(handoff, 0.5, OnUi(() => Log("APPROACH", handoff)));
+        _voice.Approach(handoff, 0.5, OnUi(() => Log("APPROACH", handoff)), opensCall: true);
     }
 
     /// <summary>"(Callsign) radar contact [initials]" accepts approach's handoff; the pilot then checks in.</summary>
@@ -856,7 +856,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (Engine.Training.Find(p.Callsign) == null) { _approach.Forget(p.Callsign); return; }
         _session.Write($"NOTE     handoff of {p.Callsign} not accepted; approach calls again (call {p.Calls})");
         Log("APPROACH", p.Text);
-        _voice.Approach(p.Text);
+        _voice.Approach(p.Text, opensCall: true);
     }
 
     [RelayCommand]

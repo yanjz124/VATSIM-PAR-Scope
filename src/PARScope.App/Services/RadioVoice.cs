@@ -68,11 +68,14 @@ public sealed class RadioVoice : IDisposable
 
     public void Pilot(string text, string? callsign = null, double delaySec = 0, Action? onStart = null) =>
         Enqueue(_radio, text, PilotVoiceFor(callsign), delaySec, onStart);
-    /// <summary>Tower on the landline (<paramref name="landline"/> false queues it after the radio lines, for the voice test).</summary>
-    public void Tower(string text, double delaySec = 0, Action? onStart = null, bool landline = true) =>
-        Enqueue(landline ? _landline : _radio, text, TowerVoice, delaySec, onStart);
-    public void Approach(string text, double delaySec = 0, Action? onStart = null, bool landline = true) =>
-        Enqueue(landline ? _landline : _radio, text, ApproachVoice, delaySec, onStart);
+    /// <summary>
+    /// Tower on the landline. <paramref name="opensCall"/>: tower is calling you, so the line's tone plays first;
+    /// a reply to your call has none. <paramref name="landline"/> false queues it after the radio lines (voice test).
+    /// </summary>
+    public void Tower(string text, double delaySec = 0, Action? onStart = null, bool landline = true, bool opensCall = false) =>
+        Enqueue(landline ? _landline : _radio, text, TowerVoice, delaySec, onStart, opensCall);
+    public void Approach(string text, double delaySec = 0, Action? onStart = null, bool landline = true, bool opensCall = false) =>
+        Enqueue(landline ? _landline : _radio, text, ApproachVoice, delaySec, onStart, opensCall);
 
     /// <summary>The voice a pilot speaks with: their own (stable per callsign, never tower's or approach's), or the chosen pilot voice.</summary>
     private string? PilotVoiceFor(string? callsign)
@@ -85,7 +88,7 @@ public sealed class RadioVoice : IDisposable
         return pool[(int)(h % (uint)pool.Count)];
     }
 
-    private void Enqueue(Lane lane, string text, string? voice, double delaySec, Action? onStart)
+    private void Enqueue(Lane lane, string text, string? voice, double delaySec, Action? onStart, bool opensCall = false)
     {
         var due = DateTime.UtcNow.AddSeconds(delaySec);
         if (!Enabled || Voices.Count == 0)
@@ -95,14 +98,14 @@ public sealed class RadioVoice : IDisposable
             return;
         }
         var engine = _engine;
-        bool effect = RadioEffectEnabled, phone = lane == _landline;
+        bool effect = RadioEffectEnabled, phone = lane == _landline, tone = phone && opensCall;
         var audio = Task.Run(() =>
         {
             var (s, rate) = engine.Synthesize(text, voice ?? engine.DefaultPilot);
             // The landline sounds like a telephone line, not a radio.
             if (effect) s = phone ? TelephoneEffect.Apply(s, rate) : RadioEffect.Apply(s, rate, text.GetHashCode());
-            // A landline call opens with the voice switch's override tone.
-            if (phone) s = [.. TelephoneEffect.OverrideTone(rate), .. s];
+            // A landline call opens with the voice switch's tone; the replies in that exchange do not.
+            if (tone) s = [.. TelephoneEffect.OverrideTone(rate), .. s];
             return (s, rate);
         });
         lane.Queue.Writer.TryWrite(new Line(audio, due, onStart, _generation));

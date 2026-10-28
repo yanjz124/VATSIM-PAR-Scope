@@ -68,9 +68,15 @@ public class CallsignLengthTests
             Assert.DoesNotContain("Alpha Bravo", RadioSpeech.Callsign(ac.Callsign)); // never spelled out letter by letter
             sim.Remove(ac.Callsign);
         }
-        Assert.Equal("BNS", TrainingTraffic.Abbreviate("BANSHEE", 3));
+        Assert.Null(TrainingTraffic.Abbreviate("BANSHEE", 3)); // never under four letters...
+        Assert.Equal("RCH", TrainingTraffic.Abbreviate("REACH", 3)); // ...unless it is the official designator
+        Assert.Equal("CNV", TrainingTraffic.Abbreviate("CONVOY", 4));
         Assert.Equal("BNSH", TrainingTraffic.Abbreviate("BANSHEE", 4));
-        Assert.Equal("RCH", TrainingTraffic.Abbreviate("REACH", 3));
+        Assert.Equal("BNSHE", TrainingTraffic.Abbreviate("BANSHEE", 5));
+        Assert.Equal("BLKJK", TrainingTraffic.Abbreviate("BLACKJACK", 5));
+        Assert.Equal("THUNDR", TrainingTraffic.Abbreviate("THUNDER", 6));
+        Assert.Equal("BLKJK", CallwordAbbreviations.Natural("BLACKJACK", 5)); // the rule for words not in the list
+        Assert.Equal("THUND", TrainingTraffic.Abbreviate("THUNDERBIRD", 5)); // from the list (THUNDER has THNDR)
     }
 
     [Theory]

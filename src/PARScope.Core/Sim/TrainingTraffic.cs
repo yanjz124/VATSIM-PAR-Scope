@@ -108,14 +108,11 @@ public sealed class TrainingTraffic
     /// <summary>Longest generated callsign, as shown on the radar (0 = no limit). Longer ones are abbreviated.</summary>
     public int MaxCallsignLength { get; set; }
 
-    /// <summary>ICAO designators for mission callwords.</summary>
-    private static readonly Dictionary<string, string> KnownAbbreviations = new() { ["REACH"] = "RCH", ["CONVOY"] = "CNV" };
-
     /// <summary>
     /// The letters and number of digits of a generated callsign within <see cref="MaxCallsignLength"/>: mission
     /// numbers shorten first (to two digits); formation numbers stay two digits; then the callword is
-    /// abbreviated, by its ICAO designator or to its first letter and consonants (BANSHEE → BNS), as in a
-    /// flight plan's seven-character callsign.
+    /// abbreviated, to its official designator (REACH → RCH) or a form of four letters or more that still reads
+    /// as the word (BANSHEE → BNSH), as in a flight plan's seven-character callsign.
     /// </summary>
     /// <summary>Null when no form of this callword fits without looking like a civil operator's designator.</summary>
     private (string Prefix, int Digits)? FitCallsign(string prefix, int digits, bool flight)
@@ -132,35 +129,22 @@ public sealed class TrainingTraffic
     /// <summary>Generated callsigns are military: never a civil operator's ICAO three-letter designator (FAA JO 7340.2).</summary>
     private static bool IsCivilLooking(string prefix) => prefix.Length == 3 && IcaoTelephony.IsCivil(prefix);
 
-    /// <summary>The preferred abbreviation of a callword (BANSHEE → BNS).</summary>
-    public static string Abbreviate(string word, int letters) => Abbreviations(word, letters).First();
+    /// <summary>The preferred abbreviation of a callword (BANSHEE → BNSH), or null if none fits.</summary>
+    public static string? Abbreviate(string word, int letters) => Abbreviations(word, letters).FirstOrDefault();
 
     /// <summary>
-    /// Abbreviations of a callword to <paramref name="letters"/> letters, best first: its ICAO designator if it has
-    /// one, first letter and consonants (BANSHEE → BNS), then other in-order letter choices keeping the first letter,
-    /// so one that is not a civil designator can be chosen.
+    /// Abbreviations of a callword to at most <paramref name="letters"/> letters, best first: its official military
+    /// designator (REACH → RCH); then, never under four letters, the listed form (callword-abbreviations.csv) and
+    /// the same rule for words not in the list.
     /// </summary>
     public static IEnumerable<string> Abbreviations(string word, int letters)
     {
         if (word.Length <= letters) { yield return word; yield break; }
-        if (KnownAbbreviations.TryGetValue(word, out var known) && known.Length <= letters) yield return known;
-        var consonants = new System.Text.StringBuilder().Append(word[0]);
-        foreach (char c in word[1..])
-            if ("AEIOUY".IndexOf(c) < 0 && consonants[^1] != c) consonants.Append(c);
-        var seen = new HashSet<string>();
-        if (consonants.Length >= letters && seen.Add(consonants.ToString(0, letters))) yield return consonants.ToString(0, letters);
-        if (seen.Add(word[..letters])) yield return word[..letters];
-        // Every other in-order choice of letters after the first.
-        foreach (var rest in Choose(word[1..], letters - 1))
-            if (seen.Add(word[0] + rest)) yield return word[0] + rest;
-    }
-
-    private static IEnumerable<string> Choose(string s, int k)
-    {
-        if (k == 0) { yield return ""; yield break; }
-        for (int i = 0; i <= s.Length - k; i++)
-            foreach (var tail in Choose(s[(i + 1)..], k - 1))
-                yield return s[i] + tail;
+        if (IcaoTelephony.MilitaryDesignator(word) is { } code && code.Length <= letters) yield return code;
+        if (letters < 4) yield break; // shorter than four letters only as an official designator
+        int n = Math.Min(letters, 6);
+        if (CallwordAbbreviations.Find(word, n) is { } listed) yield return listed;
+        yield return CallwordAbbreviations.Natural(word, n);
     }
 
     /// <summary>Name of the field being worked; squadrons based there fly most of its traffic.</summary>
