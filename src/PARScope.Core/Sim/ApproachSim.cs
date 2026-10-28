@@ -39,11 +39,13 @@ public sealed class ApproachSim
         string where = leg switch
         {
             HandoffLeg.Base => $"{miles} miles from touchdown, on base leg",
-            HandoffLeg.Dogleg => $"{miles} miles from touchdown, on a dogleg to final",
+            HandoffLeg.Dogleg => $"{miles} miles from touchdown",
             _ => $"{miles} mile final",
         };
+        // Approach assigns headings in tens.
+        double heading = Math.Round(headingMagDeg / 10) * 10 is var h && h <= 0 ? 360 : h;
         return $"Final, approach, handoff, {where}, {RadioSpeech.Callsign(callsign)}, "
-               + $"{RadioSpeech.Altitude(altitudeFt)}, heading {RadioSpeech.Heading(headingMagDeg)}.";
+               + $"{RadioSpeech.Altitude(altitudeFt)}, heading {RadioSpeech.Heading(heading)}.";
     }
 
     /// <summary>Approach offers an arrival to final; returns the call.</summary>

@@ -157,7 +157,7 @@ public class RadioTests
             Assert.InRange(ac.RangeFt / PARScope.Core.Geo.Units.FeetPerNm, 12, 15);
             Assert.InRange(ac.AltitudeAboveThresholdFt, 1990, 3000);
         }
-        Assert.Equal("Final, approach, handoff, one four mile final, Navy one two three four, two thousand five hundred, heading two four three.",
+        Assert.Equal("Final, approach, handoff, one four mile final, Navy one two three four, two thousand five hundred, heading two four zero.",
             ApproachSim.HandoffToFinal("VV1234", 14.2, 243, 2500));
         var app = new ApproachSim();
         app.OfferHandoff("VV1234", 14, 243, 2500, now: 0);

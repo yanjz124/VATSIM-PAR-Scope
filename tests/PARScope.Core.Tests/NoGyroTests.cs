@@ -17,10 +17,14 @@ public class HandoffLegTests
             var ac = sim.SpawnRandom(PilotMode.ControllerDirected);
             seen.Add(ac.HandoffLeg);
             double abeam = Math.Abs(ac.CrossFt) / nm, toward = -Math.Sign(ac.CrossFt) * ac.HeadingRelDeg;
-            if (ac.HandoffLeg == HandoffLeg.Base) { Assert.InRange(abeam, 3, 5); Assert.InRange(toward, 89, 91); Assert.InRange(ac.RangeFt / nm, 9, 11); }
-            else { Assert.Equal(HandoffLeg.Dogleg, ac.HandoffLeg); Assert.InRange(abeam, 1.5, 3); Assert.InRange(toward, 30, 45); }
+            if (ac.HandoffLeg == HandoffLeg.Base) { Assert.InRange(abeam, 3, 5); Assert.InRange(toward, 85, 95); Assert.InRange(ac.RangeFt / nm, 9, 11); }
+            else { Assert.Equal(HandoffLeg.Dogleg, ac.HandoffLeg); Assert.InRange(abeam, 1.5, 3); Assert.InRange(toward, 25, 50); }
             string call = ApproachSim.HandoffToFinal(ac.Callsign, ac.RangeFt / nm, 243, 2500, ac.HandoffLeg);
-            Assert.Contains(ac.HandoffLeg == HandoffLeg.Base ? "on base leg" : "on a dogleg to final", call);
+            if (ac.HandoffLeg == HandoffLeg.Base) Assert.Contains("on base leg", call);
+            else { Assert.DoesNotContain("dogleg", call); Assert.Contains("miles from touchdown", call); Assert.InRange(ac.RangeFt / nm, 14, 16); }
+            // Handed off on a heading in tens, and flying it.
+            double hdg = PARScope.Core.Geo.Units.Norm360(GeometryTests.Runway.MagneticCourseDeg + ac.CommandedHeadingRelDeg);
+            Assert.Equal(0, Math.Round(hdg) % 10);
             sim.Remove(ac.Callsign);
         }
         Assert.Equal(2, seen.Count);

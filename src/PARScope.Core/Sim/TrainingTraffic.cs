@@ -61,6 +61,8 @@ public sealed record SpawnOptions
     public PilotMode Mode { get; init; } = PilotMode.ControllerDirected;
     /// <summary>0 = sloppy, 1 = precise.</summary>
     public double Skill { get; init; } = 0.6;
+    /// <summary>Round the initial heading to tens, as approach assigns it (generated arrivals).</summary>
+    public bool HeadingInTens { get; init; }
     public double WindFromDeg { get; init; } = 0;
     public double WindKt { get; init; } = 0;
     /// <summary>Steady heading creep while holding a heading, °/min; reset when a new heading is assigned.</summary>
@@ -287,6 +289,13 @@ public sealed class TrainingTraffic
             SpeedKt = o.SpeedKt > 0 ? o.SpeedKt : ApproachSpeed(type),
             GearDown = o.GearDown ?? _rng.NextDouble() < 0.5,
         };
+        if (o.HeadingInTens)
+        {
+            // Approach assigns headings in tens: the arrival is on one when it is handed off.
+            double course = geo.Runway.MagneticCourseDeg;
+            double assigned = Math.Round(Units.Norm360(course + ac.TrackRelDeg) / 10) * 10;
+            ac.TrackRelDeg = Units.Norm180(assigned - course);
+        }
         ac.HeadingRelDeg = ac.TrackRelDeg;
         ac.CommandedHeadingRelDeg = ac.HeadingRelDeg;
         _aircraft.Add(ac);
@@ -306,12 +315,12 @@ public sealed class TrainingTraffic
         };
         int side = _rng.Next(2) == 0 ? -1 : 1;
         // Final: 12-15 NM out at 2,000-3,000 ft, time for the radio check, brief and missed approach
-        // instructions before glidepath intercept (about 6-9 NM on a 3° path). Dogleg: 1.5-3 NM off the
-        // centerline, 30-45° toward it. Base: 3-5 NM abeam, heading straight for the centerline, for final
+        // instructions before glidepath intercept (about 6-9 NM on a 3° path). Dogleg: 14-16 NM out, 1.5-3 NM off
+        // the centerline, 30-45° toward it. Base: 3-5 NM abeam, heading straight for the centerline, for final
         // to turn in (outside the PAR's azimuth coverage until then; on the ASR).
         var (rangeNm, crossFt, intercept) = leg switch
         {
-            HandoffLeg.Dogleg => (11 + _rng.NextDouble() * 2, side * (1.5 + _rng.NextDouble() * 1.5) * Units.FeetPerNm, 30 + _rng.NextDouble() * 15),
+            HandoffLeg.Dogleg => (14 + _rng.NextDouble() * 2, side * (1.5 + _rng.NextDouble() * 1.5) * Units.FeetPerNm, 30 + _rng.NextDouble() * 15),
             HandoffLeg.Base => (9 + _rng.NextDouble() * 2, side * (3 + _rng.NextDouble() * 2) * Units.FeetPerNm, 90.0),
             _ => (12 + _rng.NextDouble() * 3, (_rng.NextDouble() - 0.5) * 2 * d.CrossFt, _rng.NextDouble() * d.InterceptDeg),
         };
@@ -325,6 +334,7 @@ public sealed class TrainingTraffic
             SpeedKt = 0, // from the callsign style's aircraft
             InterceptAngleDeg = intercept,
             Leg = leg,
+            HeadingInTens = true,
             Mode = mode,
             Skill = skill ?? Between(d.SkillLo, d.SkillHi),
             WindFromDeg = live?.FromDeg ?? _rng.Next(0, 36) * 10,
