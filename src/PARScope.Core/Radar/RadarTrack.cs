@@ -40,6 +40,8 @@ public sealed class RadarTrack
     public RadarTrack(string callsign) => Callsign = callsign;
 
     public string Callsign { get; }
+    /// <summary>Transponder code (four octal digits as a number) when the traffic source sends one.</summary>
+    public int? Beacon { get; set; }
     public double LastUpdate { get; private set; }
     /// <summary>Coasting, and why (set by the radar each frame).</summary>
     public CoastReason Coast { get; internal set; }

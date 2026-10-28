@@ -101,6 +101,7 @@ public sealed class RadarSimulator
             var truth = Geometry.FromEcef(t.PositionAt(now));
             var polar = Geometry.ToPolar(truth);
             if (!InCoverage(polar, t)) continue;
+            if (t.Beacon is int code && _tracks.TryGetValue(t.Callsign, out var known)) known.Beacon = code;
 
             if (polar.ElevationDeg >= Preset.ElMinDeg && polar.ElevationDeg <= Preset.AzBeamElMaxDeg
                 && Illuminated(prev, now, AzFraction(polar.AzimuthDeg), Preset.AzScanSec, 0.0))

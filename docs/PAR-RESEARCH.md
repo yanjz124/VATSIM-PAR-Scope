@@ -66,6 +66,21 @@ The digital style is copied from two sources:
   * boxed touchdown markers;
   * a data block of callsign / speed and range / offsets in feet with trend arrows.
 
+* **Close-up of an AN/TPN-31 ATNAVICS display** (Rugged Portable Systems monitor, Army PAR video frame,
+  October 2026 audit), used for the TPN-31 preset:
+  * compressed range axis labeled "0.00" … "9.00" in green under the elevation display;
+  * green dashed line at each mile, solid green at 1 and 5 NM, cream dotted lines at each half mile and,
+    in the first mile, each quarter mile;
+  * cream solid coverage limits; on the elevation display about −0.5° and +6° measured against the 3°
+    glidepath (straight-line log scaling keeps the ratio of their slopes);
+  * pale green glidepath and course lines with no mile ticks, a cream dotted line under the glidepath;
+  * a pale cyan decision-height line from just past touchdown to about a mile beyond DH, with a tick up at DH;
+  * no ground line, touchdown boxes or runway outline;
+  * a white filled target with a short dashed history trail behind it, and a leader line to a data block
+    of the four-digit beacon code alone ("1235").
+* **Earlier ATNAVICS footage** (Army radar training simulator, USMC expeditionary screens): the same
+  compressed axis, green cursors and cream limits.
+
 The analog style follows museum and archive photos of FPN-63-era indicators. They show green or
 amber phosphor, compressed range marks, dashed sector edges, smeared raw video with afterglow, and
 no alphanumerics at all.

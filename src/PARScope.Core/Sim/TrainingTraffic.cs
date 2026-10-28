@@ -375,7 +375,7 @@ public sealed class TrainingTraffic
             double gs = Paused ? 0 : a.GroundSpeedKt * Units.MpsPerKnot;
             var vel = new Vec3(gs * Math.Sin(trackTrue), gs * Math.Cos(trackTrue), Paused ? 0 : a.VerticalSpeedFpm / 60.0 * Units.MetersPerFoot);
             yield return new PositionReport(a.Callsign, now, ReportSource.Simulated, geoPt, vel, a.TypeCode,
-                geoPt.AltFt, Units.Norm360(courseTrue + a.HeadingRelDeg), a.GroundSpeedKt, Frozen: Paused);
+                geoPt.AltFt, Units.Norm360(courseTrue + a.HeadingRelDeg), a.GroundSpeedKt, Frozen: Paused, Beacon: a.Squawk);
         }
     }
 }
@@ -404,7 +404,14 @@ public sealed class SimAircraft
         if (opt.Mode == PilotMode.SelfFlying) Clearance = LandingIntent.FullStop;
         _driftSign = rng.Next(2) == 0 ? -1 : 1;
         _vsDriftSign = rng.Next(2) == 0 ? -1 : 1;
+        // A discrete code from approach, steady per callsign: four octal digits, leading 2–6 (not a special or VFR code).
+        uint h = 2166136261;
+        foreach (char ch in callsign) h = (h ^ ch) * 16777619;
+        Squawk = (int)(2 + h % 5) * 1000 + (int)(h / 5 % 8) * 100 + (int)(h / 40 % 8) * 10 + (int)(h / 320 % 8);
     }
+
+    /// <summary>Transponder code, four octal digits read as a number (e.g. 4235).</summary>
+    public int Squawk { get; }
 
     public string Callsign { get; }
     public string TypeCode { get; }

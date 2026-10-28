@@ -176,10 +176,12 @@ public sealed record RadarPreset
     {
         Id = "tpn31",
         Name = "AN/TPN-31 ATNAVICS",
-        Description = "US Army/USMC tactical ATC system. Display as on the Army radar training simulator and USMC "
-                      + "expeditionary screens: compressed range axis, green cursors, cream limit lines, DH line, "
-                      + "white tracks with leader lines. Coverage and range are assumed (public figures not found).",
-        AzLeftDeg = 10, AzRightDeg = 10, ElMinDeg = -1, ElMaxDeg = 7, MaxRangeNm = 10,
+        Description = "US Army/USMC tactical ATC system. Display as on ATNAVICS screens: compressed range axis, green "
+                      + "cursors, cream limit lines, DH line, white targets with the beacon code on a leader line. "
+                      + "Elevation limits measured off a display photo; azimuth and range assumed (public figures not found).",
+        // −0.5° to +6°: the limit lines on an ATNAVICS display photo against its 3° glidepath (straight-line log
+        // scaling keeps the ratio of their slopes).
+        AzLeftDeg = 10, AzRightDeg = 10, ElMinDeg = -0.5, ElMaxDeg = 6, MaxRangeNm = 10,
         AzScanSec = 1.0, ElScanSec = 1.0, Pattern = ScanPattern.Electronic,
         AzBeamwidthDeg = 1.0, ElBeamwidthDeg = 0.7,
         NoiseFactor = 1.0, Style = DisplayStyle.Digital, Tracking = true, MaxTracks = 6, RangeScalesNm = [5, 10],

@@ -205,14 +205,14 @@ public sealed class ParDisplayRenderer : IDisposable
     {
         double minor = opt.RangeScaleNm <= 5 ? 0.25 : 0.5;
         float lastLabelRight = float.NegativeInfinity;
-        for (double nm = 0; nm <= _rMaxNm + 1e-6; nm += minor)
+        for (double nm = 0; nm <= _rMaxNm + 1e-6; nm += nm < 1 - 1e-6 && _t.QuarterMilesInFirstMile ? 0.25 : minor)
         {
             bool whole = Math.Abs(nm - Math.Round(nm)) < 1e-6;
             bool major = whole && ((int)Math.Round(nm) % 5 == 0 || (_t.MajorAtOneMile && (int)Math.Round(nm) == 1));
             float x = X(nm * Units.FeetPerNm);
             var p = major ? _ink.Line(_t.RangeMajor, 1f)
                   : whole ? _ink.Line(_t.RangeMinor, 1f, LineStyle.Dashed)
-                  : _ink.Line(_t.RangeMinor.Fade(0.6), 1f, LineStyle.Dotted);
+                  : _ink.Line(_t.RangeHalf ?? _t.RangeMinor.Fade(0.6), 1f, LineStyle.Dotted);
             if (_t.Analog && !whole) continue;
             c.DrawLine(x, _elTop, x, _elBottom, p);
             c.DrawLine(x, _azTop, x, _azBottom, p);
@@ -238,7 +238,7 @@ public sealed class ParDisplayRenderer : IDisposable
         c.ClipRect(ElRect);
         _ink.Glow = _t.Analog;
 
-        c.DrawLine(_left, YEl(0, 1), _right, YEl(0, 1), _ink.Line(_t.Ground, 1f));
+        if (_t.GroundLine) c.DrawLine(_left, YEl(0, 1), _right, YEl(0, 1), _ink.Line(_t.Ground, 1f));
 
         // Elevation coverage limits from the antenna.
         var ant = geo.AntennaPoint;
@@ -254,30 +254,33 @@ public sealed class ParDisplayRenderer : IDisposable
 
         // Glidepath cursor from the GPI, with a tick every mile.
         Curve(c, _ink.Line(_t.Cursor, 1.6f), geo.GlidepathHeightFt, YEl, 1, RangeMaxFt);
-        for (int nm = 1; nm <= (int)_rMaxNm; nm++)
+        for (int nm = 1; _t.CursorTicks && nm <= (int)_rMaxNm; nm++)
         {
             double r = nm * Units.FeetPerNm;
             float x = X(r), y = YEl(geo.GlidepathHeightFt(r), r);
             c.DrawLine(x, y - 5, x, y + 5, _ink.Line(_t.Cursor, 1.2f));
         }
 
-        // Decision height: a tick across the glidepath, or (ATNAVICS) a short line at DH altitude with a tick.
+        // Decision height: a tick across the glidepath, or (ATNAVICS) a line at DH altitude from just past
+        // touchdown to about a mile beyond DH, with a tick up at DH.
         double dhR = geo.DecisionHeightRangeFt;
         float dx = X(dhR), dy = YEl(geo.DecisionHeightAboveThresholdFt, dhR);
         if (_t.DhLine)
         {
-            double half = 0.35 * Units.FeetPerNm;
             var dhPaint = _ink.Line(_t.DhColor, 1.6f);
-            c.DrawLine(X(Math.Max(dhR - half, 0.05 * Units.FeetPerNm)), dy, X(dhR + half), dy, dhPaint);
+            c.DrawLine(X(0.12 * Units.FeetPerNm), dy, X(dhR + Units.FeetPerNm), dy, dhPaint);
             c.DrawLine(dx, dy - 9, dx, dy, dhPaint);
         }
         else c.DrawLine(dx, dy - 10, dx, dy + 10, _ink.Line(_t.Safety, 1.6f));
 
         // Touchdown box and threshold mark on the ground line.
-        float gy = YEl(0, 1);
-        c.DrawRect(X(0) - 4, gy - 4, 8, 8, _ink.Line(_t.Runway, 1f));
-        float tx = X(geo.ThresholdRangeFt);
-        c.DrawLine(tx, gy, tx, YEl(geo.Site.TchFt, geo.ThresholdRangeFt), _ink.Line(_t.Runway, 1.2f));
+        if (_t.RunwayMarks)
+        {
+            float gy = YEl(0, 1);
+            c.DrawRect(X(0) - 4, gy - 4, 8, 8, _ink.Line(_t.Runway, 1f));
+            float tx = X(geo.ThresholdRangeFt);
+            c.DrawLine(tx, gy, tx, YEl(geo.Site.TchFt, geo.ThresholdRangeFt), _ink.Line(_t.Runway, 1.2f));
+        }
         _ink.Glow = false;
         c.Restore();
     }
@@ -289,12 +292,15 @@ public sealed class ParDisplayRenderer : IDisposable
         _ink.Glow = _t.Analog;
 
         // Runway outline and touchdown box.
-        double halfW = (geo.Runway.WidthFt ?? 150) / 2;
-        double len = geo.Runway.LengthFt ?? 8000;
-        float rx0 = X(geo.ThresholdRangeFt), rx1 = X(geo.ThresholdRangeFt - len);
-        float ry0 = YAz(halfW, -1), ry1 = YAz(-halfW, -1);
-        c.DrawRect(SKRect.Create(Math.Min(rx0, rx1), Math.Min(ry0, ry1), Math.Abs(rx0 - rx1), Math.Max(2, Math.Abs(ry1 - ry0))), _ink.Line(_t.Runway, 1f));
-        c.DrawRect(X(0) - 4, YAz(0, 1) - 4, 8, 8, _ink.Line(_t.Runway, 1f));
+        if (_t.RunwayMarks)
+        {
+            double halfW = (geo.Runway.WidthFt ?? 150) / 2;
+            double len = geo.Runway.LengthFt ?? 8000;
+            float rx0 = X(geo.ThresholdRangeFt), rx1 = X(geo.ThresholdRangeFt - len);
+            float ry0 = YAz(halfW, -1), ry1 = YAz(-halfW, -1);
+            c.DrawRect(SKRect.Create(Math.Min(rx0, rx1), Math.Min(ry0, ry1), Math.Abs(rx0 - rx1), Math.Max(2, Math.Abs(ry1 - ry0))), _ink.Line(_t.Runway, 1f));
+            c.DrawRect(X(0) - 4, YAz(0, 1) - 4, 8, 8, _ink.Line(_t.Runway, 1f));
+        }
 
         // Antenna sector limits.
         var ant = geo.AntennaPoint;
@@ -314,7 +320,7 @@ public sealed class ParDisplayRenderer : IDisposable
 
         // Course cursor with mile ticks.
         Curve(c, _ink.Line(_t.Cursor, 1.6f), _ => 0, YAz, 1, RangeMaxFt);
-        for (int nm = 1; nm <= (int)_rMaxNm; nm++)
+        for (int nm = 1; _t.CursorTicks && nm <= (int)_rMaxNm; nm++)
         {
             double rr = nm * Units.FeetPerNm;
             float x = X(rr), yc = YAz(0, rr);
@@ -364,7 +370,10 @@ public sealed class ParDisplayRenderer : IDisposable
                     for (int i = start; i < list.Count - 1; i++)
                     {
                         double f = (i - start + 1.0) / (list.Count - start);
-                        c.DrawCircle(Project(scope, list[i]), 1.5f * _ink.Sym, _ink.Solid(_t.History.Fade(0.2 + 0.6 * f)));
+                        var hp = Project(scope, list[i]);
+                        if (_t.HistoryDashes)
+                            c.DrawLine(hp.X - 2.5f * _ink.Sym, hp.Y, hp.X + 2.5f * _ink.Sym, hp.Y, _ink.Line(_t.History.Fade(0.4 + 0.6 * f), 2f * _ink.Sym));
+                        else c.DrawCircle(hp, 1.5f * _ink.Sym, _ink.Solid(_t.History.Fade(0.2 + 0.6 * f)));
                     }
                 }
             }
@@ -420,7 +429,7 @@ public sealed class ParDisplayRenderer : IDisposable
                 if (radar.Preset.Tracking)
                 {
                     // Coasting: hollow symbol and CST in the data block (the STARS/ERAM coast indicator).
-                    float q = 2f * _ink.Sym;
+                    float q = 2f * _ink.Sym * _t.TargetScale;
                     if (s.Track.IsCoasting) c.DrawRect(s.X - q - 0.5f, s.Y - q - 0.5f, 2 * q + 1, 2 * q + 1, _ink.Line(col, 1f));
                     else c.DrawRect(s.X - q, s.Y - q, 2 * q, 2 * q, _ink.Solid(col));
                     DrawDataBlock(c, geo, scope, s.Track, s.X, s.Y, col);
@@ -446,9 +455,11 @@ public sealed class ParDisplayRenderer : IDisposable
         string line3 = scope == ScopeKind.Elevation
             ? $"{Signed(dev.AboveGlidepathFt)}{Trend(gpRate, holding, up, down)}"
             : $"{(dev.RightOfCourseFt >= 0 ? "R" : "L")}{Math.Abs(dev.RightOfCourseFt):0}{Trend(tr.CrossRateFps, holding, up, down)}";
+        // ATNAVICS: the beacon code alone (the callsign where the source sends no code).
+        string[] lines = _t.SquawkBlock ? [tr.Beacon is int code ? code.ToString("0000") : tr.Callsign] : [line1, line2, line3];
 
-        float w = new[] { line1, line2, line3 }.Max(s => _ink.Font.MeasureText(s)) + 2;
-        float lineH = _ink.LineHeight, h = lineH * 3, top = _ink.Font.Size * 0.8f;
+        float w = lines.Max(s => _ink.Font.MeasureText(s)) + 2;
+        float lineH = _ink.LineHeight, h = lineH * lines.Length, top = _ink.Font.Size * 0.8f;
         var box = _labels.Place($"{scope}/{tr.Callsign}", x, y, w, h);
 
         float lx = box.MidX < x ? box.Right : box.Left;
@@ -456,9 +467,8 @@ public sealed class ParDisplayRenderer : IDisposable
         c.DrawLine(x, y, lx, ly, _ink.Line(col, 1f));
 
         var tp = _ink.TextPaint(col);
-        c.DrawText(line1, box.Left + 1, box.Top + top, SKTextAlign.Left, _ink.Font, tp);
-        c.DrawText(line2, box.Left + 1, box.Top + top + lineH, SKTextAlign.Left, _ink.Font, tp);
-        c.DrawText(line3, box.Left + 1, box.Top + top + 2 * lineH, SKTextAlign.Left, _ink.Font, tp);
+        for (int i = 0; i < lines.Length; i++)
+            c.DrawText(lines[i], box.Left + 1, box.Top + top + i * lineH, SKTextAlign.Left, _ink.Font, tp);
     }
 
     private static string Trend(double rate, double holding, string up, string down) =>

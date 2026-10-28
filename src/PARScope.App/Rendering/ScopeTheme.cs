@@ -41,6 +41,23 @@ public sealed record ScopeTheme
     /// crosses it (ATNAVICS), instead of a tick across the glidepath (FPN-63 "PAR minimums marker").</summary>
     public bool DhLine { get; init; }
     public SKColor DhColor { get; init; } = SKColors.White;
+    /// <summary>Half-mile range lines (dotted); null = faded <see cref="RangeMinor"/>.</summary>
+    public SKColor? RangeHalf { get; init; }
+    /// <summary>Quarter-mile range lines inside the first mile, where the log axis spreads it out (ATNAVICS).</summary>
+    public bool QuarterMilesInFirstMile { get; init; }
+    /// <summary>A horizontal ground line on the elevation display.</summary>
+    public bool GroundLine { get; init; } = true;
+    /// <summary>Touchdown boxes, threshold mark and runway outline (GCA-2000 drawings).</summary>
+    public bool RunwayMarks { get; init; } = true;
+    /// <summary>A tick across the glidepath and course lines at every mile (GCA-2000 drawings).</summary>
+    public bool CursorTicks { get; init; } = true;
+    /// <summary>Data block of the transponder code only, with a leader line (ATNAVICS); else callsign / speed and
+    /// range / offset.</summary>
+    public bool SquawkBlock { get; init; }
+    /// <summary>History as short dashes along the range axis instead of dots (ATNAVICS).</summary>
+    public bool HistoryDashes { get; init; }
+    /// <summary>Track symbol size relative to the default 4 px square.</summary>
+    public float TargetScale { get; init; } = 1f;
 
     public static readonly ScopeTheme Digital = new()
     {
@@ -110,20 +127,36 @@ public sealed record ScopeTheme
         Scan = new SKColor(0xFF, 0xC0, 0x30, 0x22),
     };
 
-    /// <summary>AN/TPN-31 ATNAVICS, from Army radar-training-simulator and USMC expeditionary screen footage.</summary>
+    /// <summary>
+    /// AN/TPN-31 ATNAVICS, from Army radar-training-simulator and USMC expeditionary screen footage and a
+    /// close-up of an ATNAVICS display (Rugged Portable Systems monitor): green dashed whole-mile lines, solid at
+    /// 1 and 5 NM, cream dotted half (and, in the first mile, quarter) mile lines, green labels "1.00"; cream
+    /// solid coverage limits; green glidepath and course with no mile ticks; a cream dotted lower safe limit;
+    /// a cyan DH line with a tick; no ground line or runway marks; white filled targets with a dashed history
+    /// trail and a leader line to the beacon code alone.
+    /// </summary>
     public static readonly ScopeTheme Atnavics = Digital with
     {
-        RangeMinor = new SKColor(0x2E, 0xA8, 0x4A),
-        RangeMajor = new SKColor(0x5C, 0xF0, 0x7A),
-        Cursor = new SKColor(0x40, 0xE0, 0x60),
+        RangeMinor = new SKColor(0x6C, 0xD0, 0x88),
+        RangeMajor = new SKColor(0x9C, 0xF0, 0xB0),
+        RangeLabel = new SKColor(0x8C, 0xF5, 0x9E),
+        RangeHalf = new SKColor(0xD8, 0xD8, 0xD2),
+        Cursor = new SKColor(0xB0, 0xD8, 0x9C),
         Coverage = new SKColor(0xED, 0xE6, 0xCC),
         Safety = new SKColor(0xED, 0xE6, 0xCC),
         Ground = new SKColor(0xED, 0xE6, 0xCC),
         CoverageStyle = LineStyle.Solid,
-        SafetyStyle = LineStyle.Solid,
+        SafetyStyle = LineStyle.Dotted,
         MajorAtOneMile = true,
         DhLine = true,
-        DhColor = new SKColor(0x3C, 0xC8, 0xF0),
+        DhColor = new SKColor(0xB8, 0xE4, 0xF0),
+        QuarterMilesInFirstMile = true,
+        GroundLine = false,
+        RunwayMarks = false,
+        CursorTicks = false,
+        SquawkBlock = true,
+        HistoryDashes = true,
+        TargetScale = 1.75f,
     };
 
     public static ScopeTheme For(RadarPreset preset) => preset.Style switch
