@@ -65,11 +65,14 @@ public sealed partial class AiFinalController
     /// first; on the frequency the closest arrival is served. <paramref name="radioBusy"/> and
     /// <paramref name="landlineBusy"/>: something is still queued or playing there, so nothing new is said over it.
     /// </summary>
-    public AiCall? Next(IReadOnlyList<AiTraffic> traffic, double now, bool radioBusy, bool landlineBusy)
+    /// <param name="speaking">The AI's last call is still queued or being said: it has one voice, so nothing new
+    /// on either the frequency or the landline until it has finished.</param>
+    public AiCall? Next(IReadOnlyList<AiTraffic> traffic, double now, bool radioBusy, bool landlineBusy, bool speaking = false)
     {
         _radioIdleSince = radioBusy ? double.NaN : double.IsNaN(_radioIdleSince) ? now : _radioIdleSince;
         _landlineIdleSince = landlineBusy ? double.NaN : double.IsNaN(_landlineIdleSince) ? now : _landlineIdleSince;
         _landlineBusy = landlineBusy;
+        if (speaking) return null;
         foreach (var gone in _progress.Keys.Where(k => traffic.All(t => !t.Aircraft.Callsign.Equals(k, StringComparison.OrdinalIgnoreCase))).ToList())
             _progress.Remove(gone);
 

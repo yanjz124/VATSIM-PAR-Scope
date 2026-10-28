@@ -34,7 +34,7 @@ public class AiFinalControllerTests
 
         // Speech takes time: about 2.8 words a second.
         static double Secs(string s) => s.Split(' ').Length / 2.8;
-        double radioFree = 0, landlineFree = 1;
+        double radioFree = 0, landlineFree = 1, aiFree = 0;
         var due = new List<(double At, Action Do)>();
 
         for (double t = 0; t <= maxSec && !ac.Finished; t += 0.1)
@@ -50,10 +50,11 @@ public class AiFinalControllerTests
                     Units.Norm360(course + ac.CommandedHeadingRelDeg), ac.GearReportedDown)
                 : null;
             var traffic = new[] { new AiTraffic(ac, adv, approach.IsPending(ac.Callsign), tower.AnswerFor(ac.Callsign), tower.IntentFor(ac.Callsign), approach.IsCoordinated(ac.Callsign), tr) };
-            if (ai.Next(traffic, t, radioFree > t, landlineFree > t) is not { } call) continue;
+            if (ai.Next(traffic, t, radioFree > t, landlineFree > t, aiFree > t) is not { } call) continue;
 
             log.Add($"{t,5:0} " + (call.Landline ? "LANDLINE " : "FINAL ") + call.Text);
             double start = Math.Max(t, call.Landline ? landlineFree : radioFree), end = start + Secs(call.Text);
+            aiFree = end;
             if (call.Landline) landlineFree = end; else radioFree = end;
             due.Add((end, () =>
             {

@@ -853,6 +853,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     // ---- AI final controller -------------------------------------------------------------------
 
     private readonly AiFinalController _ai = new();
+    /// <summary>AI calls queued or being said (it has one voice: one at a time across the frequency and the landline).</summary>
+    private int _aiSpeaking;
+    private double _aiSpeakingSince;
 
     /// <summary>An AI works the final position for the training arrivals: watch it, or take over by turning it off.</summary>
     public bool AiFinal
@@ -896,13 +899,19 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             traffic.Add(new AiTraffic(a, adv, _approach.IsPending(a.Callsign), _tower.AnswerFor(a.Callsign), _tower.IntentFor(a.Callsign),
                 _approach.IsCoordinated(a.Callsign), tr));
         }
-        if (_ai.Next(traffic, Engine.Training.SimTime, _voice.RadioBusy, _voice.LandlineBusy) is not { } call) return;
+        if (_ai.Next(traffic, Engine.Training.SimTime, _voice.RadioBusy, _voice.LandlineBusy,
+                // (a line dropped by a voice stop never reports done: give up waiting after half a minute)
+                _aiSpeaking > 0 && Engine.Training.SimTime - _aiSpeakingSince < 30) is not { } call) return;
+        if (Engine.Training.SimTime - _aiSpeakingSince >= 30) _aiSpeaking = 0;
+        _aiSpeaking++;
+        _aiSpeakingSince = Engine.Training.SimTime;
         var ac = Engine.Training.Find(call.Callsign);
         if (call.Landline) _approach.Postpone(Engine.Training.SimTime + RepeatGapSec);
         bool opens = call.Landline && !call.Text.Contains("radar contact", StringComparison.OrdinalIgnoreCase);
         double started = Engine.Training.SimTime;
         _voice.Final(call.Text, call.Landline, opens, onStart: OnUi(() => started = Engine.Training.SimTime), onDone: OnUi(() =>
         {
+            _aiSpeaking = Math.Max(0, _aiSpeaking - 1);
             // Once said it was heard, even if the AI was turned off while it spoke.
             if (ac != null && Engine.Training.Find(ac.Callsign) == ac) ProcessTransmission(call.Text, "AI final", call.Landline ? null : ac, started);
         }));
