@@ -8,7 +8,9 @@ using System.Text.Json;
 namespace PARScope.App.Services;
 
 /// <summary>A release on GitHub with a scope zip attached.</summary>
-public sealed record ReleaseInfo(string Version, string Name, string Notes, string ZipUrl, string? SetupUrl, string PageUrl);
+/// <param name="Changelog">The notes of every release since the running version, newest first.</param>
+public sealed record ReleaseInfo(string Version, string Name, string Notes, string ZipUrl, string? SetupUrl, string PageUrl,
+    IReadOnlyList<(string Version, string Notes)> Changelog);
 
 /// <summary>
 /// Update check against the GitHub releases of this project. A newer release's zip is downloaded and
@@ -46,12 +48,15 @@ public static class Updater
 
         bool runningPre = CurrentVersion.Contains('-');
         ReleaseInfo? best = null;
+        var changelog = new List<(string Version, string Notes)>();
         foreach (var r in doc.RootElement.EnumerateArray())
         {
             if (r.GetProperty("draft").GetBoolean()) continue;
             if (r.GetProperty("prerelease").GetBoolean() && !runningPre) continue;
             string version = r.GetProperty("tag_name").GetString()!.TrimStart('v', 'V');
-            if (Compare(version, CurrentVersion) <= 0 || (best != null && Compare(version, best.Version) <= 0)) continue;
+            if (Compare(version, CurrentVersion) <= 0) continue;
+            changelog.Add((version, r.GetProperty("body").GetString() ?? ""));
+            if (best != null && Compare(version, best.Version) <= 0) continue;
             var assets = r.GetProperty("assets").EnumerateArray()
                 .Select(a => (Name: a.GetProperty("name").GetString() ?? "", Url: a.GetProperty("browser_download_url").GetString() ?? ""))
                 .ToList();
@@ -61,8 +66,9 @@ public static class Updater
                                                        && a.Name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)).Url;
             if (string.IsNullOrEmpty(zip) && string.IsNullOrEmpty(setup)) continue;
             best = new ReleaseInfo(version, r.GetProperty("name").GetString() ?? version, r.GetProperty("body").GetString() ?? "",
-                zip ?? "", string.IsNullOrEmpty(setup) ? null : setup, r.GetProperty("html_url").GetString() ?? "");
+                zip ?? "", string.IsNullOrEmpty(setup) ? null : setup, r.GetProperty("html_url").GetString() ?? "", changelog);
         }
+        changelog.Sort((a, b) => Compare(b.Version, a.Version));
         return best;
     }
 

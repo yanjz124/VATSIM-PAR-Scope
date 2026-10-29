@@ -157,13 +157,13 @@ public sealed class TrainingTraffic
     private IReadOnlyList<TacticalCallsign> _homeUnits = [];
 
     /// <summary>
-    /// Half the random arrivals use a squadron tactical callword, half a service/mission callsign. Where
+    /// Four in five random arrivals use a squadron tactical callword, the rest a service/mission callsign. Where
     /// squadrons are based at the field, most tactical arrivals are theirs (the rest are visitors).
     /// </summary>
     private CallsignStyle PickStyle()
     {
         var tactical = MilitaryCallsigns.All;
-        if (tactical.Count > 0 && _rng.NextDouble() < 0.5)
+        if (tactical.Count > 0 && _rng.NextDouble() < 0.8)
         {
             var pool = _homeUnits.Count > 0 && _rng.NextDouble() < 0.75 ? _homeUnits : tactical;
             var t = pool[_rng.Next(pool.Count)];

@@ -508,8 +508,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             // Back to a plain VATSIM scope: nothing left talking, transmitting or paused, so turning training
             // on again starts clean.
             ReleaseToTalk();
-            _voice.StopAll();
-            _aiSpeaking = 0;
             TrainingPaused = false;
             ClearTraining();
             SuggestionsVisible = false;
@@ -966,6 +964,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void ClearTraining()
     {
+        // The aircraft are gone, so is everything they, tower, approach or the AI were still saying about them.
+        _voice.StopAll();
+        _aiSpeaking = 0;
         foreach (var a in Engine.Training.Aircraft) { _tower.Forget(a.Callsign); _approach.Forget(a.Callsign); }
         Engine.ClearTraining();
         if (SelectedIsTraining) Select(null);

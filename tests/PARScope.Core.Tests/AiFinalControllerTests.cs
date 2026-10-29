@@ -108,13 +108,13 @@ public class AiFinalControllerTests
         // Like a real talk-down, the odd one ends in a go-around; most land.
         int landed = 0;
         var failures = new List<string>();
-        for (int seed = 1; seed <= 10; seed++)
+        for (int seed = 1; seed <= 60; seed++)
         {
             var (log, _) = Fly(handoffs, seed);
             if (log.Any(l => l.StartsWith("RESULT landed"))) landed++;
             else failures.Add(string.Join("\n", log));
         }
-        Assert.True(landed >= 8, $"{landed}/10 landed. First failure:\n{failures.FirstOrDefault()}");
+        Assert.True(landed >= 48, $"{landed}/60 landed. First failure:\n{failures.FirstOrDefault()}");
     }
 
     [Fact]

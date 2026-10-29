@@ -1,0 +1,30 @@
+<ui:FluentWindow x:Class="PARScope.App.Views.UpdateWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 Title="Update available" Width="640" Height="560" MinWidth="420" MinHeight="320"
+                 ExtendsContentIntoTitleBar="True" WindowBackdropType="Mica" WindowCornerPreference="Round"
+                 WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <ui:TitleBar Title="Update available" Height="36" ShowMinimize="False" ShowMaximize="False" />
+        <TextBlock x:Name="Heading" Grid.Row="1" Margin="16,4,16,8" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" />
+        <Border Grid.Row="2" Margin="16,0,16,8" BorderThickness="1" CornerRadius="4"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12,8">
+                <StackPanel x:Name="Notes" />
+            </ScrollViewer>
+        </Border>
+        <TextBlock x:Name="PluginNote" Grid.Row="3" Margin="16,0,16,8" TextWrapping="Wrap" Opacity="0.8" />
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="16,0,16,16">
+            <ui:Button Content="Later" Click="Later_Click" Margin="0,0,8,0" MinWidth="90" />
+            <ui:Button Content="Update now" Appearance="Primary" Click="Update_Click" MinWidth="110" IsDefault="True" />
+        </StackPanel>
+    </Grid>
+</ui:FluentWindow>
