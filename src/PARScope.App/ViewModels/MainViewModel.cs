@@ -505,6 +505,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         if (value) StartVoice();
         else
         {
+            // Back to a plain VATSIM scope: nothing left talking, transmitting or paused, so turning training
+            // on again starts clean.
+            ReleaseToTalk();
+            _voice.StopAll();
+            _aiSpeaking = 0;
+            TrainingPaused = false;
             ClearTraining();
             SuggestionsVisible = false;
         }
@@ -1435,6 +1441,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     /// </summary>
     public void ProcessTransmission(string text, string via, SimAircraft? to = null, double? startedAt = null)
     {
+        // Speech still being recognized when training was switched off.
+        if (!TrainingMode) return;
         if (TryAcceptHandoff(text, via)) return;
         if (Interphone.Parse(text) is { } call) { ProcessInterphone(call, via); return; }
 

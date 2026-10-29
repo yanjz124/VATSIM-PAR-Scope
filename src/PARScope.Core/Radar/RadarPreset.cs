@@ -14,6 +14,11 @@ public enum ScanPattern
     Mechanical,
     /// <summary>Electronically steered beams: the sector is revisited in one direction each frame.</summary>
     Electronic,
+    /// <summary>
+    /// A tracking radar (AN/SPN-46): one pencil beam locks on to an aircraft and follows it, so only locked
+    /// aircraft are seen, at the tracker's update rate (<see cref="RadarPreset.AzScanSec"/>).
+    /// </summary>
+    Tracker,
 }
 
 /// <summary>
@@ -36,6 +41,9 @@ public sealed record RadarPreset
     /// <summary>Range limit with MTI selected, where the system has one (FPN-63: "When MTI is used, the RANGE
     /// SELECT switch will choose either 10 or 15 miles", MCAS Cherry Point ATCFacO P3722.1S §7-205).</summary>
     public double? MtiMaxRangeNm { get; init; }
+
+    /// <summary>Tracker: lock-on happens inside this range (CV NATOPS §6.4.7.4: "between 3.5 and 8 miles").</summary>
+    public double? LockOnRangeNm { get; init; }
 
     public double EffectiveMaxRangeNm(bool mti) => mti && MtiMaxRangeNm is double m ? m : MaxRangeNm;
 
@@ -194,7 +202,21 @@ public sealed record RadarPreset
         DefaultAntennaAimDeg = 0,
     };
 
-    public static IReadOnlyList<RadarPreset> All { get; } = [Fpn68, Tpn31, Fpn63, Gpn22, Fpn67, Mpn25, Icao];
+    public static readonly RadarPreset Spn46 = new()
+    {
+        Id = "spn46",
+        Name = "AN/SPN-46(V)2 PALS",
+        Description = "USN Precision Approach Landing System, the shore-based training version. A Ka-band tracking radar, "
+                      + "not a scanner: it locks on between 3.5 and 8 miles and follows the aircraft to touchdown, two per "
+                      + "console. Display after console photos (both axes compressed); coverage and update rate assumed.",
+        // 33.2 GHz, 0.57° beam (FCC test filing for the (V)6); 10 NM, 25° azimuth, 2 ft precision (Wikipedia).
+        AzLeftDeg = 12.5, AzRightDeg = 12.5, ElMinDeg = -1, ElMaxDeg = 7, MaxRangeNm = 10, LockOnRangeNm = 8,
+        AzScanSec = 0.25, ElScanSec = 0.25, Pattern = ScanPattern.Tracker,
+        AzBeamwidthDeg = 0.57, ElBeamwidthDeg = 0.57,
+        NoiseFactor = 0.3, Style = DisplayStyle.Digital, Tracking = true, MaxTracks = 2, RangeScalesNm = [5, 10],
+    };
+
+    public static IReadOnlyList<RadarPreset> All { get; } = [Fpn68, Tpn31, Spn46, Fpn63, Gpn22, Fpn67, Mpn25, Icao];
 
     public static RadarPreset ById(string? id) => All.FirstOrDefault(p => p.Id == id) ?? Fpn68;
 }

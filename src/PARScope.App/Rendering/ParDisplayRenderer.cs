@@ -63,6 +63,11 @@ public sealed class ParDisplayRenderer : IDisposable
     private bool _log, _logStraight, _azAntenna;
     private ApproachPoint _ant;
     private double _tanBoresight;
+    // SPN-46 layout: the compression constants of the range and height axes, the top of the elevation box,
+    // the Mode III/II panels.
+    private bool _logLog;
+    private double _kRangeNm, _kHeightFt, _hHiFt;
+    private SKRect _modeIII, _modeII;
 
     public void Render(SKCanvas c, float width, float height, ParGeometry? geo, RadarSimulator? radar, double now, ParRenderOptions opt)
     {
@@ -78,6 +83,15 @@ public sealed class ParDisplayRenderer : IDisposable
         }
 
         Layout(width, height, geo, opt);
+        if (_logLog)
+        {
+            DrawLogLogPicture(c, geo, opt);
+            DrawVideo(c, geo, radar, now, opt);
+            DrawLogLogHeader(c, geo, radar, opt);
+            DrawModePanels(c, geo, radar, opt);
+            if (opt.Warning is { Length: > 0 } w) DrawWarning(c, width, height, w);
+            return;
+        }
         DrawRangeLines(c, opt);
         DrawElevationCursors(c, geo, radar, opt);
         DrawAzimuthCursors(c, geo, radar, opt);
@@ -109,6 +123,8 @@ public sealed class ParDisplayRenderer : IDisposable
 
     private void Layout(float w, float h, ParGeometry geo, ParRenderOptions opt)
     {
+        _logLog = _t.LogLog;
+        if (_logLog) { LayoutLogLog(w, h, geo, opt); return; }
         float marginX = _t.Analog ? 16 : 56;
         _left = marginX;
         _right = w - 14;
@@ -142,7 +158,13 @@ public sealed class ParDisplayRenderer : IDisposable
     {
         double r = rangeFt / Units.FeetPerNm;
         double f;
-        if (_log)
+        if (_logLog)
+        {
+            // Touchdown at the left edge; past it falls outside the box and is clipped.
+            if (r < 0) return _left - 1000;
+            f = Saturate(r, _kRangeNm, _rMaxNm);
+        }
+        else if (_log)
         {
             // x ∝ ln(1 + r/k) measured off a USMC PAR screen (k ≈ 5 NM on its 10 NM scale).
             double k = _rMaxNm / 2.0;
@@ -165,11 +187,32 @@ public sealed class ParDisplayRenderer : IDisposable
         return basePxPerFt * rMaxFt / (X(rMaxFt) - x0) * (X(r) - x0) / r;
     }
 
-    private float YEl(double heightFt, double rangeFt) => (float)(_elZeroY - heightFt * VerticalScale(_elPxPerFt, rangeFt));
+    private float YEl(double heightFt, double rangeFt)
+    {
+        if (_logLog)
+            return heightFt < 0 ? _elBottom + 1000
+                : (float)(_elBottom - Saturate(heightFt, _kHeightFt, _hHiFt) * (_elBottom - _elTop));
+        return (float)(_elZeroY - heightFt * VerticalScale(_elPxPerFt, rangeFt));
+    }
+
+    /// <summary>SPN-46: grid lines every 500 ft of height and of offset; the azimuth box reaches 2,000 ft either side.</summary>
+    private const double GridStepFt = 500, AzEdgeFt = 2000;
+    /// <summary>The pair of limit lines close either side of the course on the console photos (offset assumed).</summary>
+    private const double CourseLimitFt = 100;
+
+    /// <summary>
+    /// The SPN-46 compression, 0 at zero and 1 at <paramref name="max"/>: 1 − e^(−v/k), so each equal step is
+    /// drawn the same fraction shorter than the one before.
+    /// </summary>
+    private static double Saturate(double v, double k, double max) => (1 - Math.Exp(-v / k)) / (1 - Math.Exp(-max / k));
 
     /// <summary>Right of course is drawn up: a plan view seen from above, the aircraft flying toward touchdown at the left.</summary>
     private float YAz(double crossFt, double rangeFt)
     {
+        if (_logLog)
+        {
+            return (float)(_azZeroY - Math.Sign(crossFt) * Saturate(Math.Abs(crossFt), _kHeightFt, AzEdgeFt) * (_azBottom - _azTop) / 2);
+        }
         // Antenna-centered: offset from the boresight line through the antenna, so the course line tilts.
         if (_azAntenna) crossFt -= _ant.CrossFt + _tanBoresight * (rangeFt - _ant.RangeFt);
         return (float)(_azZeroY - crossFt * VerticalScale(_azPxPerFt, rangeFt));
@@ -366,6 +409,8 @@ public sealed class ParDisplayRenderer : IDisposable
                 foreach (var g in radar.Plots.Where(p => p.Scope == scope && p.Callsign != null).GroupBy(p => p.Callsign))
                 {
                     var list = g.ToList();
+                    // A tracker updates several times a second: history at one dot a second.
+                    if (radar.Preset.Pattern == ScanPattern.Tracker) list = OnePerSecond(list);
                     int start = Math.Max(0, list.Count - 1 - opt.HistoryDots);
                     for (int i = start; i < list.Count - 1; i++)
                     {
@@ -456,7 +501,9 @@ public sealed class ParDisplayRenderer : IDisposable
             ? $"{Signed(dev.AboveGlidepathFt)}{Trend(gpRate, holding, up, down)}"
             : $"{(dev.RightOfCourseFt >= 0 ? "R" : "L")}{Math.Abs(dev.RightOfCourseFt):0}{Trend(tr.CrossRateFps, holding, up, down)}";
         // ATNAVICS: the beacon code alone (the callsign where the source sends no code).
-        string[] lines = _t.SquawkBlock ? [tr.Beacon is int code ? code.ToString("0000") : tr.Callsign] : [line1, line2, line3];
+        string[] lines = _t.SquawkBlock ? [tr.Beacon is int code ? code.ToString("0000") : tr.Callsign]
+            : _t.CallsignBlock ? [line1]
+            : [line1, line2, line3];
 
         float w = lines.Max(s => _ink.Font.MeasureText(s)) + 2;
         float lineH = _ink.LineHeight, h = lineH * lines.Length, top = _ink.Font.Size * 0.8f;
@@ -486,6 +533,203 @@ public sealed class ParDisplayRenderer : IDisposable
 
     private SKPoint Project(ScopeKind scope, Plot p) =>
         new(X(p.Point.RangeFt), scope == ScopeKind.Elevation ? YEl(p.Point.HeightFt, p.Point.RangeFt) : YAz(p.Point.CrossFt, p.Point.RangeFt));
+
+    // ---- AN/SPN-46 console -----------------------------------------------------------------------
+
+    /// <summary>How far either side of touchdown the glidepath limit lines start, as a fraction of the box (from the photos).</summary>
+    private const float LimitSpread = 0.06f;
+    /// <summary>Full deflection of the Mode III marker and the Mode II needles (assumed).</summary>
+    private const double ElFullDeg = 0.5, AzFullDeg = 1.0;
+
+    /// <summary>
+    /// The console photos and a model of the console: elevation box over azimuth box at the left on one range axis
+    /// from touchdown at the left edge, each mile drawn about 0.63 of the one before (x ∝ 1 − e^(−r/k), k = range
+    /// scale / 4.6, measured off the model's mile lines). Height is compressed the same way in glidepath terms, so
+    /// the glidepath runs straight from the bottom-left corner to the top-right, and so is the offset off the course
+    /// (the model's 500 ft lines fit both). Mode III and Mode II panels at the right.
+    /// </summary>
+    private void LayoutLogLog(float w, float h, ParGeometry geo, ParRenderOptions opt)
+    {
+        float panelW = Math.Clamp(w * 0.22f, 120, 260);
+        _left = 12;
+        _right = w - panelW - 16;
+        float top = LabelRowH * 2 + 6, bottom = h - 8;
+        float usable = bottom - top - LabelRowH;
+        _elTop = top;
+        _elBottom = top + usable * 0.58f;
+        _azTop = _elBottom + LabelRowH;
+        _azBottom = bottom;
+        _azZeroY = (_azTop + _azBottom) / 2;
+
+        _rMaxNm = opt.RangeScaleNm;
+        _rMinNm = 0;
+        _kRangeNm = _rMaxNm / 4.6;
+        _kHeightFt = geo.GlidepathHeightFt(_kRangeNm * Units.FeetPerNm);
+        _hHiFt = geo.GlidepathHeightFt(RangeMaxFt);
+        _log = _logStraight = _azAntenna = false;
+        _ant = geo.AntennaPoint;
+
+        float px = _right + 16;
+        _modeIII = new SKRect(px, _elTop, w - 10, _elBottom);
+        _modeII = new SKRect(px, _azTop, w - 10, _azBottom);
+    }
+
+    /// <summary>Round heights inside the elevation box, every 500 ft.</summary>
+    private IEnumerable<double> HeightLines()
+    {
+        for (double ft = GridStepFt; ft < _hHiFt; ft += GridStepFt) yield return ft;
+    }
+
+    private void DrawLogLogPicture(SKCanvas c, ParGeometry geo, ParRenderOptions opt)
+    {
+        var grid = _ink.Line(_t.RangeMinor, 1f);
+
+        // Whole miles, crowding together toward the far end.
+        float lastLabel = float.NegativeInfinity;
+        for (int nm = 1; nm <= (int)Math.Round(_rMaxNm); nm++)
+        {
+            float x = X(nm * Units.FeetPerNm);
+            c.DrawLine(x, _elTop, x, _elBottom, grid);
+            c.DrawLine(x, _azTop, x, _azBottom, grid);
+            string label = nm.ToString();
+            float lw = _ink.FontSmall.MeasureText(label);
+            if (x - lw / 2 > lastLabel + 4 && x + lw / 2 < _right)
+            {
+                c.DrawText(label, x, _elBottom + 13, SKTextAlign.Center, _ink.FontSmall, _ink.TextPaint(_t.RangeLabel));
+                lastLabel = x + lw / 2;
+            }
+        }
+
+        c.Save();
+        c.ClipRect(ElRect);
+        foreach (double ft in HeightLines())
+        {
+            float y = YEl(ft, 1);
+            c.DrawLine(_left, y, _right, y, grid);
+        }
+        // The limit lines are straight on the photos and close in to the glidepath's far end: drawn so, from a
+        // little either side of touchdown, rather than at a fixed angle (which this scale would bend).
+        if (opt.ShowSafetyLimits)
+        {
+            var lim = _ink.Line(_t.Safety, 1.2f);
+            float w = _right - _left, hgt = _elBottom - _elTop;
+            c.DrawLine(_left, _elBottom - LimitSpread * hgt, _right, _elTop, lim);
+            c.DrawLine(_left + LimitSpread * w, _elBottom, _right, _elTop, lim);
+        }
+        Curve(c, _ink.Line(_t.Cursor, 1.6f), geo.GlidepathHeightFt, YEl, 1, RangeMaxFt);
+        double dhR = geo.DecisionHeightRangeFt;
+        float dx = X(dhR), dy = YEl(geo.DecisionHeightAboveThresholdFt, dhR);
+        c.DrawLine(dx, dy - 10, dx, dy + 10, _ink.Line(_t.Cursor, 1.6f));
+        c.Restore();
+
+        // Offsets off the course, the course itself bright.
+        c.Save();
+        c.ClipRect(AzRect);
+        for (double ft = GridStepFt; ft < AzEdgeFt - 1; ft += GridStepFt)
+            foreach (int s in new[] { 1, -1 })
+            {
+                float y = YAz(s * ft, 1);
+                c.DrawLine(_left, y, _right, y, grid);
+            }
+        if (opt.ShowSafetyLimits)
+            foreach (int s in new[] { 1, -1 })
+            {
+                float y = YAz(s * CourseLimitFt, 1);
+                c.DrawLine(_left, y, _right, y, _ink.Line(_t.Safety, 1.2f));
+            }
+        c.DrawLine(_left, _azZeroY, _right, _azZeroY, _ink.Line(_t.Cursor, 1.6f));
+        c.Restore();
+
+        var frame = _ink.Line(_t.RangeMajor, 1.2f);
+        c.DrawRect(ElRect, frame);
+        c.DrawRect(AzRect, frame);
+    }
+
+    /// <summary>Header above the boxes: runway, glidepath, range scale and time; then the aircraft locked on.</summary>
+    private void DrawLogLogHeader(SKCanvas c, ParGeometry geo, RadarSimulator radar, ParRenderOptions opt)
+    {
+        var tp = _ink.TextPaint(_t.AxisLabel);
+        float y = 14;
+        c.DrawText($"PALS RWY {geo.Runway.RunwayId}  GS {geo.Site.GlidepathDeg:0.0}°  RNG {opt.RangeScaleNm:0}NM", _left, y, SKTextAlign.Left, _ink.Font, tp);
+        c.DrawText($"{DateTime.UtcNow:HHmmss}", _right, y, SKTextAlign.Right, _ink.Font, tp);
+        string locks = radar.Locked.Count == 0 ? "NO LOCK" : "LOCK-ON " + string.Join("  ", radar.Locked);
+        c.DrawText(locks, _left, y + LabelRowH, SKTextAlign.Left, _ink.Font, tp);
+        if (opt.Weather is { Length: > 0 } wx) c.DrawText(wx, _right, y + LabelRowH, SKTextAlign.Right, _ink.Font, tp);
+    }
+
+    /// <summary>
+    /// The right-hand panels: Mode III, a crosshair with the aircraft's angular error from the glidepath (up =
+    /// above) and course (right = right of course) and its readouts; Mode II, the needles as the pilot sees them
+    /// ("needles up and right" = fly up and right, CV NATOPS §6.4.7.6). For the selected aircraft, else the nearest.
+    /// </summary>
+    private void DrawModePanels(SKCanvas c, ParGeometry geo, RadarSimulator radar, ParRenderOptions opt)
+    {
+        var locked = radar.Tracks.Values.Where(t => radar.Locked.Contains(t.Callsign)).ToList();
+        var tr = locked.FirstOrDefault(t => t.Callsign.Equals(opt.Selected, StringComparison.OrdinalIgnoreCase))
+                 ?? locked.OrderBy(t => t.RangeFt).FirstOrDefault();
+        double elErr = 0, azErr = 0;
+        if (tr != null)
+        {
+            double r = Math.Max(tr.RangeFt, 1);
+            elErr = Units.RadToDeg(Math.Atan2(tr.Point.HeightFt, r)) - geo.Site.GlidepathDeg;
+            azErr = Units.RadToDeg(Math.Atan2(tr.Point.CrossFt, r));
+        }
+        float Frac(double v, double full) => (float)Math.Clamp(v / full, -1, 1);
+        var line = _ink.Line(_t.RangeMajor, 1.2f);
+        var tp = _ink.TextPaint(_t.AxisLabel);
+
+        var p3 = _modeIII;
+        c.DrawText("MODE III", p3.Left, p3.Top + 10, SKTextAlign.Left, _ink.FontSmall, tp);
+        float rows = tr != null ? 4 : 0;
+        float half = Math.Max(20, Math.Min(p3.Width, p3.Height - 24 - rows * _ink.LineHeight) / 2 - 6);
+        float cx = p3.MidX, cy = p3.Top + 18 + half;
+        c.DrawLine(cx - half, cy, cx + half, cy, line);
+        c.DrawLine(cx, cy - half, cx, cy + half, line);
+        for (int i = -4; i <= 4; i++)
+        {
+            if (i == 0) continue;
+            float k = half * i / 4f;
+            c.DrawLine(cx + k, cy - 3, cx + k, cy + 3, line);
+            c.DrawLine(cx - 3, cy + k, cx + 3, cy + k, line);
+        }
+        if (tr != null)
+        {
+            float q = 3 * _ink.Sym;
+            c.DrawRect(cx + Frac(azErr, AzFullDeg) * half - q, cy - Frac(elErr, ElFullDeg) * half - q, 2 * q, 2 * q, _ink.Solid(_t.Track));
+            var dev = geo.DeviationOf(tr.Point);
+            string[] read =
+            [
+                tr.Callsign,
+                $"R {Math.Max(0, tr.RangeFt) / Units.FeetPerNm:0.00}",
+                $"GP {Signed(dev.AboveGlidepathFt)}",
+                $"CL {(dev.RightOfCourseFt >= 0 ? "R" : "L")}{Math.Abs(dev.RightOfCourseFt):0}",
+            ];
+            for (int i = 0; i < read.Length; i++)
+                c.DrawText(read[i], p3.Left, cy + half + 16 + i * _ink.LineHeight, SKTextAlign.Left, _ink.Font, tp);
+        }
+
+        var p2 = _modeII;
+        c.DrawText("MODE II", p2.Left, p2.Top + 10, SKTextAlign.Left, _ink.FontSmall, tp);
+        float s = Math.Max(30, Math.Min(p2.Width, p2.Height - 20) - 8);
+        var box = SKRect.Create(p2.MidX - s / 2, p2.Top + 16, s, s);
+        c.DrawRect(box, line);
+        if (tr != null)
+        {
+            var needle = _ink.Line(_t.Cursor, 2f);
+            float nx = box.MidX - Frac(azErr, AzFullDeg) * s / 2, ny = box.MidY + Frac(elErr, ElFullDeg) * s / 2;
+            c.DrawLine(nx, box.Top, nx, box.Bottom, needle);
+            c.DrawLine(box.Left, ny, box.Right, ny, needle);
+        }
+    }
+
+    private static List<Plot> OnePerSecond(List<Plot> plots)
+    {
+        var kept = new List<Plot>();
+        foreach (var p in plots)
+            if (kept.Count == 0 || p.Time - kept[^1].Time >= 1) kept.Add(p);
+        if (plots.Count > 0 && kept[^1] != plots[^1]) kept.Add(plots[^1]);
+        return kept;
+    }
 
     // ---- Digital chrome --------------------------------------------------------------------------
 

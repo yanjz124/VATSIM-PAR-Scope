@@ -842,7 +842,7 @@ public sealed class SimAircraft
 
     /// <summary>
     /// The pilot's decision at decision height: continue only with the runway environment in sight (ceiling
-    /// and visibility against the DH and 1/2 SM), a landing clearance, the gear down, and a stabilized
+    /// and visibility against the DH and 1/2 SM), a landing clearance, and a stabilized
     /// approach (near the glidepath and centerline, sane rate of descent); otherwise go around and say why.
     /// </summary>
     private void DecideAtMinimums(ParGeometry geo, (double? CeilingFt, double? VisibilitySm) wx)
@@ -854,7 +854,6 @@ public sealed class SimAircraft
         string? reason =
             wx.CeilingFt < dh || wx.VisibilitySm < 0.5 ? "no runway environment"
             : Clearance is null ? "no landing clearance"
-            : !GearDown ? "gear not down"
             : Math.Abs(CrossFt) > halfWidth + 150 ? "not lined up"
             : gpDev > 100 ? "too high"
             : gpDev < -60 ? "too low"
@@ -881,6 +880,9 @@ public sealed class SimAircraft
             StartMissed(MissedHeadingRelDeg, MissedClimbToFt ?? 2000);
         }
         while (_pending.Count > 0 && _pending.Peek().At <= now) _pending.Dequeue().Do();
+        // The landing checklist: on the glidepath the pilot lowers the gear whether reminded or not. The wheels
+        // check is a procedure the grade looks for, not what keeps the gear from staying up.
+        if (Descending && !GearDown && !GoingAround && !Landed) GearDown = true;
 
         // Imperfect pilots wobble around what they were told (about ±2° and ±150 fpm for a sloppy one) and keep
         // coming back to it, averaging out over about 20 s; a steady creep off heading is the drift below.

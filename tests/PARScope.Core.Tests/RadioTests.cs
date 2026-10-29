@@ -223,9 +223,18 @@ public class RadioTests
         Assert.True(ac.Landed || ac.Finished);
     }
 
+    [Fact]
+    public void Gear_comes_down_on_the_glidepath_without_the_wheels_check()
+    {
+        // The wheels check is graded procedure; the pilot's own landing checklist lowers the gear.
+        var (_, ac) = StableFinal("runway two four right, cleared to land", gear: false);
+        Assert.False(ac.GoingAround);
+        Assert.True(ac.GearDown);
+        Assert.True(ac.Landed || ac.Finished);
+    }
+
     [Theory]
     [InlineData(null, true, null, null, "no landing clearance")]
-    [InlineData("cleared to land", false, null, null, "gear not down")]
     [InlineData("cleared to land", true, 100.0, null, "no runway environment")]
     [InlineData("cleared to land", true, null, 0.25, "no runway environment")]
     public void Pilot_goes_around_at_minimums_and_says_why(string? clearance, bool gear, double? ceiling, double? vis, string reason)

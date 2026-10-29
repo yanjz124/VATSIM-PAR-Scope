@@ -58,6 +58,13 @@ public sealed record ScopeTheme
     public bool HistoryDashes { get; init; }
     /// <summary>Track symbol size relative to the default 4 px square.</summary>
     public float TargetScale { get; init; } = 1f;
+    /// <summary>
+    /// AN/SPN-46 console: range and height both on log scales (so the glidepath runs straight from corner to
+    /// corner), azimuth as an angle off the course, and Mode III / Mode II panels at the right.
+    /// </summary>
+    public bool LogLog { get; init; }
+    /// <summary>Data block of the callsign alone ("aircraft symbols and side numbers", NAVEDTRA 14342A §11).</summary>
+    public bool CallsignBlock { get; init; }
 
     public static readonly ScopeTheme Digital = new()
     {
@@ -159,9 +166,32 @@ public sealed record ScopeTheme
         TargetScale = 1.75f,
     };
 
+    /// <summary>
+    /// AN/SPN-46 operator control console, from photos of CATCC consoles and a model of one: green line work on
+    /// black, a grid of whole-mile and round-height lines, three glidepath lines, a crosshair and a needles box.
+    /// </summary>
+    public static readonly ScopeTheme Spn46 = Digital with
+    {
+        RangeMinor = new SKColor(0x3C, 0xA8, 0x7C),
+        RangeMajor = new SKColor(0x7C, 0xE0, 0xB4),
+        RangeLabel = new SKColor(0x7C, 0xE0, 0xB4),
+        AxisLabel = new SKColor(0x7C, 0xE0, 0xB4),
+        Cursor = new SKColor(0xA8, 0xF8, 0xD0),
+        Safety = new SKColor(0x7C, 0xE0, 0xB4),
+        Coverage = new SKColor(0x3C, 0xA8, 0x7C),
+        Track = new SKColor(0xE8, 0xFF, 0xF2),
+        History = new SKColor(0x9C, 0xE8, 0xC4),
+        GroundLine = false,
+        RunwayMarks = false,
+        CursorTicks = false,
+        LogLog = true,
+        CallsignBlock = true,
+    };
+
     public static ScopeTheme For(RadarPreset preset) => preset.Style switch
     {
         _ when preset.Id == "tpn31" => Atnavics,
+        _ when preset.Pattern == ScanPattern.Tracker => Spn46,
         DisplayStyle.Phosphor when preset.Id == "gpn22" => AmberPhosphor,
         DisplayStyle.Phosphor => GreenPhosphor,
         _ => Digital,

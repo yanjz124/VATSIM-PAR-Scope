@@ -13,9 +13,37 @@ This is the reference behind the radar model, display and phraseology in PAR Sco
 | AN/FPN-67 FBPAR | US Army fixed base | electronic | ±10° az, −1° to +6° el | 15 NM | < 1 s | track-while-scan |
 | AN/MPN-25 (GCA-2000) | USMC/Army transportable | phased array | 20° | 20 NM | 1 s | history dots, data blocks |
 | ICAO Annex 10 | baseline standard | – | 20° × 7° | ≥ 9 NM | ≥ 1 per s | – |
+| AN/SPN-46(V)2 PALS | USN, shore-based training version of the carrier ACLS | Ka-band tracker: one 0.57° conically scanned pencil beam locks on to an aircraft, X-band beacon channel | 25° az (*Wikipedia*); el *assumed* −1° to +7° | 10 NM; lock-on between 3.5 and 8 NM | tracker (*assumed* 4 per s) | two consoles, two aircraft each; see below |
 
 Sources: radartutorial.eu system cards (via the Internet Archive); L3Harris PAR-2020 sell sheet;
 Navy NRTC 14089 ch. 2; DTIC ADA228798 (1989 DoD PAR assessment); ICAO Annex 10 Vol I §3.2.
+
+### AN/SPN-46 PALS (October 2026)
+
+* **Radar** (Sierra Nevada Corporation FCC experimental-licence filing for the AN/SPN-46(V)6, April 2022):
+  33.2 GHz (33.0–33.4) magnetron, 50 kW peak, 0.2 µs pulse, 1,750–2,080 pps; parabolic reflector with a
+  nutating Ka-band feed (conical scan, 100 Hz) and a 2-axis monopulse X-band receive feed (9.31 GHz);
+  Ka-band beamwidth 0.57° (3 dB); antenna travel 30° left to 60° right and +30° to −15°.
+* **Variants** (NAVEDTRA 14089 *Electronics Technician Vol. 4* ch. 2, 1993/1995): the (V)1 on carriers; the
+  (V)2 "installed at selected naval air stations … for the PALS training and the PALS certification of
+  aircraft", the same as the (V)1 without the Mk 16 stable elements and with a 7 ft antenna instead of 4 ft.
+  Two identical operator control consoles (OCC), "one for each channel"; "The OCC includes a radar display,
+  a data generator, and an embedded computer." Each console "can track (lock on) two aircraft at a time"
+  (NAVEDTRA 14342A §11). DAIR "causes aircraft symbols and side numbers of DAIR-tracked aircraft to appear
+  on the console display" (14342A), hence the callsign-only data block.
+* **Range, coverage, precision**: 10 NM, 25° azimuth, 2 ft (Wikipedia infobox, unverified). Update rate and
+  elevation coverage not found; assumed.
+* **Modes** (NAVAIR 00-80T-105 *CV NATOPS*, July 2009, definitions and §6.4.7): I automatic to touchdown;
+  IA automatic to 200 ft and 1/2 NM; II error needles in the cockpit; IID flight director; IIT Mode II flown
+  with Mode III information; III "a pilot is supplied position guidance information from the AN/SPN-42 or
+  AN/SPN-46 by a final controller". OPNAV M-3710.7 (Sept 2023) p. 228 logs Mode III as a PAR approach.
+* **Procedure** (CV NATOPS §6.4.7.4–6.4.7.8, §6.4.13.2, Fig. 6-6): "The final controller will acquire the
+  aircraft between 3.5 and 8 miles" and report "201 lock-on, 5 miles. Say needles."; the pilot reports needle
+  position ("201, needles up and right"); "approaching tipover" (glidepath), range each mile; "at minimums"
+  unless the LSO has taken over; "Lock-on must be maintained until touchdown"; after lock-on, soft headings
+  ("301, right five"). Minimums for Modes IA, II, IIT and III: 200 ft and 1/2 NM.
+* Not found: the SPN-46 technical manual and the Navy Training Plan (NTP E-50-8206C, April 1989, cited by
+  NAVEDTRA 14089); nothing public describes the console screen.
 
 ## ICAO accuracy budget (Annex 10 Vol I §3.2)
 
@@ -80,6 +108,21 @@ The digital style is copied from two sources:
     of the four-digit beacon code alone ("1235").
 * **Earlier ATNAVICS footage** (Army radar training simulator, USMC expeditionary screens): the same
   compressed axis, green cursors and cream limits.
+
+* **AN/SPN-46 console photos** (Navy photos of CATCC consoles, one labelled SPN-46A, and a 3D model of an
+  OCC), used for the SPN-46 preset; nothing in the manuals describes the screen:
+  * green line work on black; an elevation box over an azimuth box at the left, with a header above;
+  * ten whole-mile lines from touchdown at the left edge, each gap about 0.63 of the one before (measured on the
+    model: 1 NM at 37 % of the width, 2 NM at 61 %, 3 NM at 76 %, 4 NM at 85 %): x ∝ 1 − e^(−r/k), k = range
+    scale / 4.6 (2.2 NM on the 10 NM scale);
+  * height compressed the same way in glidepath terms (k · tan GPA, about 690 ft), so the glidepath runs straight
+    from the bottom-left corner to the top-right; the model's height lines at 0.54, 0.79, 0.91 and 0.95 of the
+    box fit lines every 500 ft; three straight glidepath lines that close up toward the far corner (the limits drawn
+    from 6 % of the box either side of touchdown, as on the photos, not at a fixed angle, which this scale would bend);
+  * azimuth: the same compression in feet off the course, lines every 500 ft to 2,000 ft either side (fits the
+    model's lines; *assumed*), with a pair of limit lines close either side of the course (100 ft *assumed*);
+  * at the right, a crosshair (Mode III) and a square with crossed needles (Mode II), as identified by the
+    user; their scales (±0.5° glidepath, ±1° course) and readouts are *assumed*.
 
 The analog style follows museum and archive photos of FPN-63-era indicators. They show green or
 amber phosphor, compressed range marks, dashed sector edges, smeared raw video with afterglow, and

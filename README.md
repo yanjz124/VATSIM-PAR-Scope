@@ -3,7 +3,7 @@
 *Formerly VATSIM PAR Scope. Yes, it is vibe coded.*
 
 **A Precision Approach Radar scope for VATSIM controllers**, modeled on the US military GCA systems
-it imitates: AN/FPN-68, FPN-63, GPN-22, FPN-67, MPN-25 and TPN-31 ATNAVICS. It runs next to CRC and
+it imitates: AN/FPN-68, FPN-63, GPN-22, FPN-67, MPN-25, TPN-31 ATNAVICS and the Navy's SPN-46 PALS. It runs next to CRC and
 takes live traffic from it (vNAS's 1 Hz target data, no second connection), or from a vPilot or xPilot
 tower view where there is no CRC. It also has a training mode where you talk simulated arrivals down by voice, with pilot, tower and
 approach on the other end.
@@ -20,8 +20,9 @@ Public information on these radars is scarce, so much of it is a best guess (see
 **The scope**
 * Elevation and azimuth on one range axis, with glidepath, lower safe limit, decision height and
   lateral safe limits; linear or log range, as on the real indicators.
-* Seven radar models, each with its own coverage, scan rate, accuracy and display: from the analog
-  FPN-63 B-scope to the FPN-68's color tracks and data blocks and the ATNAVICS expeditionary screen.
+* Eight radar models, each with its own coverage, scan rate, accuracy and display: from the analog
+  FPN-63 B-scope to the FPN-68's color tracks and data blocks, the ATNAVICS expeditionary screen and the
+  SPN-46 PALS console, a tracking radar that locks on to two aircraft between 3.5 and 8 miles.
 * Targets are painted when the simulated beam crosses them, with MTI; real antenna siting off the
   runway; per-runway glidepath, TCH and DH from the approach plate.
 * ASR surveillance picture as a flip view or a separate window, with the PAR coverage cone, extended
@@ -197,6 +198,10 @@ descent").
   a missed approach.
 * Headings: "turn left heading 050", or a relative turn, "turn two degrees left" / "turn right ten
   degrees", from the heading last assigned.
+* Carrier (CCA) wording works too (CV NATOPS): soft headings after lock-on, "right five" / "left ten";
+  "lock-on, five miles"; "approaching tipover" for the glidepath; "on centerline", "left of centerline";
+  "at minimums".
+* The wheels check is graded procedure: pilots lower the gear on the glidepath whether reminded or not.
 * Glidepath calls change the descent rate, starting from what the pilot is already flying: "…and
   holding" makes them correct more, "going above/below" firmly, "…coming down/up" keeps a correction
   that is working, "…rapidly" eases off, "on glidepath" returns to the normal rate. Course calls are

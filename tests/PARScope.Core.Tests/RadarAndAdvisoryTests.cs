@@ -20,7 +20,7 @@ public class RadarAndAdvisoryTests
     {
         var (geo, store, sim) = Setup();
         sim.Spawn(new SpawnOptions { RangeNm = 5, HeightOffsetFt = 150, CrossFt = 400, Mode = PilotMode.SelfFlying, Skill = 1 });
-        foreach (var basePreset in RadarPreset.All)
+        foreach (var basePreset in RadarPreset.All.Where(p => p.Pattern != ScanPattern.Tracker)) // a tracker does not sweep
         {
             var preset = basePreset with { DetectionProbability = 1 };
             var radar = new RadarSimulator(preset, geo, seed: 1) { ClutterEnabled = false };

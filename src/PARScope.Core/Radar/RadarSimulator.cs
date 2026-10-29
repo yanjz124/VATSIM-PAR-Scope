@@ -30,6 +30,7 @@ public sealed class RadarSimulator
     private readonly List<Plot> _plots = [];
     private readonly Dictionary<string, RadarTrack> _tracks = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<ClutterCell> _clutter = [];
+    private readonly HashSet<string> _locked = new(StringComparer.OrdinalIgnoreCase);
     private double _lastTime = double.NaN;
 
     public RadarSimulator(RadarPreset preset, ParGeometry geometry, int? seed = null)
@@ -75,11 +76,14 @@ public sealed class RadarSimulator
 
     public IReadOnlyList<Plot> Plots => _plots;
     public IReadOnlyDictionary<string, RadarTrack> Tracks => _tracks;
+    /// <summary>Tracker: the aircraft the radar is locked on to.</summary>
+    public IReadOnlyCollection<string> Locked => _locked;
 
     /// <summary>Removes an aircraft at once, track and returns, without coasting (a deleted training aircraft).</summary>
     public void Drop(string callsign)
     {
         _tracks.Remove(callsign);
+        _locked.Remove(callsign);
         _plots.RemoveAll(p => string.Equals(p.Callsign, callsign, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -100,8 +104,25 @@ public sealed class RadarSimulator
             if (t.CoarseAltitude && !t.IsSimulated) continue;
             var truth = Geometry.FromEcef(t.PositionAt(now));
             var polar = Geometry.ToPolar(truth);
-            if (!InCoverage(polar, t)) continue;
+            if (!InCoverage(polar, t)) { _locked.Remove(t.Callsign); continue; }
             if (t.Beacon is int code && _tracks.TryGetValue(t.Callsign, out var known)) known.Beacon = code;
+
+            if (Preset.Pattern == ScanPattern.Tracker)
+            {
+                // Locks on inside the lock-on range while a channel is free, then holds the lock to touchdown
+                // ("Lock-on must be maintained until touchdown", CV NATOPS §6.4.7.8) or until it leaves coverage.
+                if (!_locked.Contains(t.Callsign))
+                {
+                    if (polar.RangeFt > (Preset.LockOnRangeNm ?? Preset.MaxRangeNm) * Units.FeetPerNm || _locked.Count >= Preset.MaxTracks) continue;
+                    _locked.Add(t.Callsign);
+                }
+                if (Math.Floor(now / Preset.AzScanSec) > Math.Floor(prev / Preset.AzScanSec))
+                {
+                    Paint(ScopeKind.Azimuth, t.Callsign, now, polar, truth);
+                    Paint(ScopeKind.Elevation, t.Callsign, now, polar, truth);
+                }
+                continue;
+            }
 
             if (polar.ElevationDeg >= Preset.ElMinDeg && polar.ElevationDeg <= Preset.AzBeamElMaxDeg
                 && Illuminated(prev, now, AzFraction(polar.AzimuthDeg), Preset.AzScanSec, 0.0))
@@ -112,7 +133,8 @@ public sealed class RadarSimulator
                 Paint(ScopeKind.Elevation, t.Callsign, now, polar, truth);
         }
 
-        if (SimulateErrors && ClutterEnabled) PaintClutter(prev, now);
+        // A tracker gates on its aircraft: ground returns never reach the display.
+        if (SimulateErrors && ClutterEnabled && Preset.Pattern != ScanPattern.Tracker) PaintClutter(prev, now);
 
         _plots.RemoveAll(p => now - p.Time > HistorySec);
         UpdateCoasting(now, targets);
@@ -139,13 +161,13 @@ public sealed class RadarSimulator
             if (since <= CoastAfterSec) { tr.Coast = CoastReason.None; continue; }
             // One or two returns give no rate: such a track would coast frozen while the aircraft moves on,
             // then jump when it is painted again. A tracker does not coast a track it never established.
-            if (tr.AzPaints + tr.ElPaints < 3) { _tracks.Remove(key); continue; }
+            if (tr.AzPaints + tr.ElPaints < 3) { _tracks.Remove(key); _locked.Remove(key); continue; }
             tr.Coast = DataLost ? CoastReason.DataLost
                 : !byCallsign.TryGetValue(key, out var t) || !t.IsReporting(now) ? CoastReason.SignalLost
                 : t.CoarseAltitude ? CoastReason.CoarseData
                 : !InCoverage(Geometry.ToPolar(Geometry.FromEcef(t.PositionAt(now))), t) ? CoastReason.OutOfCoverage
                 : CoastReason.Missed;
-            if (since > CoastLimitSec(tr.Coast)) _tracks.Remove(key);
+            if (since > CoastLimitSec(tr.Coast)) { _tracks.Remove(key); _locked.Remove(key); }
         }
     }
 
@@ -210,10 +232,12 @@ public sealed class RadarSimulator
             elSigmaDeg += 0.08 * Preset.ElBeamwidthDeg * strength;
         }
 
-        // Each antenna measures its own angle accurately and the other one only coarsely (fan beam).
+        // Each antenna measures its own angle accurately and the other one only coarsely (fan beam); a tracker's
+        // pencil beam measures both.
+        double coarse = Preset.Pattern == ScanPattern.Tracker ? 1 : 3;
         var measured = scope == ScopeKind.Azimuth
-            ? new RadarPolar(r + Gauss() * rangeSigma, truePolar.AzimuthDeg + Gauss() * azSigmaDeg, truePolar.ElevationDeg + Gauss() * elSigmaDeg * 3)
-            : new RadarPolar(r + Gauss() * rangeSigma, truePolar.AzimuthDeg + Gauss() * azSigmaDeg * 3, el + Gauss() * elSigmaDeg);
+            ? new RadarPolar(r + Gauss() * rangeSigma, truePolar.AzimuthDeg + Gauss() * azSigmaDeg, truePolar.ElevationDeg + Gauss() * elSigmaDeg * coarse)
+            : new RadarPolar(r + Gauss() * rangeSigma, truePolar.AzimuthDeg + Gauss() * azSigmaDeg * coarse, el + Gauss() * elSigmaDeg);
 
         AddPlot(new Plot(scope, callsign, now, Geometry.FromPolar(measured), measured, false));
     }

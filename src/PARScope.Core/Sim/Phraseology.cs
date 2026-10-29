@@ -176,6 +176,9 @@ public static partial class Phraseology
         double? turnBy = null;
         if (heading is null && TurnByRx().Match(s) is { Success: true } tb && DegreesWord(tb.Groups["n"].Success ? tb.Groups["n"].Value : tb.Groups["n2"].Value) is int deg && deg is > 0 and <= 180)
             turnBy = ((tb.Groups["d"].Success ? tb.Groups["d"].Value : tb.Groups["d2"].Value) == "left" ? -1 : 1) * deg;
+        // Carrier soft headings after lock-on: "301, right five" (CV NATOPS §6.4.13.2).
+        if (heading is null && turnBy is null && SoftTurnRx().Match(s) is { Success: true } st && DegreesWord(st.Groups["n"].Value) is int soft && soft is > 0 and <= 30)
+            turnBy = (st.Groups["d"].Value == "left" ? -1 : 1) * soft;
         int noGyro = 0;
         if (heading is null && NoGyroTurnRx().Match(s) is { Success: true } ng) noGyro = ng.Groups["d"].Value == "left" ? -1 : 1;
         bool? halfRate = HalfRateRx().IsMatch(s) ? true : StandardRateRx().IsMatch(s) ? false : null;
@@ -202,7 +205,7 @@ public static partial class Phraseology
             ContactApproach = ContactRx().IsMatch(s),
             ContactTower = ContactTowerRx().IsMatch(s),
             ApproachBrief = BriefRx().IsMatch(s),
-            RangeInfo = RangeInfoRx().IsMatch(s),
+            RangeInfo = RangeInfoRx().IsMatch(s) || LockOnRx().IsMatch(s),
             ConditionalMissedApproach = missed && NotInSightRx().IsMatch(s) && !TowerClearanceRx().IsMatch(s),
             LevelOff = LevelOffRx().IsMatch(s),
             ResumeDescent = ResumeRx().IsMatch(s),
@@ -266,6 +269,8 @@ public static partial class Phraseology
         // and what Whisper made of real calls (see Misheard).
         string joined = " " + string.Join(' ', outWords) + " ";
         foreach (var (heard, meant) in Misheard) joined = joined.Replace(heard, meant);
+        // Carrier (CCA) words for the same things: "approaching tipover" is the glidepath, "centerline" the course.
+        foreach (var (word, meant) in CarrierWords) joined = joined.Replace(word, meant);
         return GlideRx().Replace(joined, "glidepath");
     }
 
@@ -287,6 +292,11 @@ public static partial class Phraseology
         (" climbing tank ", " climb and maintain "), (" climb in maintain ", " climb and maintain "), (" climbing maintain ", " climb and maintain "),
     ];
 
+    private static readonly (string Word, string Meant)[] CarrierWords =
+    [
+        (" tipover ", " glidepath "), (" tip over ", " glidepath "), (" centerline ", " course "), (" center line ", " course "),
+    ];
+
     /// <summary>"Niner" as Whisper sometimes writes it, between digits: "zero nine or zero", "zero minor zero".</summary>
     [GeneratedRegex(@"(?<=\b(?:zero|one|two|three|tree|four|five|fife|six|seven|eight|nine|niner|\d) )(?:nine or|minor|nina)(?= (?:zero|one|two|three|tree|four|five|fife|six|seven|eight|nine|niner|\d)\b)")] private static partial Regex MisheardNinerRx();
 
@@ -301,6 +311,11 @@ public static partial class Phraseology
     [GeneratedRegex(@"\bstop (?:the )?turn\b")] private static partial Regex StopTurnRx();
     // "turn two degrees left" and "turn left two degrees".
     [GeneratedRegex(@"\bturn (?:(?<n>\d{1,3}|ten|fifteen|twenty|thirty|forty|forty five|fifty|sixty|ninety) degrees? (?<d>left|right)|(?<d2>left|right) (?<n2>\d{1,3}|ten|fifteen|twenty|thirty|forty|forty five|fifty|sixty|ninety) degrees?)\b")] private static partial Regex TurnByRx();
+
+    // "right five", "left ten": a soft heading, not a runway ("runway 32 left") or a range ("left 5 miles").
+    [GeneratedRegex(@"(?<!\brunway \d+ )(?<!\bturn )\b(?<d>left|right) (?<n>\d{1,2}|ten|fifteen|twenty|thirty)\b(?! (?:miles?|degrees?|of|course|heading|point|and|\d))")] private static partial Regex SoftTurnRx();
+    // "201 lock-on, 5 miles": the PALS radar has acquired the aircraft (CV NATOPS §6.4.7.4).
+    [GeneratedRegex(@"\block ?on\b")] private static partial Regex LockOnRx();
 
     /// <summary>Degrees as said: digits ("1 0", already joined to "10") or the round numbers controllers say as words.</summary>
     private static int? DegreesWord(string w) => int.TryParse(w, out int n) ? n : w switch
@@ -336,7 +351,7 @@ public static partial class Phraseology
     [GeneratedRegex(@"\bthis will be a (?:p a r|par|precision|copter p a r)\b")] private static partial Regex BriefRx();
     // Range calls end in "touchdown", which survives even when the number and "miles" do not ("fire mode from
     // touchdown", "three muslim touch step", "one moven touch out").
-    [GeneratedRegex(@"\b(?:\d+ (?:and (?:one )?half )?miles? from touchdown|(?:from )?touch ?(?:down|out|step|town)\b(?! zone)|\b\d+ miles? from (?:a |the )?t[aou][a-z]*\b|\bfrom (?:the )?touch\b(?! and go)|over (?:the )?approach lights|over (?:the )?landing threshold|(?:at )?decision (?:altitude|height))\b")] private static partial Regex RangeInfoRx();
+    [GeneratedRegex(@"\b(?:\d+ (?:and (?:one )?half )?miles? from touchdown|(?:from )?touch ?(?:down|out|step|town)\b(?! zone)|\b\d+ miles? from (?:a |the )?t[aou][a-z]*\b|\bfrom (?:the )?touch\b(?! and go)|over (?:the )?approach lights|over (?:the )?landing threshold|(?:at )?decision (?:altitude|height)|at minimums)\b")] private static partial Regex RangeInfoRx();
     // "climb and maintain 2 thousand 5 hundred" after digit merging, or "climb and maintain 2500".
     // "climb and maintain", and "climb maintain" as recognizers often hear it.
     [GeneratedRegex(@"\bclimb (?:(?:and )?maintain |to )?(?<a>\d+)(?: (?<k>thousand))?(?: (?<h>\d) hundred)?\b")] private static partial Regex ClimbRx();
