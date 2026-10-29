@@ -14,19 +14,21 @@ public class AiFinalControllerTests
     /// call is fed back the way the app does: landline calls to tower or approach, radio calls to the pilot,
     /// each taking about as long to say as speech does. Returns the calls and results in order.
     /// </summary>
-    private static (List<string> Log, SimAircraft Ac) Fly(HandoffMix handoffs, int seed, double? skill = 0.8, TrainingDifficulty difficulty = TrainingDifficulty.Normal, double maxSec = 900)
+    private static (List<string> Log, SimAircraft Ac) Fly(HandoffMix handoffs, int seed, double? skill = 0.8, TrainingDifficulty difficulty = TrainingDifficulty.Normal, double maxSec = 900, bool navy = false, RadarPreset? radarPreset = null)
     {
         var geo = new ParGeometry(GeometryTests.Runway, GeometryTests.Site);
         double course = GeometryTests.Runway.MagneticCourseDeg, elev = GeometryTests.Runway.ThresholdElevFt;
         var sim = new TrainingTraffic(seed) { Geometry = geo, Handoffs = handoffs, ReturnForAnotherApproach = false, Difficulty = difficulty };
         var store = new TrackStore();
-        var radar = new RadarSimulator(RadarPreset.Fpn68, geo, seed: 5) { ClutterEnabled = false };
+        var preset = radarPreset ?? (navy ? RadarPreset.Spn46 : RadarPreset.Fpn68);
+        var radar = new RadarSimulator(preset, geo, seed: 5) { ClutterEnabled = false };
         var approach = new ApproachSim(new Random(seed));
         var tower = new TowerSim(new Random(seed));
         var ai = new AiFinalController(new Random(seed))
         {
             Facility = "Miramar", RunwayId = GeometryTests.Runway.RunwayId, CourseMagDeg = course, ThresholdElevFt = elev,
             MissedClimbMslFt = Math.Round((elev + 2000) / 100) * 100, Geometry = geo,
+            Navy = navy, LockOn = preset.Pattern == ScanPattern.Tracker,
         };
         var ac = sim.SpawnRandom(PilotMode.ControllerDirected, skill: skill);
         var log = new List<string>();
@@ -46,7 +48,7 @@ public class AiFinalControllerTests
             foreach (var d in due.Where(d => d.At <= t).ToList()) { due.Remove(d); d.Do(); }
 
             Advisory? adv = radar.Tracks.TryGetValue(ac.Callsign, out var tr) && tr.IsCorrelated && !tr.IsCoasting
-                ? AdvisoryEngine.Evaluate(tr, geo, RadarPreset.Fpn68, new DeviationBands(), course,
+                ? AdvisoryEngine.Evaluate(tr, geo, preset, new DeviationBands(), course,
                     Units.Norm360(course + ac.CommandedHeadingRelDeg), ac.GearReportedDown)
                 : null;
             var traffic = new[] { new AiTraffic(ac, adv, approach.IsPending(ac.Callsign), tower.AnswerFor(ac.Callsign), tower.IntentFor(ac.Callsign), approach.IsCoordinated(ac.Callsign), tr) };
@@ -113,6 +115,30 @@ public class AiFinalControllerTests
             else failures.Add(string.Join("\n", log));
         }
         Assert.True(landed >= 8, $"{landed}/10 landed. First failure:\n{failures.FirstOrDefault()}");
+    }
+
+    [Fact]
+    public void Carrier_wording_on_the_spn46_lock_on_soft_headings_and_minimums()
+    {
+        int landed = 0;
+        bool soft = false;
+        for (int seed = 1; seed <= 10; seed++)
+        {
+            var (log, _) = Fly(HandoffMix.FinalOnly, seed, navy: true);
+            string all = string.Join("\n", log);
+            if (log.Any(l => l.StartsWith("RESULT landed"))) landed++;
+            var finals = log.Where(l => l.Contains(" FINAL ")).ToList();
+            int lockOn = finals.FindIndex(l => l.Contains("lock-on, "));
+            Assert.True(lockOn >= 0, all);
+            Assert.Single(finals, l => l.Contains("lock-on"));
+            // After lock-on, turns are soft headings ("right five"), never "turn right heading…".
+            Assert.DoesNotContain(finals.Skip(lockOn), l => l.Contains("heading"));
+            soft |= finals.Skip(lockOn).Any(l => System.Text.RegularExpressions.Regex.IsMatch(l.ToLowerInvariant(), @"\b(?:left|right) (?:one|two|three|four|five|six|seven|eight|nine|ten|fifteen|twenty|thirty)\b"));
+            if (log.Any(l => l.StartsWith("RESULT landed"))) Assert.Contains(finals, l => l.Contains("at minimums"));
+            Assert.DoesNotContain(finals, l => l.Contains("at decision altitude"));
+        }
+        Assert.True(soft, "no soft heading in ten approaches:\n" + string.Join("\n", Fly(HandoffMix.FinalOnly, 1, navy: true).Log));
+        Assert.True(landed >= 8, $"{landed}/10 landed");
     }
 
     [Fact]

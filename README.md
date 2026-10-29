@@ -266,6 +266,11 @@ its own voice (**Settings › Audio › AI final voice**), runs the position the
   for civil, and the one for the runway or side of the field where NASR splits them;
 * after a missed approach, hands the aircraft back to approach and switches the pilot.
 
+**AI uses carrier (CCA) wording** (off by default) words the AI's calls as the CV NATOPS lays out:
+soft headings on final ("right five" instead of "turn right heading…"), "lock-on, five miles" on the
+SPN-46, and "at minimums" instead of "at decision altitude". The glidepath and course calls stay the
+standard PAR words: the manual says standard precision approach phraseology is used apart from these.
+
 The pilots are talked down (not self-flying), so the AI's calls really fly the aircraft. Like a real
 talk-down, the odd approach ends in a go-around. Its calls go through the same log, pilot model and
 grade as yours. Turn it off at any point to take over the position.

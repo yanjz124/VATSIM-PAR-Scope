@@ -63,6 +63,8 @@ public sealed class AppSettings
     public string TrainingHandoffs { get; set; } = "FinalOnly";
     /// <summary>An AI final controller works the training arrivals while you watch. Opt-in.</summary>
     public bool AiFinalController { get; set; }
+    /// <summary>The AI final controller uses carrier (CCA) wording: soft headings, lock-on, "at minimums". Opt-in.</summary>
+    public bool AiNavyPhraseology { get; set; }
     /// <summary>Record received traffic to CSV for update-rate diagnostics.</summary>
     public bool RecordTraffic { get; set; } = true;
     public string? AirportId { get; set; }

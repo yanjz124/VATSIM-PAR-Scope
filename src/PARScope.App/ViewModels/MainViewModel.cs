@@ -879,6 +879,18 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>The AI final controller words its calls as a carrier (CCA) final controller does.</summary>
+    public bool AiNavy
+    {
+        get => _settings.AiNavyPhraseology;
+        set
+        {
+            _settings.AiNavyPhraseology = value;
+            OnPropertyChanged();
+            StatusMessage = value ? "AI final: carrier (CCA) wording" : "AI final: standard PAR wording";
+        }
+    }
+
     /// <summary>With the AI on final the pilots are always talked down.</summary>
     public bool SelfFlyingChoiceEnabled => !AiFinal;
 
@@ -898,6 +910,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _ai.WindPhrase = MetarWindPhrase.ToLowerInvariant();
         _ai.Intent = TowerIntent;
         _ai.Geometry = geo;
+        _ai.Navy = AiNavy;
+        _ai.LockOn = Engine.Radar?.Preset.Pattern == ScanPattern.Tracker;
         var traffic = new List<AiTraffic>();
         foreach (var a in Engine.Training.Aircraft.Where(a => a.Mode == PilotMode.ControllerDirected && !a.Finished))
         {

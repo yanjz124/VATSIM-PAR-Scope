@@ -31,7 +31,7 @@ public sealed partial class AiFinalController
     {
         public double PendingSince = double.NaN, AcceptedAt = double.NaN, TowerRequestedAt = double.NaN, MissedSeenAt = double.NaN, DescentSaidAt = double.NegativeInfinity;
         public bool Briefed, NoAckSaid, ApproachingSaid, NotReceivedSaid, ContactTowerSaid, MissedRequested, ContactApproachSaid;
-        public bool DecisionSaid, LightsSaid, ThresholdSaid, WheelsSaid, SafetySaid;
+        public bool LockOnSaid, DecisionSaid, LightsSaid, ThresholdSaid, WheelsSaid, SafetySaid;
         public int LastMile = int.MaxValue;
         /// <summary>Drift (track minus assigned heading), learned from the radar while the heading is steady.</summary>
         public double DriftDeg;
@@ -56,6 +56,14 @@ public sealed partial class AiFinalController
     public ParGeometry? Geometry { get; set; }
     /// <summary>The AI's operating initials, said when it accepts a handoff (§2-1-14).</summary>
     public string Initials { get; set; } = "AF";
+    /// <summary>
+    /// Carrier (CCA) wording, CV NATOPS (NAVAIR 00-80T-105) §6.4.13.2: standard PAR phraseology except soft
+    /// headings on final ("301, right five"), and the final controller reports lock-on with range and advises
+    /// the pilot "at minimums" (§6.4.7.4 to §6.4.7.8).
+    /// </summary>
+    public bool Navy { get; set; }
+    /// <summary>The radar locks on to the aircraft (AN/SPN-46): with <see cref="Navy"/> the first call on it reports the lock-on.</summary>
+    public bool LockOn { get; set; }
 
     /// <summary>Seconds a handoff is offered before final answers it.</summary>
     public const double AcceptDelaySec = 4;
@@ -198,7 +206,16 @@ public sealed partial class AiFinalController
         // a safety call, the clearance or "do not acknowledge" first, then the heading and position, then range.
         string? extra = null;
         Action? commit = null;
-        if (t.Tower == TowerAnswer.Cleared && !ac.ClearedToLand && !warning)
+        bool lockOn = false;
+        if (Navy && LockOn && !p.LockOnSaid && !warning)
+        {
+            // "201, lock-on, 5 miles" (§6.4.7.6); the range is in it, so no mile call this time.
+            int n = Math.Max(1, (int)Math.Round(adv.Deviation.RangeNm));
+            extra = $"{cs}, lock-on, {(n == 1 ? "one mile" : $"{n} miles")}";
+            commit = () => p.LockOnSaid = true;
+            lockOn = true;
+        }
+        else if (t.Tower == TowerAnswer.Cleared && !ac.ClearedToLand && !warning)
             extra = $"{cs}, {(WindPhrase.Length > 0 ? WindPhrase + ", " : "")}runway {RadioSpeech.Runway(RunwayId)}, {TowerSim.ClearanceWords(t.TowerIntent)}";
         else if (t.Tower != TowerAnswer.Cleared && adv.Deviation.RangeNm < 2 && !adv.BelowDecisionHeight && !p.NotReceivedSaid && !warning)
         {
@@ -230,7 +247,7 @@ public sealed partial class AiFinalController
         // The range call is short and owed once a mile: it goes in, and the course and glidepath words only if
         // there is room (with a turn or safety call they always go). Over the threshold the pilot is told to
         // contact tower after landing in the same call.
-        string? position = ac.Descending ? PositionCall(adv, geo, p, commit: true) : null;
+        string? position = ac.Descending && !lockOn ? PositionCall(adv, geo, p, commit: true, Navy) : null;
         if (position != null && position.StartsWith("over landing threshold") && ac.ClearedToLand && !p.ContactTowerSaid)
         {
             position += $", contact tower{On(t.TowerFreq)} after landing";
@@ -255,6 +272,8 @@ public sealed partial class AiFinalController
         }
         return new AiCall(ac.Callsign, Speakable(string.Join(". ", parts)) + ".", false);
     }
+
+    private static string SoftWord(int deg) => deg switch { 10 => "TEN", 15 => "FIFTEEN", 20 => "TWENTY", 30 => "THIRTY", _ => deg.ToString() };
 
     private static int Words(string s) => s.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
 
@@ -289,6 +308,14 @@ public sealed partial class AiFinalController
         double change = Units.Norm180(want - assigned);
         if (Math.Abs(change) < 2) return null;
         if (now - p.HeadingSetAt < 8 && Math.Abs(change) < 10) return null;
+        if (Navy)
+        {
+            // A soft heading, a turn by so many degrees, in the steps the pilot hears as one word.
+            double by = Math.Abs(change) < 10 ? Math.Round(Math.Abs(change)) : new[] { 10, 15, 20, 30 }.MinBy(d => Math.Abs(d - Math.Abs(change)));
+            by *= Math.Sign(change);
+            p.ProposedRel = Units.Norm180(assigned + by);
+            return $"{(by > 0 ? "RIGHT" : "LEFT")} {SoftWord((int)Math.Abs(by))}";
+        }
         p.ProposedRel = want;
         double hdg = Units.Norm360(CourseMagDeg + want);
         return $"TURN {(change > 0 ? "RIGHT" : "LEFT")} HEADING {(hdg < 0.5 ? 360 : hdg):000}";
@@ -313,7 +340,7 @@ public sealed partial class AiFinalController
     /// landing threshold" (§5-12-6, §5-12-7). Each is said once, on the first call after it is reached;
     /// <paramref name="commit"/> marks it said.
     /// </summary>
-    private static string? PositionCall(Advisory adv, ParGeometry geo, Progress p, bool commit)
+    private static string? PositionCall(Advisory adv, ParGeometry geo, Progress p, bool commit, bool navy = false)
     {
         double rangeFt = adv.Deviation.RangeFt, nm = adv.Deviation.RangeNm;
         if (rangeFt <= geo.ThresholdRangeFt + 300)
@@ -326,7 +353,8 @@ public sealed partial class AiFinalController
         if (rangeFt <= geo.DecisionHeightRangeFt + 600 && !p.DecisionSaid)
         {
             if (commit) p.DecisionSaid = true;
-            return "at decision altitude";
+            // The carrier final controller advises the pilot "at minimums" (CV NATOPS §6.4.7.4).
+            return navy ? "at minimums" : "at decision altitude";
         }
         if (nm <= 0.55)
         {

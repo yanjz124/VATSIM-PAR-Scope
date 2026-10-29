@@ -41,7 +41,10 @@ Navy NRTC 14089 ch. 2; DTIC ADA228798 (1989 DoD PAR assessment); ICAO Annex 10 V
   aircraft between 3.5 and 8 miles" and report "201 lock-on, 5 miles. Say needles."; the pilot reports needle
   position ("201, needles up and right"); "approaching tipover" (glidepath), range each mile; "at minimums"
   unless the LSO has taken over; "Lock-on must be maintained until touchdown"; after lock-on, soft headings
-  ("301, right five"). Minimums for Modes IA, II, IIT and III: 200 ft and 1/2 NM.
+  ("301, right five"). Minimums for Modes IA, II, IIT and III: 200 ft and 1/2 NM. §6.4.13.2: "Standard ATC
+  and precision instrument approach phraseology shall be used" except fuel states, angels and soft headings,
+  so the AI's carrier wording changes only the headings, the lock-on report and "at minimums". Not done:
+  "say needles" (the simulated pilots fly Mode III, no needles to report) and angels (the brief keeps feet).
 * Not found: the SPN-46 technical manual and the Navy Training Plan (NTP E-50-8206C, April 1989, cited by
   NAVEDTRA 14089); nothing public describes the console screen.
 
