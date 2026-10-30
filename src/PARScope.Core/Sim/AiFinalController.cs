@@ -31,11 +31,14 @@ public sealed partial class AiFinalController
     {
         public double PendingSince = double.NaN, AcceptedAt = double.NaN, TowerRequestedAt = double.NaN, MissedSeenAt = double.NaN, DescentSaidAt = double.NegativeInfinity;
         public bool Briefed, NoAckSaid, ApproachingSaid, NotReceivedSaid, ContactTowerSaid, MissedRequested, ContactApproachSaid;
+        public int BriefPart;
         public bool LockOnSaid, DecisionSaid, LightsSaid, ThresholdSaid, WheelsSaid, SafetySaid;
         public int LastMile = int.MaxValue;
         /// <summary>Drift (track minus assigned heading), learned from the radar while the heading is steady.</summary>
         public double DriftDeg;
         public double HeadingSetAt = double.NegativeInfinity, LastHeadingRel = double.NaN, DriftAt;
+        /// <summary>How long the last turn takes to fly at standard rate (a 60° turn from base: 20 s).</summary>
+        public double TurnSec;
         /// <summary>The heading (relative to the course) in the call being built, and the last one given and when.</summary>
         public double ProposedRel, GivenRel, GivenAt = double.NegativeInfinity;
     }
@@ -172,10 +175,17 @@ public sealed partial class AiFinalController
             // generate), or after half a minute if the check-in never comes.
             if (ac.Descending) p.Briefed = true;
             else if (!ac.CheckedIn && now - p.AcceptedAt < 30) return null;
-            else
+            // Vectors first: the brief waits while the turn onto final is coming up. A fast aircraft may leave no
+            // gap that long before the glidepath, so then it goes in two parts, each in a shorter gap.
+            else if (p.BriefPart == 0 && !TurnComing(ac, 40))
             {
                 p.Briefed = true;
                 return new AiCall(ac.Callsign, Brief(cs, t.ApproachFreq), false);
+            }
+            else if (!TurnComing(ac, 18) && now - _lastRadioCall >= 3)
+            {
+                p.Briefed = ++p.BriefPart == 2;
+                return new AiCall(ac.Callsign, Brief(cs, t.ApproachFreq, p.BriefPart), false);
             }
         }
 
@@ -223,7 +233,7 @@ public sealed partial class AiFinalController
             extra = "tower clearance not received, if runway or approach lights not in sight, execute missed approach";
             commit = () => p.NotReceivedSaid = true;
         }
-        else if (!p.NoAckSaid && !ac.NoAcknowledge)
+        else if (p.Briefed && !p.NoAckSaid && !ac.NoAcknowledge)
         {
             // Straight after the brief has been read back, as a US Army GCA controller does: from here headings,
             // the wheels check and "begin descent" are flown without readbacks (§5-10-10).
@@ -264,7 +274,7 @@ public sealed partial class AiFinalController
         commit?.Invoke();
         if (parts.Contains(main))
         {
-            if (turn != null) { p.HeadingSetAt = p.GivenAt = now; p.GivenRel = p.ProposedRel; }
+            if (turn != null) { p.HeadingSetAt = p.GivenAt = now; p.TurnSec = Math.Abs(Units.Norm180(p.ProposedRel - ac.HeadingRelDeg)) / 3; p.GivenRel = p.ProposedRel; }
             if (approaching) p.ApproachingSaid = true;
             if (main.Contains("BEGIN DESCENT")) p.DescentSaidAt = now;
             if (main.Contains("WHEELS")) p.WheelsSaid = true;
@@ -294,7 +304,7 @@ public sealed partial class AiFinalController
         }
         double closure = track != null ? -track.RangeRateFps : 0;
         // The drift is read once the turn has finished and the radar track has settled on the new heading.
-        if (track != null && closure > 100 && now - p.HeadingSetAt > 8)
+        if (track != null && closure > 100 && now - p.HeadingSetAt > 8 + p.TurnSec)
         {
             double sample = Units.Norm180(Units.RadToDeg(Math.Atan2(track.CrossRateFps, closure)) - assigned);
             p.DriftDeg = Math.Clamp(p.DriftDeg + (sample - p.DriftDeg) * Math.Min(1, (now - p.DriftAt) / 4), -20, 20);
@@ -304,10 +314,13 @@ public sealed partial class AiFinalController
         double rangeNm = adv.Deviation.RangeNm;
         double limit = rangeNm < 2 ? 5 : rangeNm < 4 ? 10 : 30;
         double wantTrack = Math.Clamp(Units.RadToDeg(Math.Atan2(-adv.Deviation.RightOfCourseFt / 30.0, Math.Max(closure, 150))), -limit, limit);
+        double gsFps = track != null ? Math.Sqrt(track.RangeRateFps * track.RangeRateFps + track.CrossRateFps * track.CrossRateFps) : ac.GroundSpeedKt * Units.FeetPerNm / 3600;
+        if (HoldsForTheTurn(adv.Deviation.RightOfCourseFt, assigned + p.DriftDeg, wantTrack, gsFps)) return null;
         double want = Math.Round(wantTrack - p.DriftDeg);
         double change = Units.Norm180(want - assigned);
-        if (Math.Abs(change) < 2) return null;
-        if (now - p.HeadingSetAt < 8 && Math.Abs(change) < 10) return null;
+        // Close in, the scope's course bands are a hundred feet or so wide, so one degree matters there.
+        if (Math.Abs(change) < (rangeNm < 4 ? 1 : 2)) return null;
+        if (now - p.HeadingSetAt < 8 + p.TurnSec && Math.Abs(change) < 10) return null;
         if (Navy)
         {
             // A soft heading, a turn by so many degrees, in the steps the pilot hears as one word.
@@ -322,6 +335,40 @@ public sealed partial class AiFinalController
     }
 
     /// <summary>
+    /// A turn onto the intercept or the course is due within about the time the brief and its readback take
+    /// (40 s), or the aircraft is still turning onto final: the brief would leave it without a heading.
+    /// </summary>
+    private static bool TurnComing(SimAircraft ac, double withinSec)
+    {
+        double toward = -Math.Sign(ac.CrossFt), a = Math.Min(90, ac.CommandedHeadingRelDeg * toward);
+        double gsFps = ac.GroundSpeedKt * Units.FeetPerNm / 3600, cross = Math.Abs(ac.CrossFt);
+        if (cross < 1000 && Math.Abs(ac.CommandedHeadingRelDeg) < 10) return false;
+        if (a <= 0) return false;
+        const double turnRate = 3 * Math.PI / 180;
+        double sinA = Math.Sin(Units.DegToRad(a)), sinW = a > 35 ? 0.5 : 0;
+        double lead = gsFps * (30 * sinW + (sinA - sinW) / turnRate + 5 * sinA);
+        return (cross - lead) / (gsFps * sinA) < withinSec;
+    }
+
+    /// <summary>
+    /// An aircraft tracking toward the course 20° or more steeper than the intercept (a base leg) keeps its heading until
+    /// the turn onto the intercept would roll it out where the intercept closes the course in about 30 seconds.
+    /// The lead is all ground speed: the standard-rate turn's radius, the intercept's own closure and the few
+    /// seconds the pilot takes to react all grow with it, so a 180-knot jet is turned about twice as far out as a
+    /// 90-knot one.
+    /// </summary>
+    private static bool HoldsForTheTurn(double rightOfCourseFt, double trackRel, double interceptRel, double gsFps)
+    {
+        double toward = -Math.Sign(rightOfCourseFt);
+        double a = Math.Min(90, trackRel * toward), w = Math.Abs(interceptRel);
+        if (Math.Sign(interceptRel) != toward || a < w + 20) return false;
+        const double turnRate = 3 * Math.PI / 180, reactionSec = 5;
+        double sinA = Math.Sin(Units.DegToRad(a)), sinW = Math.Sin(Units.DegToRad(w));
+        double lead = gsFps * (30 * sinW + (sinA - sinW) / turnRate + reactionSec * sinA);
+        return Math.Abs(rightOfCourseFt) > lead;
+    }
+
+    /// <summary>
     /// Not yet on the PAR (a base leg or dogleg outside its sector): vectors onto final from the ASR picture, in
     /// fives, closing at up to 30° and less as the centerline nears.
     /// </summary>
@@ -329,6 +376,7 @@ public sealed partial class AiFinalController
     {
         double crossNm = ac.CrossFt / Units.FeetPerNm;
         double wantRel = Math.Round(Math.Clamp(-crossNm * 20, -30, 30) / 5) * 5;
+        if (HoldsForTheTurn(ac.CrossFt, ac.CommandedHeadingRelDeg, wantRel, ac.GroundSpeedKt * Units.FeetPerNm / 3600)) return null;
         if (Math.Abs(Units.Norm180(wantRel - ac.CommandedHeadingRelDeg)) < 10) return null;
         double hdg = Units.Norm360(CourseMagDeg + wantRel);
         string side = Units.Norm180(wantRel - ac.CommandedHeadingRelDeg) > 0 ? "right" : "left";
@@ -376,13 +424,15 @@ public sealed partial class AiFinalController
     /// <summary>" on two six niner point zero two five" when the frequency is known.</summary>
     private static string On(string? freq) => freq is { Length: > 0 } ? " on " + freq : "";
 
-    private string Brief(string cs, string? approachFreq)
+    /// <param name="part">0 the whole brief; 1 the approach and missed approach; 2 lost communications.</param>
+    private string Brief(string cs, string? approachFreq, int part = 0)
     {
         string alt = RadioSpeech.Altitude(MissedClimbMslFt);
-        return $"{cs}, {Facility} final, this will be a P A R approach to runway {RadioSpeech.Runway(RunwayId)}. "
-            + $"In the event of missed approach, climb and maintain {alt}, fly runway heading{(approachFreq is { Length: > 0 } ? ", contact approach on " + approachFreq : "")}. "
-            + "If no transmissions are received for one minute in the pattern or five seconds on final approach, "
+        string missed = $"{cs}, {Facility} final, this will be a P A R approach to runway {RadioSpeech.Runway(RunwayId)}. "
+            + $"In the event of missed approach, climb and maintain {alt}, fly runway heading{(approachFreq is { Length: > 0 } ? ", contact approach on " + approachFreq : "")}.";
+        string lostComms = "If no transmissions are received for one minute in the pattern or five seconds on final approach, "
             + $"attempt contact with tower and proceed V F R. If unable, climb and maintain {alt} and execute missed approach.";
+        return part switch { 1 => missed, 2 => $"{cs}, {char.ToLowerInvariant(lostComms[0])}{lostComms[1..]}", _ => missed + " " + lostComms };
     }
 
     /// <summary>The scope's call worded for the speech engine: lower case, numbers as spoken digits ("heading two four zero").</summary>

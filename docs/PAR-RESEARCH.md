@@ -55,7 +55,11 @@ Navy NRTC 14089 ch. 2; DTIC ADA228798 (1989 DoD PAR assessment); ICAO Annex 10 V
 * Range: ≤ 100 ft + 3 % of distance from touchdown. Resolution 400 ft.
 * Siting: about 3,000 ft past touchdown and 400 ft from the centerline when scanning ±10°.
 
-The simulator uses one third of this budget as 1σ noise, scaled per preset. It adds ground-reflection
+The simulator uses one third of the azimuth and elevation budgets as 1σ noise, scaled per preset.
+Range noise is 30 ft + 0.3 % of distance from touchdown (one third of the fixed term, one tenth of the
+percentage term), well inside the budget; a third of 3 % would scatter returns by 300 ft at 5 NM.
+Coverage, lock-on, target size and noise use antenna (slant) range; the display axis, calls, data
+block and safe limits use distance from touchdown. It adds ground-reflection
 multipath on elevation within two beamwidths of the horizon, which is the reason PAR elevation sectors
 start at −1°.
 
@@ -275,6 +279,19 @@ US runways use NASR's variation of record (what procedures are built on). Elsewh
 Model 2025 (NOAA/BGS, public domain coefficients) gives the declination at the threshold; the
 implementation matches NOAA's published test values. ATC issues wind magnetic, so the METAR (true)
 wind is converted when tower's clearance is relayed.
+
+## ASR (surveillance) display assumptions
+
+* The ASR site is the selected runway's threshold. Real ASR antennas sit elsewhere on the field and no
+  public source lists their positions, so ASR ranges are measured from that threshold.
+* Range is horizontal ground range, not slant range (about 0.04 NM short at 3,000 ft and 3 NM).
+* Coverage 60 NM (ASR-9 class); range noise 60 m and azimuth 0.08°.
+* Range rings every 5 NM around the site. The plan range setting (10/20/40 NM) is the distance from
+  the site to the nearest screen edge; the site is drawn off center, so the view reaches about 1.45×
+  that along the final and 0.55× behind the site.
+* Mile ticks on the final course are measured from touchdown, like the PAR; whether real video maps
+  measure from the threshold has not been checked.
+* The AI final controller's ASR vectors use true positions, not the noisy ASR picture.
 
 ## Sources added in the October 2026 audit
 
